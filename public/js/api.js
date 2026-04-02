@@ -38,4 +38,7 @@ const API = {
     // Alerts
     getAlerts()           { return this.request('GET', '/alerts'); },
     getAlertSummary()     { return this.request('GET', '/alerts/summary'); },
+
+    // Search
+    search(q)             { return this.request('GET', '/search?q=' + encodeURIComponent(q)); },
 };

@@ -24,10 +24,18 @@ async function ensureTables() {
             name TEXT NOT NULL,
             qty INTEGER NOT NULL DEFAULT 0,
             image TEXT DEFAULT '',
+            description TEXT DEFAULT '',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (locker_id) REFERENCES lockers(id) ON DELETE CASCADE
         )`
     ], 'write');
+
+    // Add description column for existing databases
+    try {
+        await client.execute(`ALTER TABLE items ADD COLUMN description TEXT DEFAULT ''`);
+    } catch (e) {
+        // Column already exists
+    }
 
     // Seed default lockers if table is empty
     const result = await client.execute('SELECT COUNT(*) as c FROM lockers');

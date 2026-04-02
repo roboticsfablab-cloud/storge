@@ -1,10 +1,169 @@
+// ============ Translations ============
+const i18n = {
+    en: {
+        appTitle: 'Locker Cabinet Manager',
+        addLocker: 'Add Locker',
+        searchPlaceholder: 'Search items and lockers...',
+        totalLockers: 'Total Lockers',
+        totalItems: 'Total Items',
+        totalStock: 'Total Stock',
+        alerts: 'Alerts',
+        loading: 'Loading lockers...',
+        noLockers: 'No lockers yet. Click "Add Locker" to get started.',
+        items: 'items',
+        pcs: 'pcs',
+        locker: 'Locker',
+        minStockAlert: 'Min Stock Alert:',
+        itemName: 'Item Name',
+        description: 'Description',
+        stock: 'Stock',
+        status: 'Status',
+        actions: 'Actions',
+        noItems: 'No items in this locker yet.',
+        addFirstItem: 'Add your first item below.',
+        itemNamePlaceholder: 'Item name...',
+        qty: 'Qty',
+        descriptionPlaceholder: 'Description (optional)',
+        imageUrlPlaceholder: 'Image URL (optional)',
+        add: 'Add',
+        addNewLocker: 'Add New Locker',
+        lockerNumber: 'Locker Number',
+        lockerNameOptional: 'Locker Name (optional)',
+        cancel: 'Cancel',
+        lowStockAlerts: 'Low Stock Alerts',
+        allHealthy: 'All stock levels are healthy!',
+        outOfStock: 'Out of Stock',
+        lowStock: 'Low Stock',
+        inStock: 'In Stock',
+        itemRemoved: 'Item removed',
+        imageUploaded: 'Image uploaded',
+        lockerNameUpdated: 'Locker name updated',
+        added: 'Added',
+        toLocker: 'to locker',
+        lockerAdded: 'Locker added',
+        lockerDeleted: 'Locker deleted',
+        deleteLockerConfirm: 'Delete Locker {id}? All items inside will be removed.',
+        enterLockerName: 'Enter locker name:',
+        left: 'left',
+        min: 'min',
+        inStockLabel: 'in stock',
+        noItemsGrid: 'No items yet. Add items below.',
+        searchLockers: 'Lockers',
+        searchItems: 'Items',
+        noResults: 'No results found',
+        failedLoad: 'Failed to load lockers. Is the server running?',
+        failedAlerts: 'Failed to load alerts',
+        itemsRunningLow: '{count} item(s) across {lockers} locker(s) running low on stock!',
+    },
+    ar: {
+        appTitle: 'مدير خزائن التخزين',
+        addLocker: 'إضافة خزانة',
+        searchPlaceholder: 'البحث في العناصر والخزائن...',
+        totalLockers: 'إجمالي الخزائن',
+        totalItems: 'إجمالي العناصر',
+        totalStock: 'إجمالي المخزون',
+        alerts: 'التنبيهات',
+        loading: 'جاري تحميل الخزائن...',
+        noLockers: 'لا توجد خزائن بعد. اضغط "إضافة خزانة" للبدء.',
+        items: 'عناصر',
+        pcs: 'قطعة',
+        locker: 'خزانة',
+        minStockAlert: 'حد أدنى للتنبيه:',
+        itemName: 'اسم العنصر',
+        description: 'الوصف',
+        stock: 'المخزون',
+        status: 'الحالة',
+        actions: 'الإجراءات',
+        noItems: 'لا توجد عناصر في هذه الخزانة بعد.',
+        addFirstItem: 'أضف عنصرك الأول أدناه.',
+        itemNamePlaceholder: 'اسم العنصر...',
+        qty: 'الكمية',
+        descriptionPlaceholder: 'الوصف (اختياري)',
+        imageUrlPlaceholder: 'رابط الصورة (اختياري)',
+        add: 'إضافة',
+        addNewLocker: 'إضافة خزانة جديدة',
+        lockerNumber: 'رقم الخزانة',
+        lockerNameOptional: 'اسم الخزانة (اختياري)',
+        cancel: 'إلغاء',
+        lowStockAlerts: 'تنبيهات المخزون المنخفض',
+        allHealthy: 'جميع مستويات المخزون جيدة!',
+        outOfStock: 'نفد المخزون',
+        lowStock: 'مخزون منخفض',
+        inStock: 'متوفر',
+        itemRemoved: 'تم حذف العنصر',
+        imageUploaded: 'تم رفع الصورة',
+        lockerNameUpdated: 'تم تحديث اسم الخزانة',
+        added: 'تمت إضافة',
+        toLocker: 'إلى الخزانة',
+        lockerAdded: 'تمت إضافة الخزانة',
+        lockerDeleted: 'تم حذف الخزانة',
+        deleteLockerConfirm: 'حذف الخزانة {id}؟ سيتم إزالة جميع العناصر بداخلها.',
+        enterLockerName: 'أدخل اسم الخزانة:',
+        left: 'متبقي',
+        min: 'الحد الأدنى',
+        inStockLabel: 'في المخزون',
+        noItemsGrid: 'لا توجد عناصر. أضف عناصر أدناه.',
+        searchLockers: 'الخزائن',
+        searchItems: 'العناصر',
+        noResults: 'لم يتم العثور على نتائج',
+        failedLoad: 'فشل تحميل الخزائن. هل الخادم يعمل؟',
+        failedAlerts: 'فشل تحميل التنبيهات',
+        itemsRunningLow: '{count} عنصر(عناصر) في {lockers} خزانة(خزائن) بمخزون منخفض!',
+    }
+};
+
 // ============ State ============
 let currentLockerId = null;
 let currentLockerData = null;
 let currentView = 'list';
-let pendingImageFile = null;
+let currentLang = localStorage.getItem('lang') || 'en';
+let currentTheme = localStorage.getItem('theme') || 'dark';
+let searchTimeout = null;
 
-// ============ Toast Notifications ============
+// ============ i18n ============
+function t(key) {
+    return i18n[currentLang][key] || i18n.en[key] || key;
+}
+
+function applyLanguage() {
+    const html = document.documentElement;
+    html.lang = currentLang;
+    html.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+    document.body.style.fontFamily = currentLang === 'ar'
+        ? "'Tajawal', 'Inter', sans-serif"
+        : "'Inter', sans-serif";
+
+    document.getElementById('langLabel').textContent = currentLang === 'en' ? 'AR' : 'EN';
+
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        el.textContent = t(el.dataset.i18n);
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        el.placeholder = t(el.dataset.i18nPlaceholder);
+    });
+}
+
+function toggleLanguage() {
+    currentLang = currentLang === 'en' ? 'ar' : 'en';
+    localStorage.setItem('lang', currentLang);
+    applyLanguage();
+    renderGrid();
+}
+
+// ============ Theme ============
+function applyTheme() {
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    const icon = document.getElementById('themeIcon');
+    icon.className = currentTheme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+}
+
+function toggleTheme() {
+    currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('theme', currentTheme);
+    applyTheme();
+}
+
+// ============ Toast ============
 function showToast(message, type = 'success') {
     let container = document.querySelector('.toast-container');
     if (!container) {
@@ -26,40 +185,128 @@ function escapeHtml(str) {
     return div.innerHTML;
 }
 
+// ============ Search ============
+function handleSearch(value) {
+    clearTimeout(searchTimeout);
+    const results = document.getElementById('searchResults');
+
+    if (!value.trim()) {
+        results.style.display = 'none';
+        results.innerHTML = '';
+        return;
+    }
+
+    searchTimeout = setTimeout(async () => {
+        try {
+            const data = await API.search(value.trim());
+            results.innerHTML = '';
+
+            if (data.lockers.length === 0 && data.items.length === 0) {
+                results.innerHTML = `<div class="search-empty">${t('noResults')}</div>`;
+                results.style.display = 'block';
+                return;
+            }
+
+            if (data.lockers.length > 0) {
+                results.innerHTML += `<div class="search-section-title">${t('searchLockers')}</div>`;
+                data.lockers.forEach(l => {
+                    results.innerHTML += `
+                        <div class="search-item" onclick="document.getElementById('globalSearch').value=''; document.getElementById('searchResults').style.display='none'; openLockerModal(${l.id})">
+                            <i class="fas fa-box-open"></i>
+                            <div>
+                                <div class="search-item-name">${t('locker')} ${l.id}${l.name ? ' - ' + escapeHtml(l.name) : ''}</div>
+                                <div class="search-item-detail">${Number(l.item_count)} ${t('items')} · ${Number(l.total_qty)} ${t('pcs')}</div>
+                            </div>
+                        </div>`;
+                });
+            }
+
+            if (data.items.length > 0) {
+                results.innerHTML += `<div class="search-section-title">${t('searchItems')}</div>`;
+                data.items.forEach(item => {
+                    results.innerHTML += `
+                        <div class="search-item" onclick="document.getElementById('globalSearch').value=''; document.getElementById('searchResults').style.display='none'; openLockerModal(${item.locker_id})">
+                            <i class="fas fa-cube"></i>
+                            <div>
+                                <div class="search-item-name">${escapeHtml(item.name)}</div>
+                                <div class="search-item-detail">${t('locker')} ${item.locker_id}${item.locker_name ? ' - ' + escapeHtml(item.locker_name) : ''} · ${t('qty')}: ${Number(item.qty)}</div>
+                            </div>
+                        </div>`;
+                });
+            }
+
+            results.style.display = 'block';
+        } catch (err) {
+            results.style.display = 'none';
+        }
+    }, 300);
+}
+
+// Close search results when clicking outside
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.search-box')) {
+        document.getElementById('searchResults').style.display = 'none';
+    }
+});
+
+// ============ Dashboard Stats ============
+function updateStats(lockers) {
+    const totalLockers = lockers.length;
+    const totalItems = lockers.reduce((s, l) => s + Number(l.item_count), 0);
+    const totalStock = lockers.reduce((s, l) => s + Number(l.total_qty), 0);
+    const totalAlerts = lockers.reduce((s, l) => s + Number(l.low_stock_count), 0);
+
+    document.getElementById('statLockers').textContent = totalLockers;
+    document.getElementById('statItems').textContent = totalItems;
+    document.getElementById('statStock').textContent = totalStock;
+    document.getElementById('statAlerts').textContent = totalAlerts;
+}
+
 // ============ Render Locker Grid ============
 async function renderGrid() {
     const grid = document.getElementById('lockerGrid');
     try {
         const lockers = await API.getLockers();
         grid.innerHTML = '';
+        updateStats(lockers);
 
         if (lockers.length === 0) {
             grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
                 <i class="fas fa-box-open"></i>
-                <p>No lockers yet. Click "Add Locker" to get started.</p>
+                <p>${t('noLockers')}</p>
             </div>`;
             updateAlertBadge();
             return;
         }
 
         lockers.forEach(locker => {
-            const hasAlert = locker.low_stock_count > 0;
+            const hasAlert = Number(locker.low_stock_count) > 0;
+            const itemCount = Number(locker.item_count);
+            const totalQty = Number(locker.total_qty);
+            const minStock = Number(locker.min_stock);
+            const stockPercent = itemCount > 0 ? Math.min(100, Math.round((totalQty / (itemCount * minStock)) * 100)) : 100;
             const card = document.createElement('div');
             card.className = 'locker-card' + (hasAlert ? ' has-alert' : '');
             card.onclick = () => openLockerModal(locker.id);
 
             card.innerHTML = `
-                <button class="btn-icon locker-delete-btn" onclick="event.stopPropagation(); deleteLocker(${locker.id})" title="Remove locker">
+                <button class="btn-icon locker-delete-btn" onclick="event.stopPropagation(); deleteLocker(${locker.id})" title="Delete">
                     <i class="fas fa-trash-alt"></i>
                 </button>
-                <div class="locker-keypad">
-                    ${Array(9).fill('<span></span>').join('')}
+                <div class="locker-visual">
+                    <div class="locker-door">
+                        <div class="locker-number">${locker.id}</div>
+                        <div class="locker-handle"></div>
+                    </div>
                 </div>
-                <div class="locker-number">${locker.id}</div>
-                <div class="locker-name">${escapeHtml(locker.name || 'Locker ' + locker.id)}</div>
-                <div class="locker-handle"></div>
-                <div class="locker-stock-count">
-                    <i class="fas fa-box"></i> ${locker.item_count} items &middot; ${locker.total_qty} pcs
+                <div class="locker-info">
+                    <div class="locker-name">${escapeHtml(locker.name || t('locker') + ' ' + locker.id)}</div>
+                    <div class="locker-stock-count">
+                        <i class="fas fa-box"></i> ${itemCount} ${t('items')} · ${totalQty} ${t('pcs')}
+                    </div>
+                    <div class="locker-progress">
+                        <div class="locker-progress-bar ${hasAlert ? 'bar-alert' : 'bar-ok'}" style="width:${stockPercent}%"></div>
+                    </div>
                 </div>
             `;
             grid.appendChild(card);
@@ -68,8 +315,8 @@ async function renderGrid() {
         updateAlertBadge();
     } catch (err) {
         grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
-            <i class="fas fa-exclamation-circle" style="color:#f87171"></i>
-            <p>Failed to load lockers. Is the server running?</p>
+            <i class="fas fa-exclamation-circle" style="color:var(--danger)"></i>
+            <p>${t('failedLoad')}</p>
         </div>`;
     }
 }
@@ -78,12 +325,14 @@ async function renderGrid() {
 async function updateAlertBadge() {
     try {
         const summary = await API.getAlertSummary();
-        document.getElementById('alertCount').textContent = summary.total_alerts;
+        const total = Number(summary.total_alerts);
+        const lockers = Number(summary.lockers_affected);
+        document.getElementById('alertCount').textContent = total;
 
-        if (summary.total_alerts > 0) {
+        if (total > 0) {
             document.getElementById('alertBanner').style.display = 'flex';
             document.getElementById('alertText').textContent =
-                `${summary.total_alerts} item${summary.total_alerts > 1 ? 's' : ''} across ${summary.lockers_affected} locker${summary.lockers_affected > 1 ? 's' : ''} running low on stock!`;
+                t('itemsRunningLow').replace('{count}', total).replace('{lockers}', lockers);
         } else {
             document.getElementById('alertBanner').style.display = 'none';
         }
@@ -99,7 +348,7 @@ async function openLockerModal(id) {
     currentLockerId = id;
     try {
         currentLockerData = await API.getLocker(id);
-        document.getElementById('modalLockerName').textContent = currentLockerData.name || 'Locker ' + currentLockerData.id;
+        document.getElementById('modalLockerName').textContent = currentLockerData.name || t('locker') + ' ' + currentLockerData.id;
         document.getElementById('minStockSlider').value = currentLockerData.min_stock;
         document.getElementById('minStockValue').textContent = currentLockerData.min_stock;
 
@@ -129,49 +378,58 @@ function switchView(view) {
 
 // ============ Status Helper ============
 function getStatus(qty, minStock) {
-    if (qty === 0) return { cls: 'status-out', qcls: 'out', label: 'Out of Stock', icon: '<i class="fas fa-times-circle"></i>' };
-    if (qty <= minStock) return { cls: 'status-low', qcls: 'low', label: 'Low Stock', icon: '<i class="fas fa-exclamation-triangle"></i>' };
-    return { cls: 'status-ok', qcls: 'ok', label: 'In Stock', icon: '<i class="fas fa-check-circle"></i>' };
+    if (qty === 0) return { cls: 'status-out', qcls: 'out', label: t('outOfStock'), icon: '<i class="fas fa-times-circle"></i>' };
+    if (qty <= minStock) return { cls: 'status-low', qcls: 'low', label: t('lowStock'), icon: '<i class="fas fa-exclamation-triangle"></i>' };
+    return { cls: 'status-ok', qcls: 'ok', label: t('inStock'), icon: '<i class="fas fa-check-circle"></i>' };
 }
 
 // ============ Render Items ============
 function renderItems() {
     if (!currentLockerData) return;
     const items = currentLockerData.items || [];
-    const minStock = currentLockerData.min_stock;
+    const minStock = Number(currentLockerData.min_stock);
 
     // List view
     const tbody = document.getElementById('itemsTableBody');
     tbody.innerHTML = '';
 
     if (items.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="empty-state">
+        tbody.innerHTML = `<tr><td colspan="5" class="empty-state">
             <i class="fas fa-box-open"></i>
-            <p>No items in this locker yet.<br>Add your first item below.</p>
+            <p>${t('noItems')}<br>${t('addFirstItem')}</p>
         </td></tr>`;
     } else {
         items.forEach(item => {
-            const status = getStatus(item.qty, minStock);
+            const status = getStatus(Number(item.qty), minStock);
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
-                    <input type="text" class="stock-input" style="width:140px; text-align:left"
-                        value="${escapeHtml(item.name)}"
-                        onchange="updateItemName(${item.id}, this.value)">
+                    <div class="item-name-cell">
+                        ${item.image ? `<img src="${escapeHtml(item.image)}" class="item-thumb" onerror="this.style.display='none'">` : ''}
+                        <input type="text" class="stock-input" style="width:140px; text-align:${currentLang === 'ar' ? 'right' : 'left'}"
+                            value="${escapeHtml(item.name)}"
+                            onchange="updateItemName(${item.id}, this.value)">
+                    </div>
                 </td>
                 <td>
-                    <input type="number" class="stock-input" min="0" value="${item.qty}"
+                    <input type="text" class="stock-input desc-input" style="text-align:${currentLang === 'ar' ? 'right' : 'left'}"
+                        value="${escapeHtml(item.description || '')}"
+                        placeholder="${t('descriptionPlaceholder')}"
+                        onchange="updateItemDesc(${item.id}, this.value)">
+                </td>
+                <td>
+                    <input type="number" class="stock-input" min="0" value="${Number(item.qty)}"
                         onchange="updateItemQty(${item.id}, parseInt(this.value))">
                 </td>
                 <td><span class="status-badge ${status.cls}">${status.icon} ${status.label}</span></td>
                 <td class="item-actions">
-                    <button class="btn-icon" onclick="changeQty(${item.id}, 1)" title="Add 1"><i class="fas fa-plus"></i></button>
-                    <button class="btn-icon" onclick="changeQty(${item.id}, -1)" title="Remove 1"><i class="fas fa-minus"></i></button>
-                    <label class="btn-icon" title="Upload image" style="cursor:pointer">
+                    <button class="btn-icon" onclick="changeQty(${item.id}, 1)" title="+1"><i class="fas fa-plus"></i></button>
+                    <button class="btn-icon" onclick="changeQty(${item.id}, -1)" title="-1"><i class="fas fa-minus"></i></button>
+                    <label class="btn-icon" title="Upload" style="cursor:pointer">
                         <i class="fas fa-image"></i>
                         <input type="file" accept="image/*" style="display:none" onchange="uploadItemImage(${item.id}, this.files[0])">
                     </label>
-                    <button class="btn-icon delete" onclick="removeItem(${item.id})" title="Delete item"><i class="fas fa-trash-alt"></i></button>
+                    <button class="btn-icon delete" onclick="removeItem(${item.id})" title="Delete"><i class="fas fa-trash-alt"></i></button>
                 </td>
             `;
             tbody.appendChild(tr);
@@ -185,11 +443,11 @@ function renderItems() {
     if (items.length === 0) {
         grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
             <i class="fas fa-box-open"></i>
-            <p>No items yet. Add items below.</p>
+            <p>${t('noItemsGrid')}</p>
         </div>`;
     } else {
         items.forEach(item => {
-            const status = getStatus(item.qty, minStock);
+            const status = getStatus(Number(item.qty), minStock);
             const card = document.createElement('div');
             card.className = 'item-card';
             card.innerHTML = `
@@ -202,8 +460,9 @@ function renderItems() {
                         : '<i class="fas fa-box"></i>'}
                 </div>
                 <div class="item-card-name">${escapeHtml(item.name)}</div>
-                <div class="item-card-qty ${status.qcls}">${item.qty}</div>
-                <div class="item-card-label">in stock</div>
+                ${item.description ? `<div class="item-card-desc">${escapeHtml(item.description)}</div>` : ''}
+                <div class="item-card-qty ${status.qcls}">${Number(item.qty)}</div>
+                <div class="item-card-label">${t('inStockLabel')}</div>
             `;
             grid.appendChild(card);
         });
@@ -215,6 +474,7 @@ async function addItem() {
     const nameInput = document.getElementById('newItemName');
     const qtyInput = document.getElementById('newItemQty');
     const imgInput = document.getElementById('newItemImage');
+    const descInput = document.getElementById('newItemDesc');
     const fileInput = document.getElementById('newItemFile');
 
     const name = nameInput.value.trim();
@@ -224,22 +484,22 @@ async function addItem() {
         const newItem = await API.addItem(currentLockerId, {
             name,
             qty: Math.max(0, parseInt(qtyInput.value) || 0),
-            image: imgInput.value.trim()
+            image: imgInput.value.trim(),
+            description: descInput.value.trim()
         });
 
-        // Upload image file if selected
         if (fileInput.files[0]) {
             await API.uploadImage(newItem.id, fileInput.files[0]);
         }
 
-        // Refresh locker data
         currentLockerData = await API.getLocker(currentLockerId);
         renderItems();
-        showToast(`Added "${name}" to locker`);
+        showToast(`${t('added')} "${name}" ${t('toLocker')}`);
 
         nameInput.value = '';
         qtyInput.value = '1';
         imgInput.value = '';
+        descInput.value = '';
         fileInput.value = '';
         nameInput.focus();
     } catch (err) {
@@ -252,7 +512,7 @@ async function removeItem(itemId) {
         await API.deleteItem(itemId);
         currentLockerData = await API.getLocker(currentLockerId);
         renderItems();
-        showToast('Item removed');
+        showToast(t('itemRemoved'));
     } catch (err) {
         showToast(err.message, 'error');
     }
@@ -261,6 +521,14 @@ async function removeItem(itemId) {
 async function updateItemName(itemId, value) {
     try {
         await API.updateItem(itemId, { name: value.trim() });
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function updateItemDesc(itemId, value) {
+    try {
+        await API.updateItem(itemId, { description: value.trim() });
     } catch (err) {
         showToast(err.message, 'error');
     }
@@ -292,7 +560,7 @@ async function uploadItemImage(itemId, file) {
         await API.uploadImage(itemId, file);
         currentLockerData = await API.getLocker(currentLockerId);
         renderItems();
-        showToast('Image uploaded');
+        showToast(t('imageUploaded'));
     } catch (err) {
         showToast(err.message, 'error');
     }
@@ -316,13 +584,13 @@ async function saveMinStock(value) {
 // ============ Locker Name ============
 async function editLockerName() {
     if (!currentLockerData) return;
-    const newName = prompt('Enter locker name:', currentLockerData.name || '');
+    const newName = prompt(t('enterLockerName'), currentLockerData.name || '');
     if (newName === null) return;
     try {
         await API.updateLocker(currentLockerId, { name: newName.trim() });
         currentLockerData = await API.getLocker(currentLockerId);
-        document.getElementById('modalLockerName').textContent = currentLockerData.name || 'Locker ' + currentLockerData.id;
-        showToast('Locker name updated');
+        document.getElementById('modalLockerName').textContent = currentLockerData.name || t('locker') + ' ' + currentLockerData.id;
+        showToast(t('lockerNameUpdated'));
     } catch (err) {
         showToast(err.message, 'error');
     }
@@ -349,7 +617,7 @@ async function addLocker() {
 
     try {
         await API.createLocker({ id: num, name: nameInput.value.trim() });
-        showToast(`Locker ${num} added`);
+        showToast(`${t('lockerAdded')} ${num}`);
         closeAddLockerModal();
         renderGrid();
     } catch (err) {
@@ -358,10 +626,10 @@ async function addLocker() {
 }
 
 async function deleteLocker(id) {
-    if (!confirm('Delete Locker ' + id + '? All items inside will be removed.')) return;
+    if (!confirm(t('deleteLockerConfirm').replace('{id}', id))) return;
     try {
         await API.deleteLocker(id);
-        showToast(`Locker ${id} deleted`);
+        showToast(`${t('lockerDeleted')} ${id}`);
         renderGrid();
     } catch (err) {
         showToast(err.message, 'error');
@@ -379,7 +647,7 @@ document.getElementById('alertBadge').onclick = async () => {
         list.innerHTML = '';
 
         if (alerts.length === 0) {
-            list.innerHTML = `<div class="empty-state"><i class="fas fa-check-circle" style="color:#34d399"></i><p>All stock levels are healthy!</p></div>`;
+            list.innerHTML = `<div class="empty-state"><i class="fas fa-check-circle" style="color:var(--success)"></i><p>${t('allHealthy')}</p></div>`;
         } else {
             alerts.forEach(alert => {
                 const div = document.createElement('div');
@@ -388,15 +656,15 @@ document.getElementById('alertBadge').onclick = async () => {
                 div.innerHTML = `
                     <i class="fas fa-exclamation-triangle"></i>
                     <div class="alert-item-text">
-                        <div class="alert-item-locker">Locker ${alert.locker_id}${alert.locker_name ? ' - ' + escapeHtml(alert.locker_name) : ''}</div>
-                        <div class="alert-item-detail">${escapeHtml(alert.item_name)}: ${alert.qty} left (min: ${alert.min_stock})</div>
+                        <div class="alert-item-locker">${t('locker')} ${alert.locker_id}${alert.locker_name ? ' - ' + escapeHtml(alert.locker_name) : ''}</div>
+                        <div class="alert-item-detail">${escapeHtml(alert.item_name)}: ${Number(alert.qty)} ${t('left')} (${t('min')}: ${Number(alert.min_stock)})</div>
                     </div>
                 `;
                 list.appendChild(div);
             });
         }
     } catch (err) {
-        list.innerHTML = `<div class="empty-state"><p>Failed to load alerts</p></div>`;
+        list.innerHTML = `<div class="empty-state"><p>${t('failedAlerts')}</p></div>`;
     }
 };
 
@@ -429,16 +697,16 @@ document.addEventListener('keydown', (e) => {
             currentLockerData = null;
             renderGrid();
         }
+        document.getElementById('searchResults').style.display = 'none';
     }
     if (e.key === 'Enter' && currentLockerId) {
         const active = document.activeElement;
-        if (active && (active.id === 'newItemName' || active.id === 'newItemQty' || active.id === 'newItemImage')) {
+        if (active && (active.id === 'newItemName' || active.id === 'newItemQty' || active.id === 'newItemImage' || active.id === 'newItemDesc')) {
             addItem();
         }
     }
 });
 
-// File input preview
 document.getElementById('newItemFile').addEventListener('change', function() {
     if (this.files[0]) {
         showToast('Image selected: ' + this.files[0].name, 'info');
@@ -446,4 +714,6 @@ document.getElementById('newItemFile').addEventListener('change', function() {
 });
 
 // ============ Init ============
+applyTheme();
+applyLanguage();
 renderGrid();

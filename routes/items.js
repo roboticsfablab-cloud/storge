@@ -5,17 +5,15 @@ const cloudinary = require('cloudinary').v2;
 const { Readable } = require('stream');
 const router = express.Router();
 
-// Configure Cloudinary
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Use memory storage for serverless (no disk writes)
 const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    limits: { fileSize: 5 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
         const allowed = /\.(jpg|jpeg|png|gif|webp|svg)$/i;
         if (allowed.test(path.extname(file.originalname))) {
@@ -52,12 +50,12 @@ module.exports = function (db) {
         const locker = await db.execute({ sql: 'SELECT id FROM lockers WHERE id = ?', args: [req.params.lockerId] });
         if (locker.rows.length === 0) return res.status(404).json({ error: 'Locker not found' });
 
-        const { name, qty, image } = req.body;
+        const { name, qty, image, description } = req.body;
         if (!name || !name.trim()) return res.status(400).json({ error: 'Item name required' });
 
         const result = await db.execute({
-            sql: 'INSERT INTO items (locker_id, name, qty, image) VALUES (?, ?, ?, ?)',
-            args: [req.params.lockerId, name.trim(), Math.max(0, parseInt(qty) || 0), image || '']
+            sql: 'INSERT INTO items (locker_id, name, qty, image, description) VALUES (?, ?, ?, ?, ?)',
+            args: [req.params.lockerId, name.trim(), Math.max(0, parseInt(qty) || 0), image || '', description || '']
         });
 
         const item = await db.execute({ sql: 'SELECT * FROM items WHERE id = ?', args: [Number(result.lastInsertRowid)] });
@@ -69,7 +67,7 @@ module.exports = function (db) {
         const itemResult = await db.execute({ sql: 'SELECT * FROM items WHERE id = ?', args: [req.params.id] });
         if (itemResult.rows.length === 0) return res.status(404).json({ error: 'Item not found' });
 
-        const { name, qty, image } = req.body;
+        const { name, qty, image, description } = req.body;
         if (name !== undefined) {
             await db.execute({ sql: 'UPDATE items SET name = ? WHERE id = ?', args: [name.trim(), req.params.id] });
         }
@@ -78,6 +76,9 @@ module.exports = function (db) {
         }
         if (image !== undefined) {
             await db.execute({ sql: 'UPDATE items SET image = ? WHERE id = ?', args: [image, req.params.id] });
+        }
+        if (description !== undefined) {
+            await db.execute({ sql: 'UPDATE items SET description = ? WHERE id = ?', args: [description, req.params.id] });
         }
 
         const updated = await db.execute({ sql: 'SELECT * FROM items WHERE id = ?', args: [req.params.id] });
@@ -114,7 +115,6 @@ module.exports = function (db) {
         const itemResult = await db.execute({ sql: 'SELECT * FROM items WHERE id = ?', args: [req.params.id] });
         if (itemResult.rows.length === 0) return res.status(404).json({ error: 'Item not found' });
 
-        // Upload to Cloudinary
         const cloudResult = await uploadToCloudinary(req.file.buffer);
         const imageUrl = cloudResult.secure_url;
 

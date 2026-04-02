@@ -10,8 +10,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Ensure database tables exist before handling requests
-app.use(async (req, res, next) => {
+// Ensure database tables exist before handling API requests
+app.use('/api', async (req, res, next) => {
     try {
         await ensureTables();
         next();
@@ -51,7 +51,7 @@ app.get('/api/search', async (req, res) => {
 });
 
 // SPA fallback
-app.get('/{*splat}', (req, res) => {
+app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 

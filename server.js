@@ -1,22 +1,29 @@
 const express = require('express');
 const path = require('path');
-const { initDB } = require('./db/schema');
+const { client, ensureTables } = require('./db/schema');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-// Initialize database
-const db = initDB();
 
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Ensure database tables exist before handling requests
+app.use(async (req, res, next) => {
+    try {
+        await ensureTables();
+        next();
+    } catch (err) {
+        next(err);
+    }
+});
+
 // API Routes
-app.use('/api/lockers', require('./routes/lockers')(db));
-app.use('/api/items', require('./routes/items')(db));
-app.use('/api/alerts', require('./routes/alerts')(db));
+app.use('/api/lockers', require('./routes/lockers')(client));
+app.use('/api/items', require('./routes/items')(client));
+app.use('/api/alerts', require('./routes/alerts')(client));
 
 // SPA fallback
 app.get('/{*splat}', (req, res) => {
@@ -29,6 +36,11 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Internal server error' });
 });
 
-app.listen(PORT, () => {
-    console.log(`\n  Locker Manager running at http://localhost:${PORT}\n`);
-});
+// Only listen when not running on Vercel
+if (!process.env.VERCEL) {
+    app.listen(PORT, () => {
+        console.log(`\n  Locker Manager running at http://localhost:${PORT}\n`);
+    });
+}
+
+module.exports = app;

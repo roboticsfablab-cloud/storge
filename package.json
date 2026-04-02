@@ -1,5 +1,5 @@
 {
-  "name": "locker-manager",
+  "name": "lockermanager",
   "version": "1.0.0",
   "description": "Locker Cabinet Manager",
   "main": "server.js",

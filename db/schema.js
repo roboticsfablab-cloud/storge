@@ -23,21 +23,53 @@ async function ensureTables() {
             locker_id INTEGER NOT NULL,
             name TEXT NOT NULL,
             qty INTEGER NOT NULL DEFAULT 0,
+            min_stock INTEGER NOT NULL DEFAULT 5,
             image TEXT DEFAULT '',
             description TEXT DEFAULT '',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (locker_id) REFERENCES lockers(id) ON DELETE CASCADE
+        )`,
+        `CREATE TABLE IF NOT EXISTS warehouse_zones (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            location TEXT DEFAULT '',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`,
+        `CREATE TABLE IF NOT EXISTS warehouse_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            zone_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            qty INTEGER NOT NULL DEFAULT 0,
+            min_stock INTEGER NOT NULL DEFAULT 5,
+            image TEXT DEFAULT '',
+            description TEXT DEFAULT '',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (zone_id) REFERENCES warehouse_zones(id) ON DELETE CASCADE
+        )`,
+        `CREATE TABLE IF NOT EXISTS departments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            manager TEXT DEFAULT '',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`,
+        `CREATE TABLE IF NOT EXISTS department_lockers (
+            department_id INTEGER NOT NULL,
+            locker_id INTEGER NOT NULL,
+            PRIMARY KEY (department_id, locker_id),
+            FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
         )`
     ], 'write');
 
-    // Add description column for existing databases
-    try {
-        await client.execute(`ALTER TABLE items ADD COLUMN description TEXT DEFAULT ''`);
-    } catch (e) {
-        // Column already exists
+    // Migrations for existing databases
+    const migrations = [
+        `ALTER TABLE items ADD COLUMN description TEXT DEFAULT ''`,
+        `ALTER TABLE items ADD COLUMN min_stock INTEGER NOT NULL DEFAULT 5`,
+    ];
+    for (const sql of migrations) {
+        try { await client.execute(sql); } catch (e) { /* column exists */ }
     }
 
-    // Seed default lockers if table is empty
+    // Seed default lockers if empty
     const result = await client.execute('SELECT COUNT(*) as c FROM lockers');
     if (Number(result.rows[0].c) === 0) {
         const numbers = [

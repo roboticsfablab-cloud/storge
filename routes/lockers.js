@@ -3,13 +3,12 @@ const router = express.Router();
 
 module.exports = function (db) {
 
-    // ─── GET all lockers (with item counts & alert status) ───
     router.get('/', async (req, res) => {
         const result = await db.execute(`
             SELECT l.*,
                    COUNT(i.id) AS item_count,
                    COALESCE(SUM(i.qty), 0) AS total_qty,
-                   COALESCE(SUM(CASE WHEN i.qty <= l.min_stock THEN 1 ELSE 0 END), 0) AS low_stock_count
+                   COALESCE(SUM(CASE WHEN i.qty <= i.min_stock THEN 1 ELSE 0 END), 0) AS low_stock_count
             FROM lockers l
             LEFT JOIN items i ON i.locker_id = l.id
             GROUP BY l.id
@@ -18,7 +17,6 @@ module.exports = function (db) {
         res.json(result.rows);
     });
 
-    // ─── GET single locker with its items ───
     router.get('/:id', async (req, res) => {
         const lockerResult = await db.execute({ sql: 'SELECT * FROM lockers WHERE id = ?', args: [req.params.id] });
         if (lockerResult.rows.length === 0) return res.status(404).json({ error: 'Locker not found' });
@@ -27,7 +25,6 @@ module.exports = function (db) {
         res.json({ ...lockerResult.rows[0], items: itemsResult.rows });
     });
 
-    // ─── POST create locker ───
     router.post('/', async (req, res) => {
         const { id, name } = req.body;
         if (!id || id < 1) return res.status(400).json({ error: 'Valid locker number required' });
@@ -43,7 +40,6 @@ module.exports = function (db) {
         res.status(201).json(locker.rows[0]);
     });
 
-    // ─── PUT update locker (name, min_stock) ───
     router.put('/:id', async (req, res) => {
         const lockerResult = await db.execute({ sql: 'SELECT * FROM lockers WHERE id = ?', args: [req.params.id] });
         if (lockerResult.rows.length === 0) return res.status(404).json({ error: 'Locker not found' });
@@ -60,7 +56,6 @@ module.exports = function (db) {
         res.json(updated.rows[0]);
     });
 
-    // ─── DELETE locker ───
     router.delete('/:id', async (req, res) => {
         const locker = await db.execute({ sql: 'SELECT id FROM lockers WHERE id = ?', args: [req.params.id] });
         if (locker.rows.length === 0) return res.status(404).json({ error: 'Locker not found' });

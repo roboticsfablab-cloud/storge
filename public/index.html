@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Locker Cabinet Manager</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <i class="fas fa-cube logo-icon"></i>
+                <h1>Locker Cabinet Manager</h1>
+            </div>
+            <div class="header-right">
+                <div class="alert-badge" id="alertBadge" title="Low stock alerts">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge-count" id="alertCount">0</span>
+                </div>
+                <button class="btn btn-add-locker" onclick="openAddLockerModal()">
+                    <i class="fas fa-plus"></i> Add Locker
+                </button>
+            </div>
+        </header>
+
+        <!-- Alert Banner -->
+        <div class="alert-banner" id="alertBanner" style="display:none">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span id="alertText"></span>
+            <button class="alert-close" onclick="closeAlertBanner()">&times;</button>
+        </div>
+
+        <!-- Locker Grid -->
+        <main class="locker-grid-container">
+            <div class="locker-grid" id="lockerGrid">
+                <div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading lockers...</div>
+            </div>
+        </main>
+
+        <!-- Locker Detail Modal -->
+        <div class="modal-overlay" id="lockerModal">
+            <div class="modal locker-detail-modal">
+                <div class="modal-header">
+                    <div class="modal-title-area">
+                        <h2 id="modalLockerName"></h2>
+                        <button class="btn-icon btn-edit-name" onclick="editLockerName()" title="Edit locker name">
+                            <i class="fas fa-pencil-alt"></i>
+                        </button>
+                    </div>
+                    <div class="modal-actions">
+                        <div class="view-toggle">
+                            <button class="toggle-btn active" id="listViewBtn" onclick="switchView('list')">
+                                <i class="fas fa-list"></i>
+                            </button>
+                            <button class="toggle-btn" id="gridViewBtn" onclick="switchView('grid')">
+                                <i class="fas fa-th"></i>
+                            </button>
+                        </div>
+                        <button class="btn-icon btn-close" onclick="closeLockerModal()">&times;</button>
+                    </div>
+                </div>
+
+                <!-- Min Stock Setting -->
+                <div class="min-stock-bar">
+                    <label><i class="fas fa-exclamation-circle"></i> Min Stock Alert:</label>
+                    <input type="range" id="minStockSlider" min="0" max="50" value="5" oninput="updateMinStockPreview(this.value)" onchange="saveMinStock(this.value)">
+                    <span class="min-stock-value" id="minStockValue">5</span>
+                </div>
+
+                <!-- List View -->
+                <div class="items-container" id="listView">
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th>Item Name</th>
+                                <th>Stock</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="itemsTableBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- Grid View -->
+                <div class="items-container" id="gridView" style="display:none">
+                    <div class="items-grid" id="itemsGrid"></div>
+                </div>
+
+                <!-- Add Item -->
+                <div class="add-item-bar">
+                    <input type="text" id="newItemName" placeholder="Item name..." class="input">
+                    <input type="number" id="newItemQty" placeholder="Qty" min="0" value="1" class="input input-sm">
+                    <input type="text" id="newItemImage" placeholder="Image URL (optional)" class="input">
+                    <label class="btn btn-secondary btn-upload" title="Upload image">
+                        <i class="fas fa-camera"></i>
+                        <input type="file" id="newItemFile" accept="image/*" style="display:none">
+                    </label>
+                    <button class="btn btn-primary" onclick="addItem()">
+                        <i class="fas fa-plus"></i> Add
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Locker Modal -->
+        <div class="modal-overlay" id="addLockerModal">
+            <div class="modal modal-sm">
+                <div class="modal-header">
+                    <h2>Add New Locker</h2>
+                    <button class="btn-icon btn-close" onclick="closeAddLockerModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <label>Locker Number</label>
+                    <input type="number" id="newLockerNumber" placeholder="e.g. 40" class="input" min="1">
+                    <label>Locker Name (optional)</label>
+                    <input type="text" id="newLockerName" placeholder="e.g. Electronics" class="input">
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeAddLockerModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="addLocker()">Add Locker</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alerts Panel -->
+        <div class="modal-overlay" id="alertsPanel">
+            <div class="modal modal-alerts">
+                <div class="modal-header">
+                    <h2><i class="fas fa-bell"></i> Low Stock Alerts</h2>
+                    <button class="btn-icon btn-close" onclick="closeAlertsPanel()">&times;</button>
+                </div>
+                <div class="alerts-list" id="alertsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>

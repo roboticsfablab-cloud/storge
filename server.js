@@ -19,14 +19,19 @@ app.use('/api/items', require('./routes/items')(client));
 app.use('/api/alerts', require('./routes/alerts')(client));
 app.use('/api/warehouse', require('./routes/warehouse')(client));
 app.use('/api/departments', require('./routes/departments')(client));
+app.use('/api/employees', require('./routes/employees')(client));
 
+// Global search across all entities
 app.get('/api/search', async (req, res) => {
     const q = req.query.q || '';
-    if (!q.trim()) return res.json({ lockers: [], items: [] });
+    if (!q.trim()) return res.json({ lockers: [], items: [], zones: [], employees: [], departments: [] });
     const term = `%${q.trim()}%`;
     const lockers = await client.execute({ sql: `SELECT l.*, COUNT(i.id) AS item_count, COALESCE(SUM(i.qty), 0) AS total_qty FROM lockers l LEFT JOIN items i ON i.locker_id = l.id WHERE l.name LIKE ? OR CAST(l.id AS TEXT) LIKE ? GROUP BY l.id ORDER BY l.id`, args: [term, term] });
     const items = await client.execute({ sql: `SELECT i.*, l.name AS locker_name FROM items i JOIN lockers l ON l.id = i.locker_id WHERE i.name LIKE ? OR i.description LIKE ? ORDER BY i.name`, args: [term, term] });
-    res.json({ lockers: lockers.rows, items: items.rows });
+    const zones = await client.execute({ sql: `SELECT * FROM warehouse_zones WHERE name LIKE ? OR location LIKE ? ORDER BY name`, args: [term, term] });
+    const employees = await client.execute({ sql: `SELECT e.*, d.name AS department_name FROM employees e LEFT JOIN departments d ON d.id = e.department_id WHERE e.name LIKE ? OR e.job_title LIKE ? ORDER BY e.name`, args: [term, term] });
+    const departments = await client.execute({ sql: `SELECT * FROM departments WHERE name LIKE ? OR manager LIKE ? ORDER BY name`, args: [term, term] });
+    res.json({ lockers: lockers.rows, items: items.rows, zones: zones.rows, employees: employees.rows, departments: departments.rows });
 });
 
 app.get('*', (req, res) => {
@@ -39,7 +44,7 @@ app.use((err, req, res, next) => {
 });
 
 if (!process.env.VERCEL) {
-    app.listen(PORT, () => { console.log(`\n  Locker Manager running at http://localhost:${PORT}\n`); });
+    app.listen(PORT, () => { console.log(`\n  FABY Keeper running at http://localhost:${PORT}\n`); });
 }
 
 module.exports = app;

@@ -49,6 +49,12 @@ const API = {
     deleteZoneItem(id)     { return this.request('DELETE', '/warehouse/items/' + id); },
     uploadZoneItemImage(id, file) { return this.upload('/warehouse/items/' + id + '/image', file); },
 
+    // Warehouse Areas
+    getAreas(zoneId)         { return this.request('GET', '/warehouse/' + zoneId + '/areas'); },
+    createArea(zoneId, data) { return this.request('POST', '/warehouse/' + zoneId + '/areas', data); },
+    updateArea(id, data)     { return this.request('PUT', '/warehouse/areas/' + id, data); },
+    deleteArea(id)           { return this.request('DELETE', '/warehouse/areas/' + id); },
+
     // Departments
     getDepartments()         { return this.request('GET', '/departments'); },
     getDepartment(id)        { return this.request('GET', '/departments/' + id); },
@@ -57,4 +63,27 @@ const API = {
     deleteDepartment(id)     { return this.request('DELETE', '/departments/' + id); },
     assignLocker(did, lid)   { return this.request('POST', '/departments/' + did + '/lockers', { locker_id: lid }); },
     unassignLocker(did, lid) { return this.request('DELETE', '/departments/' + did + '/lockers/' + lid); },
+
+    // Department Items
+    getDeptItems(did)             { return this.request('GET', '/departments/' + did + '/items'); },
+    addDeptItem(did, data)        { return this.request('POST', '/departments/' + did + '/items', data); },
+    updateDeptItem(id, data)      { return this.request('PUT', '/departments/items/' + id, data); },
+    deleteDeptItem(id)            { return this.request('DELETE', '/departments/items/' + id); },
+    uploadDeptItemImage(id, file) { return this.upload('/departments/items/' + id + '/image', file); },
+
+    // Responsibility History
+    getDeptHistory(did)           { return this.request('GET', '/departments/' + did + '/history'); },
+    addDeptHistory(did, data)     { return this.request('POST', '/departments/' + did + '/history', data); },
+    updateDeptHistory(id, data)   { return this.request('PUT', '/departments/history/' + id, data); },
+    deleteDeptHistory(id)         { return this.request('DELETE', '/departments/history/' + id); },
+
+    // Employees
+    getEmployees()              { return this.request('GET', '/employees'); },
+    getEmployee(id)             { return this.request('GET', '/employees/' + id); },
+    createEmployee(data)        { return this.request('POST', '/employees', data); },
+    updateEmployee(id, data)    { return this.request('PUT', '/employees/' + id, data); },
+    deleteEmployee(id)          { return this.request('DELETE', '/employees/' + id); },
+    uploadEmployeePhoto(id, f)  { return this.upload('/employees/' + id + '/photo', f); },
+    getEmployeeItems(id)        { return this.request('GET', '/employees/' + id + '/items'); },
+    addEmployeeItem(id, data)   { return this.request('POST', '/employees/' + id + '/items', data); },
 };

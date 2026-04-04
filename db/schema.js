@@ -33,11 +33,22 @@ async function ensureTables() {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             location TEXT DEFAULT '',
+            description TEXT DEFAULT '',
+            color TEXT DEFAULT '#7b2ff7',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`,
+        `CREATE TABLE IF NOT EXISTS warehouse_areas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            zone_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            description TEXT DEFAULT '',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (zone_id) REFERENCES warehouse_zones(id) ON DELETE CASCADE
         )`,
         `CREATE TABLE IF NOT EXISTS warehouse_items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             zone_id INTEGER NOT NULL,
+            area_id INTEGER DEFAULT NULL,
             name TEXT NOT NULL,
             qty INTEGER NOT NULL DEFAULT 0,
             min_stock INTEGER NOT NULL DEFAULT 5,
@@ -50,6 +61,7 @@ async function ensureTables() {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             manager TEXT DEFAULT '',
+            description TEXT DEFAULT '',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`,
         `CREATE TABLE IF NOT EXISTS department_lockers (
@@ -57,6 +69,39 @@ async function ensureTables() {
             locker_id INTEGER NOT NULL,
             PRIMARY KEY (department_id, locker_id),
             FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
+        )`,
+        `CREATE TABLE IF NOT EXISTS employees (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            job_title TEXT DEFAULT '',
+            department_id INTEGER DEFAULT NULL,
+            photo TEXT DEFAULT '',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL
+        )`,
+        `CREATE TABLE IF NOT EXISTS department_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            department_id INTEGER NOT NULL,
+            employee_id INTEGER DEFAULT NULL,
+            name TEXT NOT NULL,
+            description TEXT DEFAULT '',
+            qty INTEGER NOT NULL DEFAULT 1,
+            image TEXT DEFAULT '',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
+            FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL
+        )`,
+        `CREATE TABLE IF NOT EXISTS responsibility_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            department_id INTEGER NOT NULL,
+            employee_id INTEGER NOT NULL,
+            start_date TEXT NOT NULL,
+            end_date TEXT DEFAULT '',
+            status TEXT NOT NULL DEFAULT 'active',
+            notes TEXT DEFAULT '',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
+            FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
         )`
     ], 'write');
 
@@ -64,6 +109,10 @@ async function ensureTables() {
     const migrations = [
         `ALTER TABLE items ADD COLUMN description TEXT DEFAULT ''`,
         `ALTER TABLE items ADD COLUMN min_stock INTEGER NOT NULL DEFAULT 5`,
+        `ALTER TABLE warehouse_zones ADD COLUMN description TEXT DEFAULT ''`,
+        `ALTER TABLE warehouse_zones ADD COLUMN color TEXT DEFAULT '#7b2ff7'`,
+        `ALTER TABLE warehouse_items ADD COLUMN area_id INTEGER DEFAULT NULL`,
+        `ALTER TABLE departments ADD COLUMN description TEXT DEFAULT ''`,
     ];
     for (const sql of migrations) {
         try { await client.execute(sql); } catch (e) { /* column exists */ }

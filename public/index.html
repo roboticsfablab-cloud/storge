@@ -3,320 +3,510 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Locker Cabinet Manager</title>
-    <link rel="stylesheet" href="/css/style.css?v=2">
+    <title>FABY Keeper</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%237b2ff7'/%3E%3Cstop offset='100%25' stop-color='%2300d2ff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='20' fill='url(%23g)'/%3E%3Ctext x='50' y='68' text-anchor='middle' font-size='52' font-weight='bold' fill='white' font-family='Arial'%3EFK%3C/text%3E%3C/svg%3E">
+    <link rel="stylesheet" href="/css/style.css?v=3">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
-<div class="app">
-    <!-- Header -->
-    <header class="header">
-        <div class="header-left">
-            <button class="btn-icon back-btn" id="backBtn" onclick="navigateTo('home')" style="display:none" title="Home">
-                <i class="fas fa-arrow-left"></i>
-            </button>
-            <i class="fas fa-cube logo-icon" onclick="navigateTo('home')" style="cursor:pointer"></i>
-            <h1 id="pageTitle" data-i18n="appTitle">Locker Cabinet Manager</h1>
-        </div>
-        <div class="header-center">
-            <div class="search-box" id="searchBox" style="display:none">
-                <i class="fas fa-search search-icon"></i>
-                <input type="text" id="globalSearch" data-i18n-placeholder="searchPlaceholder" placeholder="Search items and lockers..." oninput="handleSearch(this.value)">
-                <div class="search-results" id="searchResults"></div>
+<div class="app-layout">
+    <!-- ====== SIDEBAR ====== -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand" onclick="navigateTo('home')">
+            <div class="brand-icon">FK</div>
+            <div class="brand-text">
+                <span class="brand-name">FABY</span>
+                <span class="brand-sub">Keeper</span>
             </div>
         </div>
-        <div class="header-right">
-            <div class="alert-badge" id="alertBadge" title="Low stock alerts" style="display:none">
-                <i class="fas fa-bell"></i>
-                <span class="badge-count" id="alertCount">0</span>
-            </div>
+        <div class="sidebar-search">
+            <i class="fas fa-search"></i>
+            <input type="text" id="sidebarSearch" placeholder="Search everything..." oninput="handleGlobalSearch(this.value)">
+            <div class="sidebar-search-results" id="sidebarSearchResults"></div>
+        </div>
+        <nav class="sidebar-nav">
+            <a class="sidebar-link active" data-page="home" onclick="navigateTo('home')">
+                <i class="fas fa-home"></i><span>Home</span>
+            </a>
+            <a class="sidebar-link" data-page="lockers" onclick="navigateTo('lockers')">
+                <i class="fas fa-box-open"></i><span>Lockers</span>
+            </a>
+            <a class="sidebar-link" data-page="warehouse" onclick="navigateTo('warehouse')">
+                <i class="fas fa-warehouse"></i><span>Warehouse</span>
+            </a>
+            <a class="sidebar-link" data-page="departments" onclick="navigateTo('departments')">
+                <i class="fas fa-building"></i><span>Departments</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
             <button class="btn-icon theme-toggle" onclick="toggleTheme()" title="Toggle theme">
                 <i class="fas fa-moon" id="themeIcon"></i>
             </button>
             <button class="btn-icon lang-toggle" onclick="toggleLanguage()" title="Toggle language">
                 <span id="langLabel">AR</span>
             </button>
-            <button class="btn btn-add-locker" id="addBtn" style="display:none" onclick="handleAddBtn()">
-                <i class="fas fa-plus"></i> <span id="addBtnText" data-i18n="addLocker">Add Locker</span>
+        </div>
+    </aside>
+
+    <!-- ====== MAIN CONTENT ====== -->
+    <div class="main-content">
+        <!-- Top Bar -->
+        <header class="topbar">
+            <button class="btn-icon sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
             </button>
+            <h1 id="pageTitle" class="topbar-title" data-i18n="appTitle">FABY Keeper</h1>
+            <div class="topbar-right">
+                <div class="alert-badge" id="alertBadge" title="Low stock alerts" style="display:none">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge-count" id="alertCount">0</span>
+                </div>
+                <button class="btn btn-add-main" id="addBtn" style="display:none" onclick="handleAddBtn()">
+                    <i class="fas fa-plus"></i> <span id="addBtnText" data-i18n="addLocker">Add</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="alert-banner" id="alertBanner" style="display:none">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span id="alertText"></span>
+            <button class="alert-close" onclick="closeAlertBanner()">&times;</button>
         </div>
-    </header>
 
-    <div class="alert-banner" id="alertBanner" style="display:none">
-        <i class="fas fa-exclamation-triangle"></i>
-        <span id="alertText"></span>
-        <button class="alert-close" onclick="closeAlertBanner()">&times;</button>
-    </div>
-
-    <!-- ====== HOME PAGE ====== -->
-    <div id="page-home" class="page active">
-        <div class="home-container">
-            <div class="home-title" data-i18n="appTitle">Locker Cabinet Manager</div>
-            <div class="home-subtitle" data-i18n="homeSubtitle">Manage your storage, warehouse, and departments</div>
-            <div class="home-grid">
-                <div class="home-card home-card-lockers" onclick="navigateTo('lockers')">
-                    <div class="home-card-icon"><i class="fas fa-box-open"></i></div>
-                    <div class="home-card-title" data-i18n="lockers">Lockers</div>
-                    <div class="home-card-desc" data-i18n="lockersDesc">Manage locker cabinets and inventory items</div>
-                    <div class="home-card-count" id="homeLockerCount"></div>
-                </div>
-                <div class="home-card home-card-warehouse" onclick="navigateTo('warehouse')">
-                    <div class="home-card-icon"><i class="fas fa-warehouse"></i></div>
-                    <div class="home-card-title" data-i18n="warehouse">Warehouse</div>
-                    <div class="home-card-desc" data-i18n="warehouseDesc">Manage warehouse zones and bulk storage</div>
-                    <div class="home-card-count" id="homeWarehouseCount"></div>
-                </div>
-                <div class="home-card home-card-departments" onclick="navigateTo('departments')">
-                    <div class="home-card-icon"><i class="fas fa-users-cog"></i></div>
-                    <div class="home-card-title" data-i18n="departments">Departments</div>
-                    <div class="home-card-desc" data-i18n="departmentsDesc">Assign lockers and manage team responsibilities</div>
-                    <div class="home-card-count" id="homeDeptCount"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ====== LOCKERS PAGE ====== -->
-    <div id="page-lockers" class="page">
-        <div class="stats-bar">
-            <div class="stat-card clickable" onclick="showAllItems()">
-                <div class="stat-icon"><i class="fas fa-box-open"></i></div>
-                <div class="stat-info">
-                    <div class="stat-value" id="statLockers">0</div>
-                    <div class="stat-label" data-i18n="totalLockers">Total Lockers</div>
-                </div>
-            </div>
-            <div class="stat-card clickable" onclick="showAllItems()">
-                <div class="stat-icon"><i class="fas fa-cubes"></i></div>
-                <div class="stat-info">
-                    <div class="stat-value" id="statItems">0</div>
-                    <div class="stat-label" data-i18n="totalItems">Total Items</div>
-                </div>
-            </div>
-            <div class="stat-card clickable" onclick="showAllItems()">
-                <div class="stat-icon"><i class="fas fa-layer-group"></i></div>
-                <div class="stat-info">
-                    <div class="stat-value" id="statStock">0</div>
-                    <div class="stat-label" data-i18n="totalStock">Total Stock</div>
-                </div>
-            </div>
-            <div class="stat-card stat-card-alert clickable" onclick="openAlertsPanel()">
-                <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
-                <div class="stat-info">
-                    <div class="stat-value" id="statAlerts">0</div>
-                    <div class="stat-label" data-i18n="alerts">Alerts</div>
-                </div>
-            </div>
-        </div>
-        <main class="locker-grid-container">
-            <div class="locker-grid" id="lockerGrid">
-                <div class="loading"><i class="fas fa-spinner fa-spin"></i> <span data-i18n="loading">Loading...</span></div>
-            </div>
-        </main>
-    </div>
-
-    <!-- ====== WAREHOUSE PAGE ====== -->
-    <div id="page-warehouse" class="page">
-        <main class="locker-grid-container">
-            <div class="locker-grid" id="warehouseGrid">
-                <div class="loading"><i class="fas fa-spinner fa-spin"></i> <span data-i18n="loading">Loading...</span></div>
-            </div>
-        </main>
-    </div>
-
-    <!-- ====== DEPARTMENTS PAGE ====== -->
-    <div id="page-departments" class="page">
-        <main class="locker-grid-container">
-            <div class="dept-grid" id="deptGrid">
-                <div class="loading"><i class="fas fa-spinner fa-spin"></i> <span data-i18n="loading">Loading...</span></div>
-            </div>
-        </main>
-    </div>
-
-    <!-- ====== MODALS ====== -->
-
-    <!-- Locker Detail -->
-    <div class="modal-overlay" id="lockerModal">
-        <div class="modal locker-detail-modal">
-            <div class="modal-header">
-                <div class="modal-title-area">
-                    <h2 id="modalLockerName"></h2>
-                    <button class="btn-icon btn-edit-name" onclick="editLockerName()" title="Edit"><i class="fas fa-pencil-alt"></i></button>
-                </div>
-                <div class="modal-actions">
-                    <div class="view-toggle">
-                        <button class="toggle-btn active" id="listViewBtn" onclick="switchView('list')"><i class="fas fa-list"></i></button>
-                        <button class="toggle-btn" id="gridViewBtn" onclick="switchView('grid')"><i class="fas fa-th"></i></button>
+        <!-- ====== HOME PAGE ====== -->
+        <div id="page-home" class="page active">
+            <div class="home-container">
+                <div class="home-hero">
+                    <div class="home-hero-icon">
+                        <div class="hero-glow"></div>
+                        <i class="fas fa-shield-alt"></i>
                     </div>
-                    <button class="btn-icon btn-close" onclick="closeLockerModal()">&times;</button>
+                    <div class="home-title">FABY Keeper</div>
+                    <div class="home-subtitle" data-i18n="homeSubtitle">Manage your storage, warehouse, and departments</div>
+                </div>
+                <div class="home-grid">
+                    <div class="home-card home-card-lockers" onclick="navigateTo('lockers')">
+                        <div class="home-card-bg"></div>
+                        <div class="home-card-content">
+                            <div class="home-card-icon"><i class="fas fa-box-open"></i></div>
+                            <div class="home-card-title" data-i18n="lockers">Lockers</div>
+                            <div class="home-card-desc" data-i18n="lockersDesc">Manage locker cabinets and inventory items</div>
+                            <div class="home-card-count" id="homeLockerCount"></div>
+                        </div>
+                    </div>
+                    <div class="home-card home-card-warehouse" onclick="navigateTo('warehouse')">
+                        <div class="home-card-bg"></div>
+                        <div class="home-card-content">
+                            <div class="home-card-icon"><i class="fas fa-warehouse"></i></div>
+                            <div class="home-card-title" data-i18n="warehouse">Warehouse</div>
+                            <div class="home-card-desc" data-i18n="warehouseDesc">Manage warehouse zones and bulk storage</div>
+                            <div class="home-card-count" id="homeWarehouseCount"></div>
+                        </div>
+                    </div>
+                    <div class="home-card home-card-departments" onclick="navigateTo('departments')">
+                        <div class="home-card-bg"></div>
+                        <div class="home-card-content">
+                            <div class="home-card-icon"><i class="fas fa-building"></i></div>
+                            <div class="home-card-title" data-i18n="departments">Departments</div>
+                            <div class="home-card-desc" data-i18n="departmentsDesc">Manage teams, employees and responsibilities</div>
+                            <div class="home-card-count" id="homeDeptCount"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="items-container" id="listView">
-                <table class="items-table">
-                    <thead><tr>
-                        <th data-i18n="itemName">Item Name</th>
-                        <th data-i18n="description">Description</th>
-                        <th data-i18n="stock">Stock</th>
-                        <th data-i18n="minStock">Min</th>
-                        <th data-i18n="status">Status</th>
-                        <th data-i18n="actions">Actions</th>
-                    </tr></thead>
-                    <tbody id="itemsTableBody"></tbody>
-                </table>
+        </div>
+
+        <!-- ====== LOCKERS PAGE ====== -->
+        <div id="page-lockers" class="page">
+            <div class="page-search-bar">
+                <div class="page-search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="lockerSearch" data-i18n-placeholder="searchPlaceholder" placeholder="Search lockers and items..." oninput="handleLockerSearch(this.value)">
+                    <div class="page-search-results" id="lockerSearchResults"></div>
+                </div>
             </div>
-            <div class="items-container" id="gridView" style="display:none">
-                <div class="items-grid" id="itemsGrid"></div>
+            <div class="stats-bar">
+                <div class="stat-card clickable" onclick="showAllItems()">
+                    <div class="stat-icon"><i class="fas fa-box-open"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="statLockers">0</div>
+                        <div class="stat-label" data-i18n="totalLockers">Total Lockers</div>
+                    </div>
+                </div>
+                <div class="stat-card clickable" onclick="showAllItems()">
+                    <div class="stat-icon"><i class="fas fa-cubes"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="statItems">0</div>
+                        <div class="stat-label" data-i18n="totalItems">Total Items</div>
+                    </div>
+                </div>
+                <div class="stat-card clickable" onclick="showAllItems()">
+                    <div class="stat-icon"><i class="fas fa-layer-group"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="statStock">0</div>
+                        <div class="stat-label" data-i18n="totalStock">Total Stock</div>
+                    </div>
+                </div>
+                <div class="stat-card stat-card-alert clickable" onclick="openAlertsPanel()">
+                    <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="statAlerts">0</div>
+                        <div class="stat-label" data-i18n="alerts">Alerts</div>
+                    </div>
+                </div>
             </div>
-            <div class="add-item-bar">
-                <input type="text" id="newItemName" data-i18n-placeholder="itemNamePlaceholder" placeholder="Item name..." class="input">
-                <input type="number" id="newItemQty" placeholder="Qty" min="0" value="1" class="input input-sm">
-                <input type="number" id="newItemMin" placeholder="Min" min="0" value="5" class="input input-sm">
-                <input type="text" id="newItemDesc" data-i18n-placeholder="descriptionPlaceholder" placeholder="Description (optional)" class="input">
-                <label class="btn btn-secondary btn-upload" title="Upload image">
-                    <i class="fas fa-camera"></i>
-                    <input type="file" id="newItemFile" accept="image/*" style="display:none">
-                </label>
-                <button class="btn btn-primary" onclick="addItem()"><i class="fas fa-plus"></i> <span data-i18n="add">Add</span></button>
+            <main class="locker-grid-container">
+                <div class="locker-grid" id="lockerGrid">
+                    <div class="loading"><i class="fas fa-spinner fa-spin"></i> <span data-i18n="loading">Loading...</span></div>
+                </div>
+            </main>
+        </div>
+
+        <!-- ====== WAREHOUSE PAGE ====== -->
+        <div id="page-warehouse" class="page">
+            <div class="page-search-bar">
+                <div class="page-search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="warehouseSearch" placeholder="Search zones and items..." oninput="handleWarehouseSearch(this.value)">
+                    <div class="page-search-results" id="warehouseSearchResults"></div>
+                </div>
+            </div>
+            <div class="warehouse-dashboard" id="warehouseDashboard">
+                <div class="wh-stats-row" id="whStatsRow"></div>
+                <div class="wh-zones-grid" id="warehouseGrid">
+                    <div class="loading"><i class="fas fa-spinner fa-spin"></i> <span data-i18n="loading">Loading...</span></div>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Add Locker Modal -->
-    <div class="modal-overlay" id="addLockerModal">
-        <div class="modal modal-sm">
-            <div class="modal-header">
-                <h2 data-i18n="addNewLocker">Add New Locker</h2>
-                <button class="btn-icon btn-close" onclick="closeAddLockerModal()">&times;</button>
+        <!-- ====== DEPARTMENTS PAGE ====== -->
+        <div id="page-departments" class="page">
+            <div class="page-search-bar">
+                <div class="page-search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="deptSearch" placeholder="Search departments and employees..." oninput="handleDeptSearch(this.value)">
+                    <div class="page-search-results" id="deptSearchResults"></div>
+                </div>
             </div>
-            <div class="modal-body">
-                <label data-i18n="lockerNumber">Locker Number</label>
-                <input type="number" id="newLockerNumber" placeholder="e.g. 40" class="input" min="1">
-                <label data-i18n="lockerNameOptional">Locker Name (optional)</label>
-                <input type="text" id="newLockerName" placeholder="e.g. Electronics" class="input">
+            <div class="dept-tabs">
+                <button class="dept-tab active" id="tabEmployees" onclick="switchDeptTab('employees')"><i class="fas fa-user-tie"></i> Employees</button>
+                <button class="dept-tab" id="tabDepartments" onclick="switchDeptTab('depts')"><i class="fas fa-building"></i> Departments</button>
             </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeAddLockerModal()" data-i18n="cancel">Cancel</button>
-                <button class="btn btn-primary" onclick="addLocker()" data-i18n="addLocker">Add Locker</button>
+            <div id="deptTabEmployees" class="dept-tab-content active">
+                <div class="emp-grid" id="empGrid">
+                    <div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+                </div>
+            </div>
+            <div id="deptTabDepts" class="dept-tab-content">
+                <div class="dept-grid" id="deptGrid">
+                    <div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Add Warehouse Zone Modal -->
-    <div class="modal-overlay" id="addZoneModal">
-        <div class="modal modal-sm">
-            <div class="modal-header">
-                <h2 data-i18n="addZone">Add Zone</h2>
-                <button class="btn-icon btn-close" onclick="document.getElementById('addZoneModal').classList.remove('active')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <label data-i18n="zoneName">Zone Name</label>
-                <input type="text" id="newZoneName" placeholder="e.g. Zone A" class="input">
-                <label data-i18n="location">Location</label>
-                <input type="text" id="newZoneLocation" placeholder="e.g. Building 2" class="input">
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="document.getElementById('addZoneModal').classList.remove('active')" data-i18n="cancel">Cancel</button>
-                <button class="btn btn-primary" onclick="addZone()" data-i18n="addZone">Add Zone</button>
+        <!-- ====== MODALS ====== -->
+
+        <!-- Locker Detail -->
+        <div class="modal-overlay" id="lockerModal">
+            <div class="modal locker-detail-modal">
+                <div class="modal-header">
+                    <div class="modal-title-area">
+                        <h2 id="modalLockerName"></h2>
+                        <button class="btn-icon btn-edit-name" onclick="editLockerName()" title="Edit"><i class="fas fa-pencil-alt"></i></button>
+                    </div>
+                    <div class="modal-actions">
+                        <div class="view-toggle">
+                            <button class="toggle-btn active" id="listViewBtn" onclick="switchView('list')"><i class="fas fa-list"></i></button>
+                            <button class="toggle-btn" id="gridViewBtn" onclick="switchView('grid')"><i class="fas fa-th"></i></button>
+                        </div>
+                        <button class="btn-icon btn-close" onclick="closeLockerModal()">&times;</button>
+                    </div>
+                </div>
+                <div class="items-container" id="listView">
+                    <table class="items-table">
+                        <thead><tr>
+                            <th data-i18n="itemName">Item Name</th>
+                            <th data-i18n="description">Description</th>
+                            <th data-i18n="stock">Stock</th>
+                            <th data-i18n="minStock">Min</th>
+                            <th data-i18n="status">Status</th>
+                            <th data-i18n="actions">Actions</th>
+                        </tr></thead>
+                        <tbody id="itemsTableBody"></tbody>
+                    </table>
+                </div>
+                <div class="items-container" id="gridView" style="display:none">
+                    <div class="items-grid" id="itemsGrid"></div>
+                </div>
+                <div class="add-item-bar">
+                    <input type="text" id="newItemName" data-i18n-placeholder="itemNamePlaceholder" placeholder="Item name..." class="input">
+                    <input type="number" id="newItemQty" placeholder="Qty" min="0" value="1" class="input input-sm">
+                    <input type="number" id="newItemMin" placeholder="Min" min="0" value="5" class="input input-sm">
+                    <input type="text" id="newItemDesc" data-i18n-placeholder="descriptionPlaceholder" placeholder="Description (optional)" class="input">
+                    <label class="btn btn-secondary btn-upload" title="Upload image">
+                        <i class="fas fa-camera"></i>
+                        <input type="file" id="newItemFile" accept="image/*" style="display:none">
+                    </label>
+                    <button class="btn btn-primary" onclick="addItem()"><i class="fas fa-plus"></i> <span data-i18n="add">Add</span></button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Warehouse Zone Detail -->
-    <div class="modal-overlay" id="zoneModal">
-        <div class="modal locker-detail-modal">
-            <div class="modal-header">
-                <div class="modal-title-area"><h2 id="modalZoneName"></h2></div>
-                <button class="btn-icon btn-close" onclick="closeZoneModal()">&times;</button>
-            </div>
-            <div class="items-container">
-                <table class="items-table">
-                    <thead><tr><th data-i18n="itemName">Item</th><th data-i18n="description">Desc</th><th data-i18n="stock">Stock</th><th data-i18n="minStock">Min</th><th data-i18n="status">Status</th><th data-i18n="actions">Actions</th></tr></thead>
-                    <tbody id="zoneItemsBody"></tbody>
-                </table>
-            </div>
-            <div class="add-item-bar">
-                <input type="text" id="newZoneItemName" placeholder="Item name..." class="input">
-                <input type="number" id="newZoneItemQty" placeholder="Qty" min="0" value="1" class="input input-sm">
-                <input type="number" id="newZoneItemMin" placeholder="Min" min="0" value="5" class="input input-sm">
-                <input type="text" id="newZoneItemDesc" placeholder="Description" class="input">
-                <button class="btn btn-primary" onclick="addZoneItem()"><i class="fas fa-plus"></i> <span data-i18n="add">Add</span></button>
+        <!-- Add Locker Modal -->
+        <div class="modal-overlay" id="addLockerModal">
+            <div class="modal modal-sm">
+                <div class="modal-header">
+                    <h2 data-i18n="addNewLocker">Add New Locker</h2>
+                    <button class="btn-icon btn-close" onclick="closeAddLockerModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <label data-i18n="lockerNumber">Locker Number</label>
+                    <input type="number" id="newLockerNumber" placeholder="e.g. 40" class="input" min="1">
+                    <label data-i18n="lockerNameOptional">Locker Name (optional)</label>
+                    <input type="text" id="newLockerName" placeholder="e.g. Electronics" class="input">
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeAddLockerModal()" data-i18n="cancel">Cancel</button>
+                    <button class="btn btn-primary" onclick="addLocker()" data-i18n="addLocker">Add Locker</button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Add Department Modal -->
-    <div class="modal-overlay" id="addDeptModal">
-        <div class="modal modal-sm">
-            <div class="modal-header">
-                <h2 data-i18n="addDepartment">Add Department</h2>
-                <button class="btn-icon btn-close" onclick="document.getElementById('addDeptModal').classList.remove('active')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <label data-i18n="deptName">Department Name</label>
-                <input type="text" id="newDeptName" class="input">
-                <label data-i18n="manager">Manager</label>
-                <input type="text" id="newDeptManager" class="input">
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="document.getElementById('addDeptModal').classList.remove('active')" data-i18n="cancel">Cancel</button>
-                <button class="btn btn-primary" onclick="addDepartment()" data-i18n="addDepartment">Add Department</button>
+        <!-- Add Warehouse Zone Modal -->
+        <div class="modal-overlay" id="addZoneModal">
+            <div class="modal modal-sm">
+                <div class="modal-header">
+                    <h2 data-i18n="addZone">Add Zone</h2>
+                    <button class="btn-icon btn-close" onclick="document.getElementById('addZoneModal').classList.remove('active')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <label data-i18n="zoneName">Zone Name</label>
+                    <input type="text" id="newZoneName" placeholder="e.g. Zone A" class="input">
+                    <label data-i18n="location">Location</label>
+                    <input type="text" id="newZoneLocation" placeholder="e.g. Building 2" class="input">
+                    <label>Description</label>
+                    <input type="text" id="newZoneDesc" placeholder="Description (optional)" class="input">
+                    <label>Color</label>
+                    <input type="color" id="newZoneColor" value="#7b2ff7" class="input" style="height:40px;padding:4px">
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="document.getElementById('addZoneModal').classList.remove('active')" data-i18n="cancel">Cancel</button>
+                    <button class="btn btn-primary" onclick="addZone()" data-i18n="addZone">Add Zone</button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Department Detail -->
-    <div class="modal-overlay" id="deptModal">
-        <div class="modal locker-detail-modal">
-            <div class="modal-header">
-                <div class="modal-title-area"><h2 id="modalDeptName"></h2></div>
-                <button class="btn-icon btn-close" onclick="closeDeptModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p class="dept-manager" id="deptManager"></p>
-                <h3 data-i18n="assignedLockers" style="margin:16px 0 10px">Assigned Lockers</h3>
-                <div id="assignedLockers" class="dept-lockers"></div>
-                <h3 data-i18n="availableLockers" style="margin:16px 0 10px">Available Lockers</h3>
-                <div id="availableLockers" class="dept-lockers"></div>
+        <!-- Warehouse Zone Detail -->
+        <div class="modal-overlay" id="zoneModal">
+            <div class="modal locker-detail-modal zone-detail-modal">
+                <div class="modal-header">
+                    <div class="modal-title-area"><h2 id="modalZoneName"></h2></div>
+                    <div class="modal-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="openAddAreaModal()"><i class="fas fa-plus"></i> Add Area</button>
+                        <button class="btn-icon btn-close" onclick="closeZoneModal()">&times;</button>
+                    </div>
+                </div>
+                <div class="zone-areas-container" id="zoneAreasContainer"></div>
+                <div class="zone-unassigned" id="zoneUnassigned">
+                    <h3 class="zone-section-title"><i class="fas fa-cubes"></i> General Items</h3>
+                    <table class="items-table">
+                        <thead><tr><th>Item</th><th>Desc</th><th>Stock</th><th>Min</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody id="zoneItemsBody"></tbody>
+                    </table>
+                </div>
+                <div class="add-item-bar">
+                    <input type="text" id="newZoneItemName" placeholder="Item name..." class="input">
+                    <input type="number" id="newZoneItemQty" placeholder="Qty" min="0" value="1" class="input input-sm">
+                    <input type="number" id="newZoneItemMin" placeholder="Min" min="0" value="5" class="input input-sm">
+                    <input type="text" id="newZoneItemDesc" placeholder="Description" class="input">
+                    <select id="newZoneItemArea" class="input input-sm" style="max-width:120px"><option value="">No Area</option></select>
+                    <button class="btn btn-primary" onclick="addZoneItem()"><i class="fas fa-plus"></i> Add</button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- All Items Panel -->
-    <div class="modal-overlay" id="allItemsPanel">
-        <div class="modal locker-detail-modal">
-            <div class="modal-header">
-                <h2 data-i18n="allItems">All Items</h2>
-                <button class="btn-icon btn-close" onclick="document.getElementById('allItemsPanel').classList.remove('active')">&times;</button>
-            </div>
-            <div class="items-container">
-                <table class="items-table"><thead><tr>
-                    <th data-i18n="locker">Locker</th><th data-i18n="itemName">Item</th><th data-i18n="stock">Stock</th><th data-i18n="minStock">Min</th><th data-i18n="status">Status</th>
-                </tr></thead><tbody id="allItemsBody"></tbody></table>
+        <!-- Add Area Modal -->
+        <div class="modal-overlay" id="addAreaModal">
+            <div class="modal modal-sm">
+                <div class="modal-header">
+                    <h2>Add Area</h2>
+                    <button class="btn-icon btn-close" onclick="document.getElementById('addAreaModal').classList.remove('active')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <label>Area Name</label>
+                    <input type="text" id="newAreaName" placeholder="e.g. Shelf A1" class="input">
+                    <label>Description</label>
+                    <input type="text" id="newAreaDesc" placeholder="Description (optional)" class="input">
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="document.getElementById('addAreaModal').classList.remove('active')">Cancel</button>
+                    <button class="btn btn-primary" onclick="addArea()">Add Area</button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Alerts Panel -->
-    <div class="modal-overlay" id="alertsPanel">
-        <div class="modal modal-alerts">
-            <div class="modal-header">
-                <h2><i class="fas fa-bell"></i> <span data-i18n="lowStockAlerts">Low Stock Alerts</span></h2>
-                <button class="btn-icon btn-close" onclick="closeAlertsPanel()">&times;</button>
+        <!-- Add Employee Modal -->
+        <div class="modal-overlay" id="addEmpModal">
+            <div class="modal modal-sm">
+                <div class="modal-header">
+                    <h2>Add Employee</h2>
+                    <button class="btn-icon btn-close" onclick="document.getElementById('addEmpModal').classList.remove('active')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <label>Employee Name</label>
+                    <input type="text" id="newEmpName" class="input" placeholder="Full name">
+                    <label>Job Title</label>
+                    <input type="text" id="newEmpTitle" class="input" placeholder="e.g. Supervisor">
+                    <label>Department</label>
+                    <select id="newEmpDept" class="input"></select>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="document.getElementById('addEmpModal').classList.remove('active')">Cancel</button>
+                    <button class="btn btn-primary" onclick="addEmployee()">Add Employee</button>
+                </div>
             </div>
-            <div class="alerts-list" id="alertsList"></div>
         </div>
-    </div>
 
-    <!-- Image Viewer -->
-    <div class="image-viewer" id="imageViewer" onclick="closeImageViewer()">
-        <button class="image-viewer-close">&times;</button>
-        <img id="imageViewerImg" src="" alt="">
+        <!-- Add Department Modal -->
+        <div class="modal-overlay" id="addDeptModal">
+            <div class="modal modal-sm">
+                <div class="modal-header">
+                    <h2 data-i18n="addDepartment">Add Department</h2>
+                    <button class="btn-icon btn-close" onclick="document.getElementById('addDeptModal').classList.remove('active')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <label data-i18n="deptName">Department Name</label>
+                    <input type="text" id="newDeptName" class="input">
+                    <label data-i18n="manager">Manager</label>
+                    <input type="text" id="newDeptManager" class="input">
+                    <label>Description</label>
+                    <input type="text" id="newDeptDesc" class="input" placeholder="Description (optional)">
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="document.getElementById('addDeptModal').classList.remove('active')" data-i18n="cancel">Cancel</button>
+                    <button class="btn btn-primary" onclick="addDepartment()" data-i18n="addDepartment">Add Department</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Employee Detail Modal -->
+        <div class="modal-overlay" id="empModal">
+            <div class="modal locker-detail-modal emp-detail-modal">
+                <div class="modal-header">
+                    <div class="modal-title-area">
+                        <div class="emp-modal-avatar" id="empModalAvatar"><i class="fas fa-user"></i></div>
+                        <div>
+                            <h2 id="empModalName"></h2>
+                            <div class="emp-modal-title" id="empModalTitle"></div>
+                        </div>
+                    </div>
+                    <button class="btn-icon btn-close" onclick="closeEmpModal()">&times;</button>
+                </div>
+                <div class="modal-body emp-modal-body">
+                    <div class="emp-info-row" id="empModalDept"></div>
+                    <h3 class="section-label"><i class="fas fa-tools"></i> Equipment & Items</h3>
+                    <div class="emp-items-grid" id="empItemsGrid"></div>
+                    <div class="add-item-bar">
+                        <input type="text" id="newEmpItemName" placeholder="Item name..." class="input">
+                        <input type="text" id="newEmpItemDesc" placeholder="Description" class="input">
+                        <input type="number" id="newEmpItemQty" placeholder="Qty" min="1" value="1" class="input input-sm">
+                        <button class="btn btn-primary" onclick="addEmpItem()"><i class="fas fa-plus"></i> Add</button>
+                    </div>
+                    <h3 class="section-label"><i class="fas fa-history"></i> Responsibility History</h3>
+                    <div class="emp-history-list" id="empHistoryList"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Department Detail Modal -->
+        <div class="modal-overlay" id="deptModal">
+            <div class="modal locker-detail-modal dept-detail-modal">
+                <div class="modal-header">
+                    <div class="modal-title-area"><h2 id="modalDeptName"></h2></div>
+                    <button class="btn-icon btn-close" onclick="closeDeptModal()">&times;</button>
+                </div>
+                <div class="modal-body dept-modal-body">
+                    <p class="dept-manager" id="deptManager"></p>
+                    <div class="dept-detail-tabs">
+                        <button class="dept-dtab active" onclick="switchDeptDetailTab('lockers',this)"><i class="fas fa-box-open"></i> Lockers</button>
+                        <button class="dept-dtab" onclick="switchDeptDetailTab('items',this)"><i class="fas fa-tools"></i> Items</button>
+                        <button class="dept-dtab" onclick="switchDeptDetailTab('history',this)"><i class="fas fa-history"></i> History</button>
+                    </div>
+                    <div class="dept-dtab-content active" id="deptTabLockers">
+                        <h3 data-i18n="assignedLockers" class="section-label">Assigned Lockers</h3>
+                        <div id="assignedLockers" class="dept-lockers"></div>
+                        <h3 data-i18n="availableLockers" class="section-label">Available Lockers</h3>
+                        <div id="availableLockers" class="dept-lockers"></div>
+                    </div>
+                    <div class="dept-dtab-content" id="deptTabItems">
+                        <div class="dept-items-grid" id="deptItemsGrid"></div>
+                        <div class="add-item-bar">
+                            <input type="text" id="newDeptItemName" placeholder="Item name..." class="input">
+                            <input type="text" id="newDeptItemDesc" placeholder="Description" class="input">
+                            <input type="number" id="newDeptItemQty" placeholder="Qty" min="1" value="1" class="input input-sm">
+                            <select id="newDeptItemEmp" class="input" style="max-width:150px"><option value="">No assignee</option></select>
+                            <label class="btn btn-secondary btn-upload" title="Upload image">
+                                <i class="fas fa-camera"></i>
+                                <input type="file" id="newDeptItemFile" accept="image/*" style="display:none">
+                            </label>
+                            <button class="btn btn-primary" onclick="addDeptItem()"><i class="fas fa-plus"></i> Add</button>
+                        </div>
+                    </div>
+                    <div class="dept-dtab-content" id="deptTabHistory">
+                        <div class="dept-history-timeline" id="deptHistoryTimeline"></div>
+                        <div class="add-history-bar">
+                            <select id="newHistEmp" class="input" style="max-width:150px"><option value="">Select Employee</option></select>
+                            <input type="date" id="newHistStart" class="input input-sm">
+                            <input type="date" id="newHistEnd" class="input input-sm" placeholder="End date">
+                            <select id="newHistStatus" class="input input-sm" style="max-width:110px">
+                                <option value="active">Active</option>
+                                <option value="paused">Paused</option>
+                                <option value="ended">Ended</option>
+                            </select>
+                            <button class="btn btn-primary" onclick="addHistory()"><i class="fas fa-plus"></i> Add</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- All Items Panel -->
+        <div class="modal-overlay" id="allItemsPanel">
+            <div class="modal locker-detail-modal">
+                <div class="modal-header">
+                    <h2 data-i18n="allItems">All Items</h2>
+                    <button class="btn-icon btn-close" onclick="document.getElementById('allItemsPanel').classList.remove('active')">&times;</button>
+                </div>
+                <div class="items-container">
+                    <table class="items-table"><thead><tr>
+                        <th data-i18n="locker">Locker</th><th data-i18n="itemName">Item</th><th data-i18n="stock">Stock</th><th data-i18n="minStock">Min</th><th data-i18n="status">Status</th>
+                    </tr></thead><tbody id="allItemsBody"></tbody></table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alerts Panel -->
+        <div class="modal-overlay" id="alertsPanel">
+            <div class="modal modal-alerts">
+                <div class="modal-header">
+                    <h2><i class="fas fa-bell"></i> <span data-i18n="lowStockAlerts">Low Stock Alerts</span></h2>
+                    <button class="btn-icon btn-close" onclick="closeAlertsPanel()">&times;</button>
+                </div>
+                <div class="alerts-list" id="alertsList"></div>
+            </div>
+        </div>
+
+        <!-- Image Viewer -->
+        <div class="image-viewer" id="imageViewer" onclick="closeImageViewer()">
+            <button class="image-viewer-close">&times;</button>
+            <img id="imageViewerImg" src="" alt="">
+        </div>
     </div>
 </div>
 
-<script src="/js/api.js?v=2"></script>
-<script src="/js/app.js?v=2"></script>
+<script src="/js/api.js?v=3"></script>
+<script src="/js/app.js?v=3"></script>
 </body>
 </html>

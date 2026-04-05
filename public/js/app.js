@@ -127,7 +127,7 @@ function getStatus(qty, minStock) {
 
 function closeModal(id) {
     var el = document.getElementById(id);
-    if (el) el.classList.remove('active');
+    if (el) { el.classList.remove('active'); el.classList.remove('open'); }
     if (id === 'lockerModal') { currentLockerId = null; currentLockerData = null; highlightItemId = null; renderGrid(); }
     if (id === 'areaItemsModal') { currentAreaId = null; }
     if (id === 'covenantModal') { currentCovenantItemId = null; }

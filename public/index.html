@@ -167,28 +167,28 @@
                 </div>
             </div>
             <div class="stats-bar">
-                <div class="stat-card">
+                <div class="stat-card clickable" onclick="showAllItems()">
                     <div class="stat-icon"><i class="fas fa-box-open"></i></div>
                     <div class="stat-info">
                         <span class="stat-value" id="statLockers">0</span>
                         <span class="stat-label" data-i18n="totalLockers">Total Lockers</span>
                     </div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card clickable" onclick="showAllItems()">
                     <div class="stat-icon"><i class="fas fa-cubes"></i></div>
                     <div class="stat-info">
                         <span class="stat-value" id="statItems">0</span>
                         <span class="stat-label" data-i18n="totalItems">Total Items</span>
                     </div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card clickable" onclick="showAllItems()">
                     <div class="stat-icon"><i class="fas fa-layer-group"></i></div>
                     <div class="stat-info">
                         <span class="stat-value" id="statStock">0</span>
                         <span class="stat-label" data-i18n="totalStock">Total Stock</span>
                     </div>
                 </div>
-                <div class="stat-card stat-card-alert">
+                <div class="stat-card stat-card-alert clickable" onclick="openAlertsPanel()">
                     <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
                     <div class="stat-info">
                         <span class="stat-value" id="statAlerts">0</span>
@@ -710,6 +710,7 @@
             <input type="number" id="newAreaItemQty" placeholder="1" min="0" value="1">
             <input type="number" id="newAreaItemMin" placeholder="0" min="0" value="0">
             <input type="text" id="newAreaItemDesc" data-i18n-placeholder="description" placeholder="Description">
+            <input type="file" id="newAreaItemFile" accept="image/*">
             <button class="btn-add" onclick="addAreaItem()">
                 <i class="fas fa-plus"></i>
                 <span data-i18n="add">Add</span>

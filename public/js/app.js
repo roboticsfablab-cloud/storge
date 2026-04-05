@@ -165,8 +165,18 @@ function toggleLanguage() {
 
 // ============ Sidebar ============
 function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('open');
-    document.getElementById('sidebarOverlay').classList.toggle('open');
+    var sb = document.getElementById('sidebar');
+    var overlay = document.getElementById('sidebarOverlay');
+    var isMobile = window.innerWidth <= 1024;
+    if (isMobile) {
+        // Drawer mode: toggle open
+        sb.classList.toggle('open');
+        overlay.classList.toggle('open');
+    } else {
+        // Desktop: toggle hidden
+        sb.classList.toggle('hidden');
+        document.querySelector('.main-content').style.marginLeft = sb.classList.contains('hidden') ? '0' : '';
+    }
 }
 
 document.addEventListener('click', function(e) {
@@ -950,13 +960,18 @@ async function addAreaItem() {
     var name = document.getElementById('newAreaItemName').value.trim();
     if (!name) return;
     try {
-        await API.addZoneItem(currentZoneId, {
+        var newItem = await API.addZoneItem(currentZoneId, {
             name: name,
             qty: parseInt(document.getElementById('newAreaItemQty').value) || 0,
             min_stock: parseInt(document.getElementById('newAreaItemMin').value) || 5,
             description: document.getElementById('newAreaItemDesc').value.trim(),
             area_id: currentAreaId
         });
+        // Upload image if selected
+        var fileInput = document.getElementById('newAreaItemFile');
+        if (fileInput && fileInput.files && fileInput.files[0]) {
+            await API.uploadZoneItemImage(newItem.id, fileInput.files[0]);
+        }
         currentZoneData = await API.getZone(currentZoneId);
         // Re-open area items modal with refreshed data
         var area = currentZoneData.areas.find(function(a) { return a.id === currentAreaId; });
@@ -967,6 +982,7 @@ async function addAreaItem() {
         document.getElementById('newAreaItemQty').value = '1';
         document.getElementById('newAreaItemMin').value = '0';
         document.getElementById('newAreaItemDesc').value = '';
+        if (fileInput) fileInput.value = '';
     } catch (e) { showToast(e.message, 'error'); }
 }
 

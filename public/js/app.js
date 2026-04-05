@@ -168,14 +168,17 @@ function toggleSidebar() {
     var sb = document.getElementById('sidebar');
     var overlay = document.getElementById('sidebarOverlay');
     var isMobile = window.innerWidth <= 1024;
+
     if (isMobile) {
-        // Drawer mode: toggle open
+        // Mobile/tablet: drawer mode
         sb.classList.toggle('open');
         overlay.classList.toggle('open');
     } else {
-        // Desktop: toggle hidden
-        sb.classList.toggle('hidden');
-        document.querySelector('.main-content').style.marginLeft = sb.classList.contains('hidden') ? '0' : '';
+        // Desktop: only allow hiding on home page
+        if (currentPage === 'home' || sb.classList.contains('hidden')) {
+            sb.classList.toggle('hidden');
+            document.querySelector('.main-content').style.marginLeft = sb.classList.contains('hidden') ? '0' : '';
+        }
     }
 }
 
@@ -242,9 +245,16 @@ function navigateTo(page) {
 
     applyLanguage();
 
-    // Close sidebar
+    // Close mobile drawer
     document.getElementById('sidebar').classList.remove('open');
     document.getElementById('sidebarOverlay').classList.remove('open');
+
+    // On section pages (lockers/warehouse/departments), ensure sidebar is always visible on desktop
+    var sb = document.getElementById('sidebar');
+    if (page !== 'home' && sb.classList.contains('hidden') && window.innerWidth > 1024) {
+        sb.classList.remove('hidden');
+        document.querySelector('.main-content').style.marginLeft = '';
+    }
 }
 
 function handleAddBtn() {

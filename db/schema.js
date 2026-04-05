@@ -35,6 +35,7 @@ async function ensureTables() {
             location TEXT DEFAULT '',
             description TEXT DEFAULT '',
             color TEXT DEFAULT '#7b2ff7',
+            image TEXT DEFAULT '',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`,
         `CREATE TABLE IF NOT EXISTS warehouse_areas (
@@ -42,6 +43,7 @@ async function ensureTables() {
             zone_id INTEGER NOT NULL,
             name TEXT NOT NULL,
             description TEXT DEFAULT '',
+            image TEXT DEFAULT '',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (zone_id) REFERENCES warehouse_zones(id) ON DELETE CASCADE
         )`,
@@ -62,6 +64,7 @@ async function ensureTables() {
             name TEXT NOT NULL,
             manager TEXT DEFAULT '',
             description TEXT DEFAULT '',
+            image TEXT DEFAULT '',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`,
         `CREATE TABLE IF NOT EXISTS department_lockers (
@@ -87,6 +90,8 @@ async function ensureTables() {
             description TEXT DEFAULT '',
             qty INTEGER NOT NULL DEFAULT 1,
             image TEXT DEFAULT '',
+            receipt_date TEXT DEFAULT '',
+            purpose TEXT DEFAULT '',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
             FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL
@@ -102,30 +107,42 @@ async function ensureTables() {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
             FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+        )`,
+        `CREATE TABLE IF NOT EXISTS covenant_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            item_id INTEGER NOT NULL,
+            from_employee_id INTEGER DEFAULT NULL,
+            to_employee_id INTEGER NOT NULL,
+            transfer_date TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'active',
+            notes TEXT DEFAULT '',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (item_id) REFERENCES department_items(id) ON DELETE CASCADE,
+            FOREIGN KEY (from_employee_id) REFERENCES employees(id) ON DELETE SET NULL,
+            FOREIGN KEY (to_employee_id) REFERENCES employees(id) ON DELETE CASCADE
         )`
     ], 'write');
 
-    // Migrations for existing databases
     const migrations = [
         `ALTER TABLE items ADD COLUMN description TEXT DEFAULT ''`,
         `ALTER TABLE items ADD COLUMN min_stock INTEGER NOT NULL DEFAULT 5`,
         `ALTER TABLE warehouse_zones ADD COLUMN description TEXT DEFAULT ''`,
         `ALTER TABLE warehouse_zones ADD COLUMN color TEXT DEFAULT '#7b2ff7'`,
+        `ALTER TABLE warehouse_zones ADD COLUMN image TEXT DEFAULT ''`,
         `ALTER TABLE warehouse_items ADD COLUMN area_id INTEGER DEFAULT NULL`,
+        `ALTER TABLE warehouse_areas ADD COLUMN image TEXT DEFAULT ''`,
         `ALTER TABLE departments ADD COLUMN description TEXT DEFAULT ''`,
+        `ALTER TABLE departments ADD COLUMN image TEXT DEFAULT ''`,
+        `ALTER TABLE department_items ADD COLUMN receipt_date TEXT DEFAULT ''`,
+        `ALTER TABLE department_items ADD COLUMN purpose TEXT DEFAULT ''`,
     ];
     for (const sql of migrations) {
         try { await client.execute(sql); } catch (e) { /* column exists */ }
     }
 
-    // Seed default lockers if empty
     const result = await client.execute('SELECT COUNT(*) as c FROM lockers');
     if (Number(result.rows[0].c) === 0) {
-        const numbers = [
-            12, 13, 14, 15, 16, 17, 18, 19,
-            22, 23, 24, 25, 26, 27, 28, 29,
-            32, 33, 34, 35, 36, 37, 38, 39,
-        ];
+        const numbers = [12,13,14,15,16,17,18,19,22,23,24,25,26,27,28,29,32,33,34,35,36,37,38,39];
         const stmts = numbers.map((num, idx) => ({
             sql: 'INSERT INTO lockers (id, name, min_stock, position) VALUES (?, ?, ?, ?)',
             args: [num, '', 5, idx]

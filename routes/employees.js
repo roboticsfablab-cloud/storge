@@ -39,18 +39,36 @@ module.exports = function (db) {
         res.json(result.rows);
     });
 
-    // Get single employee with items
+    // Get single employee with items + covenant details
     router.get('/:id', async (req, res) => {
         const emp = await db.execute({ sql: 'SELECT e.*, d.name AS department_name FROM employees e LEFT JOIN departments d ON d.id = e.department_id WHERE e.id = ?', args: [req.params.id] });
         if (emp.rows.length === 0) return res.status(404).json({ error: 'Employee not found' });
-        const items = await db.execute({ sql: 'SELECT di.* FROM department_items di WHERE di.employee_id = ? ORDER BY di.created_at', args: [req.params.id] });
+        const items = await db.execute({
+            sql: `SELECT di.*, d.name AS department_name FROM department_items di
+                  LEFT JOIN departments d ON d.id = di.department_id
+                  WHERE di.employee_id = ? ORDER BY di.created_at`,
+            args: [req.params.id]
+        });
+        // Get covenant history for each item
+        const itemsWithCovenant = [];
+        for (const item of items.rows) {
+            const ch = await db.execute({
+                sql: `SELECT ch.*, fe.name AS from_employee_name, te.name AS to_employee_name
+                      FROM covenant_history ch
+                      LEFT JOIN employees fe ON fe.id = ch.from_employee_id
+                      LEFT JOIN employees te ON te.id = ch.to_employee_id
+                      WHERE ch.item_id = ? ORDER BY ch.transfer_date DESC`,
+                args: [item.id]
+            });
+            itemsWithCovenant.push({ ...item, covenant_history: ch.rows });
+        }
         const history = await db.execute({
             sql: `SELECT rh.*, d.name AS department_name FROM responsibility_history rh
                   LEFT JOIN departments d ON d.id = rh.department_id
                   WHERE rh.employee_id = ? ORDER BY rh.start_date DESC`,
             args: [req.params.id]
         });
-        res.json({ ...emp.rows[0], items: items.rows, history: history.rows });
+        res.json({ ...emp.rows[0], items: itemsWithCovenant, history: history.rows });
     });
 
     // Create employee
@@ -79,6 +97,7 @@ module.exports = function (db) {
     router.delete('/:id', async (req, res) => {
         await db.execute({ sql: 'UPDATE department_items SET employee_id = NULL WHERE employee_id = ?', args: [req.params.id] });
         await db.execute({ sql: 'DELETE FROM responsibility_history WHERE employee_id = ?', args: [req.params.id] });
+        await db.execute({ sql: 'DELETE FROM covenant_history WHERE to_employee_id = ? OR from_employee_id = ?', args: [req.params.id, req.params.id] });
         await db.execute({ sql: 'DELETE FROM employees WHERE id = ?', args: [req.params.id] });
         res.json({ success: true });
     });
@@ -92,22 +111,16 @@ module.exports = function (db) {
         res.json(updated.rows[0]);
     });
 
-    // Employee items (department_items assigned to this employee)
-    router.get('/:id/items', async (req, res) => {
-        const items = await db.execute({ sql: 'SELECT * FROM department_items WHERE employee_id = ? ORDER BY created_at', args: [req.params.id] });
-        res.json(items.rows);
-    });
-
     // Add item to employee
     router.post('/:id/items', async (req, res) => {
-        const { name, description, qty, department_id } = req.body;
+        const { name, description, qty, department_id, receipt_date, purpose } = req.body;
         if (!name || !name.trim()) return res.status(400).json({ error: 'Item name required' });
         const emp = await db.execute({ sql: 'SELECT department_id FROM employees WHERE id = ?', args: [req.params.id] });
         const deptId = department_id || (emp.rows[0] ? emp.rows[0].department_id : null);
         if (!deptId) return res.status(400).json({ error: 'Employee must belong to a department' });
         const result = await db.execute({
-            sql: 'INSERT INTO department_items (department_id, employee_id, name, description, qty) VALUES (?, ?, ?, ?, ?)',
-            args: [deptId, req.params.id, name.trim(), description || '', Math.max(1, parseInt(qty) || 1)]
+            sql: 'INSERT INTO department_items (department_id, employee_id, name, description, qty, receipt_date, purpose) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            args: [deptId, req.params.id, name.trim(), description || '', Math.max(1, parseInt(qty) || 1), receipt_date || '', purpose || '']
         });
         const item = await db.execute({ sql: 'SELECT * FROM department_items WHERE id = ?', args: [Number(result.lastInsertRowid)] });
         res.status(201).json(item.rows[0]);

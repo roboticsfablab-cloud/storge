@@ -15,10 +15,10 @@ const upload = multer({
     }
 });
 
-function uploadToCloudinary(buffer) {
+function uploadToCloudinary(buffer, folder) {
     return new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
-            { folder: 'locker-manager/warehouse' },
+            { folder: 'locker-manager/' + (folder || 'warehouse') },
             (error, result) => { if (error) reject(error); else resolve(result); }
         );
         Readable.from(buffer).pipe(stream);
@@ -45,13 +45,11 @@ module.exports = function (db) {
         if (zone.rows.length === 0) return res.status(404).json({ error: 'Zone not found' });
         const items = await db.execute({ sql: 'SELECT * FROM warehouse_items WHERE zone_id = ? ORDER BY created_at', args: [req.params.id] });
         const areas = await db.execute({ sql: 'SELECT * FROM warehouse_areas WHERE zone_id = ? ORDER BY created_at', args: [req.params.id] });
-        // Get items per area
         const areasWithItems = [];
         for (const area of areas.rows) {
             const areaItems = await db.execute({ sql: 'SELECT * FROM warehouse_items WHERE area_id = ? ORDER BY created_at', args: [area.id] });
-            areasWithItems.push({ ...area, items: areaItems.rows });
+            areasWithItems.push({ ...area, items: areaItems.rows, item_count: areaItems.rows.length, total_qty: areaItems.rows.reduce((s, i) => s + Number(i.qty), 0) });
         }
-        // Unassigned items (no area)
         const unassigned = await db.execute({ sql: 'SELECT * FROM warehouse_items WHERE zone_id = ? AND (area_id IS NULL OR area_id = 0) ORDER BY created_at', args: [req.params.id] });
         res.json({ ...zone.rows[0], items: items.rows, areas: areasWithItems, unassigned_items: unassigned.rows });
     });
@@ -79,6 +77,15 @@ module.exports = function (db) {
         await db.execute({ sql: 'DELETE FROM warehouse_areas WHERE zone_id = ?', args: [req.params.id] });
         await db.execute({ sql: 'DELETE FROM warehouse_zones WHERE id = ?', args: [req.params.id] });
         res.json({ success: true });
+    });
+
+    // Zone image
+    router.post('/:id/image', upload.single('image'), async (req, res) => {
+        if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
+        const cloudResult = await uploadToCloudinary(req.file.buffer, 'warehouse/zones');
+        await db.execute({ sql: 'UPDATE warehouse_zones SET image = ? WHERE id = ?', args: [cloudResult.secure_url, req.params.id] });
+        const updated = await db.execute({ sql: 'SELECT * FROM warehouse_zones WHERE id = ?', args: [req.params.id] });
+        res.json(updated.rows[0]);
     });
 
     // ========== Areas ==========
@@ -114,6 +121,15 @@ module.exports = function (db) {
         res.json({ success: true });
     });
 
+    // Area image
+    router.post('/areas/:id/image', upload.single('image'), async (req, res) => {
+        if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
+        const cloudResult = await uploadToCloudinary(req.file.buffer, 'warehouse/areas');
+        await db.execute({ sql: 'UPDATE warehouse_areas SET image = ? WHERE id = ?', args: [cloudResult.secure_url, req.params.id] });
+        const updated = await db.execute({ sql: 'SELECT * FROM warehouse_areas WHERE id = ?', args: [req.params.id] });
+        res.json(updated.rows[0]);
+    });
+
     // ========== Zone items ==========
     router.post('/:id/items', async (req, res) => {
         const { name, qty, description, min_stock, image, area_id } = req.body;
@@ -145,7 +161,7 @@ module.exports = function (db) {
 
     router.post('/items/:id/image', upload.single('image'), async (req, res) => {
         if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
-        const cloudResult = await uploadToCloudinary(req.file.buffer);
+        const cloudResult = await uploadToCloudinary(req.file.buffer, 'warehouse');
         await db.execute({ sql: 'UPDATE warehouse_items SET image = ? WHERE id = ?', args: [cloudResult.secure_url, req.params.id] });
         const updated = await db.execute({ sql: 'SELECT * FROM warehouse_items WHERE id = ?', args: [req.params.id] });
         res.json(updated.rows[0]);

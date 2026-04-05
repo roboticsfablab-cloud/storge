@@ -5,508 +5,757 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FABY Keeper</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%237b2ff7'/%3E%3Cstop offset='100%25' stop-color='%2300d2ff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='20' fill='url(%23g)'/%3E%3Ctext x='50' y='68' text-anchor='middle' font-size='52' font-weight='bold' fill='white' font-family='Arial'%3EFK%3C/text%3E%3C/svg%3E">
-    <link rel="stylesheet" href="/css/style.css?v=3">
+    <link rel="stylesheet" href="/css/style.css?v=4">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
+
 <div class="app-layout">
-    <!-- ====== SIDEBAR ====== -->
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-brand" onclick="navigateTo('home')">
-            <div class="brand-icon">FK</div>
-            <div class="brand-text">
-                <span class="brand-name">FABY</span>
-                <span class="brand-sub">Keeper</span>
+            <div class="sidebar-brand-icon">
+                <svg viewBox="0 0 100 100" width="40" height="40">
+                    <defs>
+                        <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#7b2ff7"/>
+                            <stop offset="100%" stop-color="#00d2ff"/>
+                        </linearGradient>
+                    </defs>
+                    <rect width="100" height="100" rx="20" fill="url(#brandGrad)"/>
+                    <text x="50" y="68" text-anchor="middle" font-size="52" font-weight="bold" fill="white" font-family="Arial">FK</text>
+                </svg>
+            </div>
+            <div class="sidebar-brand-text">
+                <span class="sidebar-brand-name">FABY</span>
+                <span class="sidebar-brand-sub">Keeper</span>
             </div>
         </div>
+
         <div class="sidebar-search">
-            <i class="fas fa-search"></i>
-            <input type="text" id="sidebarSearch" placeholder="Search everything..." oninput="handleGlobalSearch(this.value)">
+            <div class="sidebar-search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="sidebarSearch" data-i18n-placeholder="searchAll" placeholder="Search everything..." oninput="handleGlobalSearch(this.value)">
+            </div>
             <div class="sidebar-search-results" id="sidebarSearchResults"></div>
         </div>
+
         <nav class="sidebar-nav">
             <a class="sidebar-link active" data-page="home" onclick="navigateTo('home')">
-                <i class="fas fa-home"></i><span>Home</span>
+                <i class="fas fa-home"></i>
+                <span data-i18n="home">Home</span>
             </a>
             <a class="sidebar-link" data-page="lockers" onclick="navigateTo('lockers')">
-                <i class="fas fa-box-open"></i><span>Lockers</span>
+                <i class="fas fa-box-open"></i>
+                <span data-i18n="lockers">Lockers</span>
             </a>
             <a class="sidebar-link" data-page="warehouse" onclick="navigateTo('warehouse')">
-                <i class="fas fa-warehouse"></i><span>Warehouse</span>
+                <i class="fas fa-warehouse"></i>
+                <span data-i18n="warehouse">Warehouse</span>
             </a>
             <a class="sidebar-link" data-page="departments" onclick="navigateTo('departments')">
-                <i class="fas fa-building"></i><span>Departments</span>
+                <i class="fas fa-building"></i>
+                <span data-i18n="departments">Departments</span>
             </a>
         </nav>
+
         <div class="sidebar-footer">
-            <button class="btn-icon theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+            <button class="sidebar-footer-btn" onclick="toggleTheme()" title="Toggle Theme">
                 <i class="fas fa-moon" id="themeIcon"></i>
             </button>
-            <button class="btn-icon lang-toggle" onclick="toggleLanguage()" title="Toggle language">
-                <span id="langLabel">AR</span>
+            <button class="sidebar-footer-btn" onclick="toggleLanguage()" title="Toggle Language">
+                <span id="langLabel">EN</span>
             </button>
         </div>
     </aside>
 
-    <!-- ====== MAIN CONTENT ====== -->
+    <!-- Main Content -->
     <div class="main-content">
+
         <!-- Top Bar -->
-        <header class="topbar">
-            <button class="btn-icon sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">
+        <div class="topbar">
+            <button class="topbar-hamburger" onclick="toggleSidebar()">
                 <i class="fas fa-bars"></i>
             </button>
-            <h1 id="pageTitle" class="topbar-title" data-i18n="appTitle">FABY Keeper</h1>
+            <h1 id="pageTitle" data-i18n="home">Home</h1>
             <div class="topbar-right">
-                <div class="alert-badge" id="alertBadge" title="Low stock alerts" style="display:none">
+                <button class="topbar-btn alert-btn" onclick="openAlertsPanel()">
                     <i class="fas fa-bell"></i>
-                    <span class="badge-count" id="alertCount">0</span>
-                </div>
-                <button class="btn btn-add-main" id="addBtn" style="display:none" onclick="handleAddBtn()">
-                    <i class="fas fa-plus"></i> <span id="addBtnText" data-i18n="addLocker">Add</span>
+                    <span class="alert-badge" id="alertBadge"><span id="alertCount">0</span></span>
+                </button>
+                <button class="topbar-btn add-btn" id="addBtn" onclick="handleAddBtn()" style="display:none;">
+                    <i class="fas fa-plus"></i>
+                    <span id="addBtnText" data-i18n="add">Add</span>
                 </button>
             </div>
-        </header>
-
-        <div class="alert-banner" id="alertBanner" style="display:none">
-            <i class="fas fa-exclamation-triangle"></i>
-            <span id="alertText"></span>
-            <button class="alert-close" onclick="closeAlertBanner()">&times;</button>
         </div>
 
-        <!-- ====== HOME PAGE ====== -->
-        <div id="page-home" class="page active">
+        <!-- Alert Banner -->
+        <div class="alert-banner" id="alertBanner" style="display:none;">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span id="alertText"></span>
+            <button onclick="dismissAlertBanner()"><i class="fas fa-times"></i></button>
+        </div>
+
+        <!-- ==================== PAGES ==================== -->
+
+        <!-- HOME PAGE -->
+        <div class="page active" id="page-home">
             <div class="home-container">
                 <div class="home-hero">
                     <div class="home-hero-icon">
-                        <div class="hero-glow"></div>
-                        <i class="fas fa-shield-alt"></i>
+                        <svg viewBox="0 0 100 100" width="80" height="80">
+                            <defs>
+                                <linearGradient id="heroGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#7b2ff7"/>
+                                    <stop offset="100%" stop-color="#00d2ff"/>
+                                </linearGradient>
+                            </defs>
+                            <rect width="100" height="100" rx="20" fill="url(#heroGrad)"/>
+                            <text x="50" y="68" text-anchor="middle" font-size="52" font-weight="bold" fill="white" font-family="Arial">FK</text>
+                        </svg>
+                        <div class="home-hero-glow"></div>
                     </div>
-                    <div class="home-title">FABY Keeper</div>
-                    <div class="home-subtitle" data-i18n="homeSubtitle">Manage your storage, warehouse, and departments</div>
+                    <h1 class="home-hero-title" data-i18n="appTitle">FABY Keeper</h1>
+                    <p class="home-hero-subtitle" data-i18n="homeSubtitle">Inventory Management System</p>
                 </div>
                 <div class="home-grid">
                     <div class="home-card home-card-lockers" onclick="navigateTo('lockers')">
                         <div class="home-card-bg"></div>
                         <div class="home-card-content">
                             <div class="home-card-icon"><i class="fas fa-box-open"></i></div>
-                            <div class="home-card-title" data-i18n="lockers">Lockers</div>
-                            <div class="home-card-desc" data-i18n="lockersDesc">Manage locker cabinets and inventory items</div>
-                            <div class="home-card-count" id="homeLockerCount"></div>
+                            <h3 class="home-card-title" data-i18n="lockers">Lockers</h3>
+                            <p class="home-card-desc" data-i18n="lockersDesc">Manage lockers and their items</p>
+                            <div class="home-card-count" id="homeLockerCount">0</div>
                         </div>
                     </div>
                     <div class="home-card home-card-warehouse" onclick="navigateTo('warehouse')">
                         <div class="home-card-bg"></div>
                         <div class="home-card-content">
                             <div class="home-card-icon"><i class="fas fa-warehouse"></i></div>
-                            <div class="home-card-title" data-i18n="warehouse">Warehouse</div>
-                            <div class="home-card-desc" data-i18n="warehouseDesc">Manage warehouse zones and bulk storage</div>
-                            <div class="home-card-count" id="homeWarehouseCount"></div>
+                            <h3 class="home-card-title" data-i18n="warehouse">Warehouse</h3>
+                            <p class="home-card-desc" data-i18n="warehouseDesc">Manage warehouse zones and areas</p>
+                            <div class="home-card-count" id="homeWarehouseCount">0</div>
                         </div>
                     </div>
                     <div class="home-card home-card-departments" onclick="navigateTo('departments')">
                         <div class="home-card-bg"></div>
                         <div class="home-card-content">
                             <div class="home-card-icon"><i class="fas fa-building"></i></div>
-                            <div class="home-card-title" data-i18n="departments">Departments</div>
-                            <div class="home-card-desc" data-i18n="departmentsDesc">Manage teams, employees and responsibilities</div>
-                            <div class="home-card-count" id="homeDeptCount"></div>
+                            <h3 class="home-card-title" data-i18n="departments">Departments</h3>
+                            <p class="home-card-desc" data-i18n="departmentsDesc">Manage departments and employees</p>
+                            <div class="home-card-count" id="homeDeptCount">0</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ====== LOCKERS PAGE ====== -->
-        <div id="page-lockers" class="page">
+        <!-- LOCKERS PAGE -->
+        <div class="page" id="page-lockers">
             <div class="page-search-bar">
                 <div class="page-search-box">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="lockerSearch" data-i18n-placeholder="searchPlaceholder" placeholder="Search lockers and items..." oninput="handleLockerSearch(this.value)">
+                    <input type="text" id="lockerSearch" data-i18n-placeholder="searchLockers" placeholder="Search lockers..." oninput="handleLockerSearch(this.value)">
                     <div class="page-search-results" id="lockerSearchResults"></div>
                 </div>
             </div>
             <div class="stats-bar">
-                <div class="stat-card clickable" onclick="showAllItems()">
+                <div class="stat-card">
                     <div class="stat-icon"><i class="fas fa-box-open"></i></div>
                     <div class="stat-info">
-                        <div class="stat-value" id="statLockers">0</div>
-                        <div class="stat-label" data-i18n="totalLockers">Total Lockers</div>
+                        <span class="stat-value" id="statLockers">0</span>
+                        <span class="stat-label" data-i18n="totalLockers">Total Lockers</span>
                     </div>
                 </div>
-                <div class="stat-card clickable" onclick="showAllItems()">
+                <div class="stat-card">
                     <div class="stat-icon"><i class="fas fa-cubes"></i></div>
                     <div class="stat-info">
-                        <div class="stat-value" id="statItems">0</div>
-                        <div class="stat-label" data-i18n="totalItems">Total Items</div>
+                        <span class="stat-value" id="statItems">0</span>
+                        <span class="stat-label" data-i18n="totalItems">Total Items</span>
                     </div>
                 </div>
-                <div class="stat-card clickable" onclick="showAllItems()">
+                <div class="stat-card">
                     <div class="stat-icon"><i class="fas fa-layer-group"></i></div>
                     <div class="stat-info">
-                        <div class="stat-value" id="statStock">0</div>
-                        <div class="stat-label" data-i18n="totalStock">Total Stock</div>
+                        <span class="stat-value" id="statStock">0</span>
+                        <span class="stat-label" data-i18n="totalStock">Total Stock</span>
                     </div>
                 </div>
-                <div class="stat-card stat-card-alert clickable" onclick="openAlertsPanel()">
+                <div class="stat-card stat-card-alert">
                     <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
                     <div class="stat-info">
-                        <div class="stat-value" id="statAlerts">0</div>
-                        <div class="stat-label" data-i18n="alerts">Alerts</div>
+                        <span class="stat-value" id="statAlerts">0</span>
+                        <span class="stat-label" data-i18n="alerts">Alerts</span>
                     </div>
                 </div>
             </div>
-            <main class="locker-grid-container">
+            <div class="locker-grid-container">
                 <div class="locker-grid" id="lockerGrid">
-                    <div class="loading"><i class="fas fa-spinner fa-spin"></i> <span data-i18n="loading">Loading...</span></div>
+                    <div class="loading-spinner" data-i18n="loading">Loading...</div>
                 </div>
-            </main>
+            </div>
         </div>
 
-        <!-- ====== WAREHOUSE PAGE ====== -->
-        <div id="page-warehouse" class="page">
+        <!-- WAREHOUSE PAGE -->
+        <div class="page" id="page-warehouse">
             <div class="page-search-bar">
                 <div class="page-search-box">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="warehouseSearch" placeholder="Search zones and items..." oninput="handleWarehouseSearch(this.value)">
+                    <input type="text" id="warehouseSearch" data-i18n-placeholder="searchWarehouse" placeholder="Search warehouse..." oninput="handleWarehouseSearch(this.value)">
                     <div class="page-search-results" id="warehouseSearchResults"></div>
                 </div>
             </div>
-            <div class="warehouse-dashboard" id="warehouseDashboard">
-                <div class="wh-stats-row" id="whStatsRow"></div>
-                <div class="wh-zones-grid" id="warehouseGrid">
-                    <div class="loading"><i class="fas fa-spinner fa-spin"></i> <span data-i18n="loading">Loading...</span></div>
-                </div>
+            <div class="wh-zone-bar" id="whZoneBar"></div>
+            <div class="warehouse-content" id="warehouseContent">
+                <div class="loading-spinner" data-i18n="loading">Loading...</div>
             </div>
         </div>
 
-        <!-- ====== DEPARTMENTS PAGE ====== -->
-        <div id="page-departments" class="page">
+        <!-- DEPARTMENTS PAGE -->
+        <div class="page" id="page-departments">
             <div class="page-search-bar">
                 <div class="page-search-box">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="deptSearch" placeholder="Search departments and employees..." oninput="handleDeptSearch(this.value)">
+                    <input type="text" id="deptSearch" data-i18n-placeholder="searchDepartments" placeholder="Search departments..." oninput="handleDeptSearch(this.value)">
                     <div class="page-search-results" id="deptSearchResults"></div>
                 </div>
             </div>
             <div class="dept-tabs">
-                <button class="dept-tab active" id="tabEmployees" onclick="switchDeptTab('employees')"><i class="fas fa-user-tie"></i> Employees</button>
-                <button class="dept-tab" id="tabDepartments" onclick="switchDeptTab('depts')"><i class="fas fa-building"></i> Departments</button>
+                <button class="dept-tab active" id="tabDepts" onclick="switchDeptTab('depts')">
+                    <i class="fas fa-building"></i>
+                    <span data-i18n="departments">Departments</span>
+                </button>
+                <button class="dept-tab" id="tabEmployees" onclick="switchDeptTab('employees')">
+                    <i class="fas fa-user-tie"></i>
+                    <span data-i18n="employees">Employees</span>
+                </button>
             </div>
-            <div id="deptTabEmployees" class="dept-tab-content active">
-                <div class="emp-grid" id="empGrid">
-                    <div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+            <div class="dept-tab-content active" id="deptTabDepts">
+                <div class="dept-grid" id="deptGrid">
+                    <div class="loading-spinner" data-i18n="loading">Loading...</div>
                 </div>
             </div>
-            <div id="deptTabDepts" class="dept-tab-content">
-                <div class="dept-grid" id="deptGrid">
-                    <div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+            <div class="dept-tab-content" id="deptTabEmployees">
+                <div class="emp-grid" id="empGrid">
+                    <div class="loading-spinner" data-i18n="loading">Loading...</div>
                 </div>
             </div>
         </div>
 
-        <!-- ====== MODALS ====== -->
+        <!-- DEPARTMENT DETAIL PAGE -->
+        <div class="page" id="page-dept-detail">
+            <div class="dept-detail-header" id="deptDetailHeader">
+                <button class="back-btn" onclick="navigateTo('departments')">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="dept-detail-info">
+                    <h2 class="dept-detail-name"></h2>
+                    <div class="dept-detail-image"></div>
+                </div>
+            </div>
+            <div class="dept-detail-tabs">
+                <button class="dept-dtab active" id="tabEquipment" onclick="switchDeptDetailTab('equipment')">
+                    <i class="fas fa-tools"></i>
+                    <span data-i18n="equipment">Equipment / العهدة</span>
+                </button>
+                <button class="dept-dtab" id="tabHistory" onclick="switchDeptDetailTab('history')">
+                    <i class="fas fa-history"></i>
+                    <span data-i18n="history">History</span>
+                </button>
+                <button class="dept-dtab" id="tabItems" onclick="switchDeptDetailTab('items')">
+                    <i class="fas fa-cubes"></i>
+                    <span data-i18n="items">Items</span>
+                </button>
+            </div>
 
-        <!-- Locker Detail -->
-        <div class="modal-overlay" id="lockerModal">
-            <div class="modal locker-detail-modal">
-                <div class="modal-header">
-                    <div class="modal-title-area">
-                        <h2 id="modalLockerName"></h2>
-                        <button class="btn-icon btn-edit-name" onclick="editLockerName()" title="Edit"><i class="fas fa-pencil-alt"></i></button>
-                    </div>
-                    <div class="modal-actions">
-                        <div class="view-toggle">
-                            <button class="toggle-btn active" id="listViewBtn" onclick="switchView('list')"><i class="fas fa-list"></i></button>
-                            <button class="toggle-btn" id="gridViewBtn" onclick="switchView('grid')"><i class="fas fa-th"></i></button>
-                        </div>
-                        <button class="btn-icon btn-close" onclick="closeLockerModal()">&times;</button>
+            <!-- Equipment Tab -->
+            <div class="dept-dtab-content active" id="deptEquipmentTab">
+                <div class="table-responsive">
+                    <table class="items-table" id="equipmentTable">
+                        <thead>
+                            <tr>
+                                <th data-i18n="status">الحالة / Status</th>
+                                <th data-i18n="count">العدد / Count</th>
+                                <th data-i18n="picture">صورة / Picture</th>
+                                <th data-i18n="description">الوصف / Description</th>
+                                <th data-i18n="receiptDate">تاريخ الاستلام / Receipt Date</th>
+                                <th data-i18n="purpose">الغرض / Purpose</th>
+                                <th data-i18n="actions">الإجراءات / Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="add-item-bar">
+                    <input type="text" id="newEquipName" data-i18n-placeholder="itemName" placeholder="Item name">
+                    <input type="number" id="newEquipQty" placeholder="1" min="1" value="1">
+                    <input type="text" id="newEquipDesc" data-i18n-placeholder="description" placeholder="Description">
+                    <input type="text" id="newEquipPurpose" data-i18n-placeholder="purpose" placeholder="Purpose">
+                    <input type="file" id="newEquipFile" accept="image/*">
+                    <button class="btn-add" onclick="addEquipment()">
+                        <i class="fas fa-plus"></i>
+                        <span data-i18n="add">Add</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- History Tab -->
+            <div class="dept-dtab-content" id="deptHistoryTab">
+                <div class="dept-history-timeline" id="deptHistoryTimeline">
+                    <div class="loading-spinner" data-i18n="loading">Loading...</div>
+                </div>
+                <div class="add-item-bar history-add-bar">
+                    <select id="historyEmpSelect">
+                        <option value="" data-i18n="responsibleEmployee">Responsible Employee</option>
+                    </select>
+                    <input type="date" id="historyStartDate" title="Start Date">
+                    <input type="date" id="historyEndDate" title="End Date">
+                    <select id="historyStatus">
+                        <option value="active" data-i18n="active">Active</option>
+                        <option value="completed" data-i18n="completed">Completed</option>
+                        <option value="transferred" data-i18n="transferred">Transferred</option>
+                    </select>
+                    <input type="text" id="historyNotes" data-i18n-placeholder="notes" placeholder="Notes">
+                    <button class="btn-add" onclick="addHistory()">
+                        <i class="fas fa-plus"></i>
+                        <span data-i18n="add">Add</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Items Tab -->
+            <div class="dept-dtab-content" id="deptItemsTab">
+                <div class="dept-items-container" id="deptItemsContainer">
+                    <div class="loading-spinner" data-i18n="loading">Loading...</div>
+                </div>
+                <div class="add-item-bar">
+                    <input type="text" id="newDeptItemName" data-i18n-placeholder="itemName" placeholder="Item name">
+                    <input type="number" id="newDeptItemQty" placeholder="1" min="1" value="1">
+                    <input type="text" id="newDeptItemDesc" data-i18n-placeholder="description" placeholder="Description">
+                    <input type="file" id="newDeptItemFile" accept="image/*">
+                    <button class="btn-add" onclick="addDeptItem()">
+                        <i class="fas fa-plus"></i>
+                        <span data-i18n="add">Add</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- EMPLOYEE DETAIL PAGE -->
+        <div class="page" id="page-emp-detail">
+            <div class="emp-detail-header" id="empDetailHeader">
+                <button class="back-btn" onclick="navigateTo('departments'); switchDeptTab('employees');">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="emp-detail-info">
+                    <div class="emp-detail-avatar"></div>
+                    <div class="emp-detail-text">
+                        <h2 class="emp-detail-name"></h2>
+                        <span class="emp-detail-title"></span>
+                        <a class="emp-detail-dept-link"></a>
                     </div>
                 </div>
-                <div class="items-container" id="listView">
+            </div>
+            <div class="emp-items-section">
+                <div class="table-responsive">
+                    <table class="items-table" id="empItemsTable">
+                        <thead>
+                            <tr>
+                                <th data-i18n="itemName">Item Name</th>
+                                <th data-i18n="picture">Image</th>
+                                <th data-i18n="count">Qty</th>
+                                <th data-i18n="departments">Department</th>
+                                <th data-i18n="receiptDate">Receipt Date</th>
+                                <th data-i18n="purpose">Purpose</th>
+                                <th data-i18n="duration">Duration</th>
+                                <th data-i18n="status">Status</th>
+                                <th data-i18n="covenantHistory">Covenant History</th>
+                                <th data-i18n="actions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="add-item-bar">
+                    <input type="text" id="newEmpItemName" data-i18n-placeholder="itemName" placeholder="Item name">
+                    <input type="number" id="newEmpItemQty" placeholder="1" min="1" value="1">
+                    <input type="text" id="newEmpItemDesc" data-i18n-placeholder="description" placeholder="Description">
+                    <input type="text" id="newEmpItemPurpose" data-i18n-placeholder="purpose" placeholder="Purpose">
+                    <input type="file" id="newEmpItemFile" accept="image/*">
+                    <button class="btn-add" onclick="addEmpItem()">
+                        <i class="fas fa-plus"></i>
+                        <span data-i18n="add">Add</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /.main-content -->
+</div><!-- /.app-layout -->
+
+
+<!-- ==================== MODALS ==================== -->
+
+<!-- Locker Detail Modal -->
+<div class="modal-overlay" id="lockerModal">
+    <div class="modal-content locker-modal">
+        <div class="modal-header">
+            <h2 id="modalLockerName" data-i18n="lockerDetail">Locker Detail</h2>
+            <div class="modal-header-actions">
+                <div class="view-toggle">
+                    <button class="view-btn active" id="listViewBtn" onclick="switchLockerView('list')">
+                        <i class="fas fa-list"></i>
+                    </button>
+                    <button class="view-btn" id="gridViewBtn" onclick="switchLockerView('grid')">
+                        <i class="fas fa-th"></i>
+                    </button>
+                </div>
+                <button class="modal-close" onclick="closeLockerModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div class="modal-body">
+            <!-- List View -->
+            <div class="locker-view active" id="listView">
+                <div class="table-responsive">
                     <table class="items-table">
-                        <thead><tr>
-                            <th data-i18n="itemName">Item Name</th>
-                            <th data-i18n="description">Description</th>
-                            <th data-i18n="stock">Stock</th>
-                            <th data-i18n="minStock">Min</th>
-                            <th data-i18n="status">Status</th>
-                            <th data-i18n="actions">Actions</th>
-                        </tr></thead>
+                        <thead>
+                            <tr>
+                                <th data-i18n="itemName">Item Name</th>
+                                <th data-i18n="description">Description</th>
+                                <th data-i18n="stock">Stock</th>
+                                <th data-i18n="minStock">Min Stock</th>
+                                <th data-i18n="status">Status</th>
+                                <th data-i18n="actions">Actions</th>
+                            </tr>
+                        </thead>
                         <tbody id="itemsTableBody"></tbody>
                     </table>
                 </div>
-                <div class="items-container" id="gridView" style="display:none">
-                    <div class="items-grid" id="itemsGrid"></div>
-                </div>
-                <div class="add-item-bar">
-                    <input type="text" id="newItemName" data-i18n-placeholder="itemNamePlaceholder" placeholder="Item name..." class="input">
-                    <input type="number" id="newItemQty" placeholder="Qty" min="0" value="1" class="input input-sm">
-                    <input type="number" id="newItemMin" placeholder="Min" min="0" value="5" class="input input-sm">
-                    <input type="text" id="newItemDesc" data-i18n-placeholder="descriptionPlaceholder" placeholder="Description (optional)" class="input">
-                    <label class="btn btn-secondary btn-upload" title="Upload image">
-                        <i class="fas fa-camera"></i>
-                        <input type="file" id="newItemFile" accept="image/*" style="display:none">
-                    </label>
-                    <button class="btn btn-primary" onclick="addItem()"><i class="fas fa-plus"></i> <span data-i18n="add">Add</span></button>
-                </div>
+            </div>
+            <!-- Grid View -->
+            <div class="locker-view" id="gridView">
+                <div class="items-grid" id="itemsGrid"></div>
             </div>
         </div>
-
-        <!-- Add Locker Modal -->
-        <div class="modal-overlay" id="addLockerModal">
-            <div class="modal modal-sm">
-                <div class="modal-header">
-                    <h2 data-i18n="addNewLocker">Add New Locker</h2>
-                    <button class="btn-icon btn-close" onclick="closeAddLockerModal()">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <label data-i18n="lockerNumber">Locker Number</label>
-                    <input type="number" id="newLockerNumber" placeholder="e.g. 40" class="input" min="1">
-                    <label data-i18n="lockerNameOptional">Locker Name (optional)</label>
-                    <input type="text" id="newLockerName" placeholder="e.g. Electronics" class="input">
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="closeAddLockerModal()" data-i18n="cancel">Cancel</button>
-                    <button class="btn btn-primary" onclick="addLocker()" data-i18n="addLocker">Add Locker</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Add Warehouse Zone Modal -->
-        <div class="modal-overlay" id="addZoneModal">
-            <div class="modal modal-sm">
-                <div class="modal-header">
-                    <h2 data-i18n="addZone">Add Zone</h2>
-                    <button class="btn-icon btn-close" onclick="document.getElementById('addZoneModal').classList.remove('active')">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <label data-i18n="zoneName">Zone Name</label>
-                    <input type="text" id="newZoneName" placeholder="e.g. Zone A" class="input">
-                    <label data-i18n="location">Location</label>
-                    <input type="text" id="newZoneLocation" placeholder="e.g. Building 2" class="input">
-                    <label>Description</label>
-                    <input type="text" id="newZoneDesc" placeholder="Description (optional)" class="input">
-                    <label>Color</label>
-                    <input type="color" id="newZoneColor" value="#7b2ff7" class="input" style="height:40px;padding:4px">
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="document.getElementById('addZoneModal').classList.remove('active')" data-i18n="cancel">Cancel</button>
-                    <button class="btn btn-primary" onclick="addZone()" data-i18n="addZone">Add Zone</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Warehouse Zone Detail -->
-        <div class="modal-overlay" id="zoneModal">
-            <div class="modal locker-detail-modal zone-detail-modal">
-                <div class="modal-header">
-                    <div class="modal-title-area"><h2 id="modalZoneName"></h2></div>
-                    <div class="modal-actions">
-                        <button class="btn btn-secondary btn-sm" onclick="openAddAreaModal()"><i class="fas fa-plus"></i> Add Area</button>
-                        <button class="btn-icon btn-close" onclick="closeZoneModal()">&times;</button>
-                    </div>
-                </div>
-                <div class="zone-areas-container" id="zoneAreasContainer"></div>
-                <div class="zone-unassigned" id="zoneUnassigned">
-                    <h3 class="zone-section-title"><i class="fas fa-cubes"></i> General Items</h3>
-                    <table class="items-table">
-                        <thead><tr><th>Item</th><th>Desc</th><th>Stock</th><th>Min</th><th>Status</th><th>Actions</th></tr></thead>
-                        <tbody id="zoneItemsBody"></tbody>
-                    </table>
-                </div>
-                <div class="add-item-bar">
-                    <input type="text" id="newZoneItemName" placeholder="Item name..." class="input">
-                    <input type="number" id="newZoneItemQty" placeholder="Qty" min="0" value="1" class="input input-sm">
-                    <input type="number" id="newZoneItemMin" placeholder="Min" min="0" value="5" class="input input-sm">
-                    <input type="text" id="newZoneItemDesc" placeholder="Description" class="input">
-                    <select id="newZoneItemArea" class="input input-sm" style="max-width:120px"><option value="">No Area</option></select>
-                    <button class="btn btn-primary" onclick="addZoneItem()"><i class="fas fa-plus"></i> Add</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Add Area Modal -->
-        <div class="modal-overlay" id="addAreaModal">
-            <div class="modal modal-sm">
-                <div class="modal-header">
-                    <h2>Add Area</h2>
-                    <button class="btn-icon btn-close" onclick="document.getElementById('addAreaModal').classList.remove('active')">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <label>Area Name</label>
-                    <input type="text" id="newAreaName" placeholder="e.g. Shelf A1" class="input">
-                    <label>Description</label>
-                    <input type="text" id="newAreaDesc" placeholder="Description (optional)" class="input">
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="document.getElementById('addAreaModal').classList.remove('active')">Cancel</button>
-                    <button class="btn btn-primary" onclick="addArea()">Add Area</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Add Employee Modal -->
-        <div class="modal-overlay" id="addEmpModal">
-            <div class="modal modal-sm">
-                <div class="modal-header">
-                    <h2>Add Employee</h2>
-                    <button class="btn-icon btn-close" onclick="document.getElementById('addEmpModal').classList.remove('active')">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <label>Employee Name</label>
-                    <input type="text" id="newEmpName" class="input" placeholder="Full name">
-                    <label>Job Title</label>
-                    <input type="text" id="newEmpTitle" class="input" placeholder="e.g. Supervisor">
-                    <label>Department</label>
-                    <select id="newEmpDept" class="input"></select>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="document.getElementById('addEmpModal').classList.remove('active')">Cancel</button>
-                    <button class="btn btn-primary" onclick="addEmployee()">Add Employee</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Add Department Modal -->
-        <div class="modal-overlay" id="addDeptModal">
-            <div class="modal modal-sm">
-                <div class="modal-header">
-                    <h2 data-i18n="addDepartment">Add Department</h2>
-                    <button class="btn-icon btn-close" onclick="document.getElementById('addDeptModal').classList.remove('active')">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <label data-i18n="deptName">Department Name</label>
-                    <input type="text" id="newDeptName" class="input">
-                    <label data-i18n="manager">Manager</label>
-                    <input type="text" id="newDeptManager" class="input">
-                    <label>Description</label>
-                    <input type="text" id="newDeptDesc" class="input" placeholder="Description (optional)">
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="document.getElementById('addDeptModal').classList.remove('active')" data-i18n="cancel">Cancel</button>
-                    <button class="btn btn-primary" onclick="addDepartment()" data-i18n="addDepartment">Add Department</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Employee Detail Modal -->
-        <div class="modal-overlay" id="empModal">
-            <div class="modal locker-detail-modal emp-detail-modal">
-                <div class="modal-header">
-                    <div class="modal-title-area">
-                        <div class="emp-modal-avatar" id="empModalAvatar"><i class="fas fa-user"></i></div>
-                        <div>
-                            <h2 id="empModalName"></h2>
-                            <div class="emp-modal-title" id="empModalTitle"></div>
-                        </div>
-                    </div>
-                    <button class="btn-icon btn-close" onclick="closeEmpModal()">&times;</button>
-                </div>
-                <div class="modal-body emp-modal-body">
-                    <div class="emp-info-row" id="empModalDept"></div>
-                    <h3 class="section-label"><i class="fas fa-tools"></i> Equipment & Items</h3>
-                    <div class="emp-items-grid" id="empItemsGrid"></div>
-                    <div class="add-item-bar">
-                        <input type="text" id="newEmpItemName" placeholder="Item name..." class="input">
-                        <input type="text" id="newEmpItemDesc" placeholder="Description" class="input">
-                        <input type="number" id="newEmpItemQty" placeholder="Qty" min="1" value="1" class="input input-sm">
-                        <button class="btn btn-primary" onclick="addEmpItem()"><i class="fas fa-plus"></i> Add</button>
-                    </div>
-                    <h3 class="section-label"><i class="fas fa-history"></i> Responsibility History</h3>
-                    <div class="emp-history-list" id="empHistoryList"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Department Detail Modal -->
-        <div class="modal-overlay" id="deptModal">
-            <div class="modal locker-detail-modal dept-detail-modal">
-                <div class="modal-header">
-                    <div class="modal-title-area"><h2 id="modalDeptName"></h2></div>
-                    <button class="btn-icon btn-close" onclick="closeDeptModal()">&times;</button>
-                </div>
-                <div class="modal-body dept-modal-body">
-                    <p class="dept-manager" id="deptManager"></p>
-                    <div class="dept-detail-tabs">
-                        <button class="dept-dtab active" onclick="switchDeptDetailTab('lockers',this)"><i class="fas fa-box-open"></i> Lockers</button>
-                        <button class="dept-dtab" onclick="switchDeptDetailTab('items',this)"><i class="fas fa-tools"></i> Items</button>
-                        <button class="dept-dtab" onclick="switchDeptDetailTab('history',this)"><i class="fas fa-history"></i> History</button>
-                    </div>
-                    <div class="dept-dtab-content active" id="deptTabLockers">
-                        <h3 data-i18n="assignedLockers" class="section-label">Assigned Lockers</h3>
-                        <div id="assignedLockers" class="dept-lockers"></div>
-                        <h3 data-i18n="availableLockers" class="section-label">Available Lockers</h3>
-                        <div id="availableLockers" class="dept-lockers"></div>
-                    </div>
-                    <div class="dept-dtab-content" id="deptTabItems">
-                        <div class="dept-items-grid" id="deptItemsGrid"></div>
-                        <div class="add-item-bar">
-                            <input type="text" id="newDeptItemName" placeholder="Item name..." class="input">
-                            <input type="text" id="newDeptItemDesc" placeholder="Description" class="input">
-                            <input type="number" id="newDeptItemQty" placeholder="Qty" min="1" value="1" class="input input-sm">
-                            <select id="newDeptItemEmp" class="input" style="max-width:150px"><option value="">No assignee</option></select>
-                            <label class="btn btn-secondary btn-upload" title="Upload image">
-                                <i class="fas fa-camera"></i>
-                                <input type="file" id="newDeptItemFile" accept="image/*" style="display:none">
-                            </label>
-                            <button class="btn btn-primary" onclick="addDeptItem()"><i class="fas fa-plus"></i> Add</button>
-                        </div>
-                    </div>
-                    <div class="dept-dtab-content" id="deptTabHistory">
-                        <div class="dept-history-timeline" id="deptHistoryTimeline"></div>
-                        <div class="add-history-bar">
-                            <select id="newHistEmp" class="input" style="max-width:150px"><option value="">Select Employee</option></select>
-                            <input type="date" id="newHistStart" class="input input-sm">
-                            <input type="date" id="newHistEnd" class="input input-sm" placeholder="End date">
-                            <select id="newHistStatus" class="input input-sm" style="max-width:110px">
-                                <option value="active">Active</option>
-                                <option value="paused">Paused</option>
-                                <option value="ended">Ended</option>
-                            </select>
-                            <button class="btn btn-primary" onclick="addHistory()"><i class="fas fa-plus"></i> Add</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- All Items Panel -->
-        <div class="modal-overlay" id="allItemsPanel">
-            <div class="modal locker-detail-modal">
-                <div class="modal-header">
-                    <h2 data-i18n="allItems">All Items</h2>
-                    <button class="btn-icon btn-close" onclick="document.getElementById('allItemsPanel').classList.remove('active')">&times;</button>
-                </div>
-                <div class="items-container">
-                    <table class="items-table"><thead><tr>
-                        <th data-i18n="locker">Locker</th><th data-i18n="itemName">Item</th><th data-i18n="stock">Stock</th><th data-i18n="minStock">Min</th><th data-i18n="status">Status</th>
-                    </tr></thead><tbody id="allItemsBody"></tbody></table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Alerts Panel -->
-        <div class="modal-overlay" id="alertsPanel">
-            <div class="modal modal-alerts">
-                <div class="modal-header">
-                    <h2><i class="fas fa-bell"></i> <span data-i18n="lowStockAlerts">Low Stock Alerts</span></h2>
-                    <button class="btn-icon btn-close" onclick="closeAlertsPanel()">&times;</button>
-                </div>
-                <div class="alerts-list" id="alertsList"></div>
-            </div>
-        </div>
-
-        <!-- Image Viewer -->
-        <div class="image-viewer" id="imageViewer" onclick="closeImageViewer()">
-            <button class="image-viewer-close">&times;</button>
-            <img id="imageViewerImg" src="" alt="">
+        <div class="modal-footer add-item-bar">
+            <input type="text" id="newItemName" data-i18n-placeholder="itemName" placeholder="Item name">
+            <input type="number" id="newItemQty" placeholder="1" min="0" value="1">
+            <input type="number" id="newItemMin" placeholder="0" min="0" value="0">
+            <input type="text" id="newItemDesc" data-i18n-placeholder="description" placeholder="Description">
+            <input type="file" id="newItemFile" accept="image/*">
+            <button class="btn-add" onclick="addItem()">
+                <i class="fas fa-plus"></i>
+                <span data-i18n="add">Add</span>
+            </button>
         </div>
     </div>
 </div>
 
-<script src="/js/api.js?v=3"></script>
-<script src="/js/app.js?v=3"></script>
+<!-- Add Locker Modal -->
+<div class="modal-overlay" id="addLockerModal">
+    <div class="modal-content modal-sm">
+        <div class="modal-header">
+            <h2 data-i18n="addLocker">Add Locker</h2>
+            <button class="modal-close" onclick="closeModal('addLockerModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label data-i18n="lockerNumber">Locker Number</label>
+                <input type="text" id="newLockerNumber" placeholder="#">
+            </div>
+            <div class="form-group">
+                <label data-i18n="lockerName">Locker Name</label>
+                <input type="text" id="newLockerName" data-i18n-placeholder="lockerName" placeholder="Locker name">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeModal('addLockerModal')" data-i18n="cancel">Cancel</button>
+            <button class="btn-add" onclick="saveNewLocker()">
+                <i class="fas fa-plus"></i>
+                <span data-i18n="add">Add</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Add Zone Modal -->
+<div class="modal-overlay" id="addZoneModal">
+    <div class="modal-content modal-sm">
+        <div class="modal-header">
+            <h2 data-i18n="addZone">Add Zone</h2>
+            <button class="modal-close" onclick="closeModal('addZoneModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label data-i18n="zoneName">Zone Name</label>
+                <input type="text" id="newZoneName" data-i18n-placeholder="zoneName" placeholder="Zone name">
+            </div>
+            <div class="form-group">
+                <label data-i18n="location">Location</label>
+                <input type="text" id="newZoneLocation" data-i18n-placeholder="location" placeholder="Location">
+            </div>
+            <div class="form-group">
+                <label data-i18n="description">Description</label>
+                <input type="text" id="newZoneDesc" data-i18n-placeholder="description" placeholder="Description">
+            </div>
+            <div class="form-group">
+                <label data-i18n="color">Color</label>
+                <input type="color" id="newZoneColor" value="#7b2ff7">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeModal('addZoneModal')" data-i18n="cancel">Cancel</button>
+            <button class="btn-add" onclick="saveNewZone()">
+                <i class="fas fa-plus"></i>
+                <span data-i18n="add">Add</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Add Area Modal -->
+<div class="modal-overlay" id="addAreaModal">
+    <div class="modal-content modal-sm">
+        <div class="modal-header">
+            <h2 data-i18n="addArea">Add Area</h2>
+            <button class="modal-close" onclick="closeModal('addAreaModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label data-i18n="areaName">Area Name</label>
+                <input type="text" id="newAreaName" data-i18n-placeholder="areaName" placeholder="Area name">
+            </div>
+            <div class="form-group">
+                <label data-i18n="description">Description</label>
+                <input type="text" id="newAreaDesc" data-i18n-placeholder="description" placeholder="Description">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeModal('addAreaModal')" data-i18n="cancel">Cancel</button>
+            <button class="btn-add" onclick="saveNewArea()">
+                <i class="fas fa-plus"></i>
+                <span data-i18n="add">Add</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Add Department Modal -->
+<div class="modal-overlay" id="addDeptModal">
+    <div class="modal-content modal-sm">
+        <div class="modal-header">
+            <h2 data-i18n="addDepartment">Add Department</h2>
+            <button class="modal-close" onclick="closeModal('addDeptModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label data-i18n="deptName">Department Name</label>
+                <input type="text" id="newDeptName" data-i18n-placeholder="deptName" placeholder="Department name">
+            </div>
+            <div class="form-group">
+                <label data-i18n="manager">Manager</label>
+                <input type="text" id="newDeptManager" data-i18n-placeholder="manager" placeholder="Manager name">
+            </div>
+            <div class="form-group">
+                <label data-i18n="description">Description</label>
+                <input type="text" id="newDeptDesc" data-i18n-placeholder="description" placeholder="Description">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeModal('addDeptModal')" data-i18n="cancel">Cancel</button>
+            <button class="btn-add" onclick="saveNewDept()">
+                <i class="fas fa-plus"></i>
+                <span data-i18n="add">Add</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Add Employee Modal -->
+<div class="modal-overlay" id="addEmpModal">
+    <div class="modal-content modal-sm">
+        <div class="modal-header">
+            <h2 data-i18n="addEmployee">Add Employee</h2>
+            <button class="modal-close" onclick="closeModal('addEmpModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label data-i18n="employeeName">Employee Name</label>
+                <input type="text" id="newEmpName" data-i18n-placeholder="employeeName" placeholder="Employee name">
+            </div>
+            <div class="form-group">
+                <label data-i18n="jobTitle">Job Title</label>
+                <input type="text" id="newEmpTitle" data-i18n-placeholder="jobTitle" placeholder="Job title">
+            </div>
+            <div class="form-group">
+                <label data-i18n="departments">Department</label>
+                <select id="newEmpDept">
+                    <option value="" data-i18n="selectDepartment">Select Department</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeModal('addEmpModal')" data-i18n="cancel">Cancel</button>
+            <button class="btn-add" onclick="saveNewEmployee()">
+                <i class="fas fa-plus"></i>
+                <span data-i18n="add">Add</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- All Items Panel -->
+<div class="modal-overlay" id="allItemsPanel">
+    <div class="modal-content modal-lg">
+        <div class="modal-header">
+            <h2 data-i18n="allItems">All Items</h2>
+            <button class="modal-close" onclick="closeModal('allItemsPanel')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="table-responsive">
+                <table class="items-table">
+                    <thead>
+                        <tr>
+                            <th data-i18n="itemName">Item Name</th>
+                            <th data-i18n="description">Description</th>
+                            <th data-i18n="stock">Stock</th>
+                            <th data-i18n="minStock">Min Stock</th>
+                            <th data-i18n="location">Location</th>
+                            <th data-i18n="status">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="allItemsBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alerts Panel -->
+<div class="modal-overlay" id="alertsPanel">
+    <div class="modal-content modal-md">
+        <div class="modal-header">
+            <h2 data-i18n="alerts">Alerts</h2>
+            <button class="modal-close" onclick="closeModal('alertsPanel')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="alerts-list" id="alertsList">
+                <div class="no-results" data-i18n="noItems">No alerts</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Image Viewer -->
+<div class="modal-overlay" id="imageViewer" onclick="closeModal('imageViewer')">
+    <div class="image-viewer-content">
+        <button class="modal-close image-viewer-close" onclick="closeModal('imageViewer')">
+            <i class="fas fa-times"></i>
+        </button>
+        <img id="imageViewerImg" src="" alt="Image Preview">
+    </div>
+</div>
+
+<!-- Area Items Modal -->
+<div class="modal-overlay" id="areaItemsModal">
+    <div class="modal-content locker-modal">
+        <div class="modal-header">
+            <h2 id="areaModalName" data-i18n="areaItems">Area Items</h2>
+            <button class="modal-close" onclick="closeModal('areaItemsModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="table-responsive">
+                <table class="items-table">
+                    <thead>
+                        <tr>
+                            <th data-i18n="itemName">Item Name</th>
+                            <th data-i18n="description">Description</th>
+                            <th data-i18n="stock">Stock</th>
+                            <th data-i18n="minStock">Min Stock</th>
+                            <th data-i18n="status">Status</th>
+                            <th data-i18n="actions">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="areaItemsBody"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="modal-footer add-item-bar">
+            <input type="text" id="newAreaItemName" data-i18n-placeholder="itemName" placeholder="Item name">
+            <input type="number" id="newAreaItemQty" placeholder="1" min="0" value="1">
+            <input type="number" id="newAreaItemMin" placeholder="0" min="0" value="0">
+            <input type="text" id="newAreaItemDesc" data-i18n-placeholder="description" placeholder="Description">
+            <button class="btn-add" onclick="addAreaItem()">
+                <i class="fas fa-plus"></i>
+                <span data-i18n="add">Add</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Covenant History Modal -->
+<div class="modal-overlay" id="covenantModal">
+    <div class="modal-content modal-md">
+        <div class="modal-header">
+            <h2>
+                <span data-i18n="covenantHistory">Covenant History</span>
+                <span class="covenant-item-name" id="covenantItemName"></span>
+            </h2>
+            <button class="modal-close" onclick="closeModal('covenantModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="covenant-timeline" id="covenantTimeline">
+                <div class="no-results" data-i18n="noItems">No history</div>
+            </div>
+            <div class="covenant-transfer-form">
+                <h3 data-i18n="transferTo">Transfer To</h3>
+                <div class="form-row">
+                    <select id="covenantTransferTo">
+                        <option value="" data-i18n="selectEmployee">Select Employee</option>
+                    </select>
+                    <input type="date" id="covenantTransferDate">
+                    <input type="text" id="covenantTransferNotes" data-i18n-placeholder="notes" placeholder="Notes">
+                    <button class="btn-add" onclick="transferCovenant()">
+                        <i class="fas fa-exchange-alt"></i>
+                        <span data-i18n="transfer">Transfer</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Scripts -->
+<script src="/js/api.js?v=4"></script>
+<script src="/js/app.js?v=4"></script>
+
 </body>
 </html>

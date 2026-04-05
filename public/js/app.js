@@ -105,13 +105,18 @@ function t(k) { return (i18n[currentLang] && i18n[currentLang][k]) || i18n.en[k]
 function escapeHtml(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 function showToast(msg, type) {
     type = type || 'success';
-    let c = document.querySelector('.toast-container');
+    var c = document.querySelector('.toast-container');
     if (!c) { c = document.createElement('div'); c.className = 'toast-container'; document.body.appendChild(c); }
-    const el = document.createElement('div');
-    el.className = 'toast toast-' + type;
-    el.textContent = msg;
+    var icons = { success: 'fa-check-circle', error: 'fa-times-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
+    var el = document.createElement('div');
+    el.className = 'toast ' + type;
+    el.innerHTML = '<i class="fas ' + (icons[type] || icons.info) + ' toast-icon"></i>' +
+        '<span class="toast-message">' + escapeHtml(msg) + '</span>' +
+        '<button class="toast-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>';
     c.appendChild(el);
-    setTimeout(function() { el.remove(); }, 3000);
+    setTimeout(function() {
+        if (el.parentElement) { el.classList.add('removing'); setTimeout(function() { el.remove(); }, 300); }
+    }, 3500);
 }
 
 function getStatus(qty, minStock) {
@@ -431,11 +436,12 @@ async function updateAlertBadge() {
         var s = await API.getAlertSummary();
         var total = Number(s.total_alerts), lk = Number(s.lockers_affected);
         document.getElementById('alertCount').textContent = total;
-        if (total > 0) {
-            document.getElementById('alertBanner').style.display = 'flex';
+        var banner = document.getElementById('alertBanner');
+        if (total > 0 && currentPage === 'lockers') {
+            banner.style.display = 'flex';
             document.getElementById('alertText').textContent = t('itemsRunningLow').replace('{count}', total).replace('{lockers}', lk);
         } else {
-            document.getElementById('alertBanner').style.display = 'none';
+            banner.style.display = 'none';
         }
     } catch (e) { /* ignore */ }
 }

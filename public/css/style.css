@@ -451,6 +451,12 @@ textarea {
 [data-theme="light"] .topbar {
   background: rgba(244, 246, 249, 0.85);
 }
+[dir="rtl"] .topbar {
+  flex-direction: row-reverse;
+}
+[dir="rtl"] .topbar-right {
+  flex-direction: row-reverse;
+}
 
 .topbar-left {
   display: flex;

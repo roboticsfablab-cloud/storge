@@ -179,6 +179,16 @@ function toggleSidebar() {
         overlay.classList.toggle('open');
     } else {
         sb.classList.toggle('hidden');
+        // Update margin for RTL
+        var mc = document.querySelector('.main-content');
+        var isRtl = document.documentElement.dir === 'rtl';
+        if (sb.classList.contains('hidden')) {
+            if (isRtl) mc.style.marginRight = '0';
+            else mc.style.marginLeft = '0';
+        } else {
+            mc.style.marginLeft = '';
+            mc.style.marginRight = '';
+        }
     }
 }
 

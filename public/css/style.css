@@ -3484,42 +3484,42 @@ textarea.input {
   text-align: right;
 }
 
-/* RTL: sidebar on right, pushes content */
+/* RTL: sidebar fixed on right, content gets margin-right */
 [dir="rtl"] .sidebar {
-  order: 2;
+  position: fixed;
+  left: auto;
+  right: 0;
   border-right: none;
   border-left: 1px solid var(--glass-border);
 }
 [dir="rtl"] .main-content {
-  order: 1;
-}
-[dir="rtl"] .sidebar-overlay {
-  order: 0;
+  margin-left: 0;
+  margin-right: 260px;
 }
 [dir="rtl"] .sidebar.hidden {
   width: 0;
   min-width: 0;
   border-left: none;
+  overflow: hidden;
+}
+[dir="rtl"] .sidebar.hidden ~ .main-content,
+[dir="rtl"] .app-layout:has(.sidebar.hidden) .main-content {
+  margin-right: 0;
 }
 @media (max-width: 1024px) {
   [dir="rtl"] .sidebar {
-    order: unset;
-    left: auto;
-    right: 0;
     transform: translateX(100%);
-    border-left: 1px solid var(--glass-border);
   }
   [dir="rtl"] .sidebar.hidden {
     width: 260px;
     min-width: 260px;
     transform: translateX(100%);
-    border-left: 1px solid var(--glass-border);
   }
   [dir="rtl"] .sidebar.open {
     transform: translateX(0);
   }
   [dir="rtl"] .main-content {
-    order: unset;
+    margin-right: 0 !important;
   }
 }
 

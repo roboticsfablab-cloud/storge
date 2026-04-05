@@ -19,7 +19,7 @@
 
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
-        <div class="sidebar-brand" onclick="toggleSidebar()">
+        <div class="sidebar-brand" onclick="navigateTo('home')">
             <div class="sidebar-brand-icon">
                 <svg viewBox="0 0 100 100" width="40" height="40">
                     <defs>
@@ -80,6 +80,9 @@
 
         <!-- Top Bar -->
         <div class="topbar">
+            <button class="topbar-hamburger" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
             <h1 id="pageTitle" data-i18n="home">Home</h1>
             <div class="topbar-right">
                 <button class="topbar-btn alert-btn" onclick="openAlertsPanel()">

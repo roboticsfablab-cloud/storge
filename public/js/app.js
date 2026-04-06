@@ -29,7 +29,10 @@ const i18n = {
         lockerAdded:'Locker added', lockerDeleted:'Locker deleted',
         deleteConfirm:'Delete this? All related data will be removed.',
         enterLockerName:'Enter locker name:', left:'left', min:'min',
-        allItems:'All Items', lowStockAlerts:'Low Stock Alerts', allHealthy:'All stock levels are healthy!',
+        allItems:'All Items', allAreas:'All Areas', spaces:'Spaces', spacesIn:'spaces in',
+        lowStockAlerts:'Low Stock Alerts', allHealthy:'All stock levels are healthy!',
+        addItem:'Add Item', addSpace:'Add Space', addNew:'Add New',
+        areaItemsTitle:'Area Items', noAreasYet:'No areas yet.',
         lockerNumber:'Locker Number', lockerNameOptional:'Locker Name (optional)',
         zoneName:'Zone Name', location:'Location', areaName:'Area Name',
         deptName:'Department Name', manager:'Manager', employeeName:'Employee Name',
@@ -71,7 +74,10 @@ const i18n = {
         lockerAdded:'تمت إضافة الخزانة', lockerDeleted:'تم حذف الخزانة',
         deleteConfirm:'حذف هذا؟ سيتم إزالة جميع البيانات المرتبطة.',
         enterLockerName:'أدخل اسم الخزانة:', left:'متبقي', min:'الحد الأدنى',
-        allItems:'جميع العناصر', lowStockAlerts:'تنبيهات المخزون المنخفض', allHealthy:'جميع مستويات المخزون جيدة!',
+        allItems:'جميع العناصر', allAreas:'جميع المساحات', spaces:'مساحات', spacesIn:'مساحات في',
+        lowStockAlerts:'تنبيهات المخزون المنخفض', allHealthy:'جميع مستويات المخزون جيدة!',
+        addItem:'إضافة عنصر', addSpace:'إضافة مساحة', addNew:'إضافة جديد',
+        areaItemsTitle:'عناصر المساحة', noAreasYet:'لا توجد مساحات بعد.',
         lockerNumber:'رقم الخزانة', lockerNameOptional:'اسم الخزانة (اختياري)',
         zoneName:'اسم المنطقة', location:'الموقع', areaName:'اسم المساحة',
         deptName:'اسم القسم', manager:'المدير', employeeName:'اسم الموظف',
@@ -217,11 +223,13 @@ function navigateTo(page) {
         if (deptLink) deptLink.classList.add('active');
     }
 
-    var alertBadge = document.getElementById('alertBadge');
     var addBtn = document.getElementById('addBtn');
 
-    if (alertBadge) alertBadge.style.display = page === 'lockers' ? '' : 'none';
+    // Add button is visible on all main section pages, hidden on home & detail pages
     if (addBtn) addBtn.style.display = (page === 'home' || page === 'dept-detail' || page === 'emp-detail') ? 'none' : '';
+
+    // Update alert count globally on every navigation
+    updateAlertBadge();
 
     if (page === 'lockers') {
         document.getElementById('addBtnText').textContent = t('addLocker');
@@ -653,26 +661,56 @@ async function deleteLocker(id) {
     } catch (e) { showToast(e.message, 'error'); }
 }
 
-// ============ All Items Panel ============
-async function showAllItems() {
-    var body = document.getElementById('allItemsBody');
-    body.innerHTML = '<tr><td colspan="6" class="loading"><i class="fas fa-spinner fa-spin"></i></td></tr>';
-    document.getElementById('allItemsPanel').classList.add('active');
+// ============ All Areas Panel ============
+async function showAllAreas() {
+    var body = document.getElementById('allAreasBody');
+    body.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> ' + t('loading') + '</div>';
+    document.getElementById('allAreasPanel').classList.add('active');
     try {
-        var items = await API.getAllItems();
+        var zones = await API.getZones();
         body.innerHTML = '';
-        items.forEach(function(item) {
-            var q = Number(item.qty), ms = Number(item.min_stock), status = getStatus(q, ms);
-            body.innerHTML += '<tr onclick="closeModal(\'allItemsPanel\');openLockerModal(' + item.locker_id + ')" style="cursor:pointer">' +
-                '<td>' + escapeHtml(item.name) + '</td>' +
-                '<td>' + escapeHtml(item.description || '') + '</td>' +
-                '<td>' + q + '</td><td>' + ms + '</td>' +
-                '<td>' + t('locker') + ' ' + item.locker_id + (item.locker_name ? ' - ' + escapeHtml(item.locker_name) : '') + '</td>' +
-                '<td><span class="status-badge ' + status.cls + '">' + status.icon + ' ' + status.label + '</span></td></tr>';
+        // Collect all areas across all zones
+        var zoneList = [];
+        for (var i = 0; i < zones.length; i++) {
+            var zoneDetail = await API.getZone(zones[i].id);
+            zoneList.push(zoneDetail);
+        }
+
+        var totalAreas = zoneList.reduce(function(sum, z) { return sum + (z.areas ? z.areas.length : 0); }, 0);
+        if (totalAreas === 0) {
+            body.innerHTML = '<div class="empty-state"><i class="fas fa-th-large"></i><p>' + t('noAreasYet') + '</p></div>';
+            return;
+        }
+
+        zoneList.forEach(function(zone) {
+            var areas = zone.areas || [];
+            if (areas.length === 0) return;
+            var color = zone.color || '#7b2ff7';
+            var section = document.createElement('div');
+            section.className = 'all-areas-section';
+            var html = '<div class="all-areas-zone-header" style="border-color:' + color + '">' +
+                '<div class="all-areas-zone-dot" style="background:' + color + '"></div>' +
+                '<span class="all-areas-zone-name">' + escapeHtml(zone.name) + '</span>' +
+                '<span class="all-areas-zone-count">' + areas.length + ' ' + t('areas') + '</span>' +
+                '</div><div class="all-areas-cards">';
+            areas.forEach(function(area) {
+                var spaceCount = (area.items || []).length;
+                html += '<div class="all-area-card" onclick="closeModal(\'allAreasPanel\');navigateTo(\'warehouse\');setTimeout(function(){selectZone(' + zone.id + ');setTimeout(function(){openAreaItems(' + area.id + ',\'' + escapeHtml(area.name).replace(/'/g, "\\'") + '\');},200);},200)">' +
+                    '<div class="all-area-icon" style="background:' + color + '"><i class="fas fa-th-large"></i></div>' +
+                    '<div class="all-area-name">' + escapeHtml(area.name) + '</div>' +
+                    '<div class="all-area-count"><i class="fas fa-cube"></i> ' + spaceCount + ' ' + t('spaces') + '</div>' +
+                    '</div>';
+            });
+            html += '</div>';
+            section.innerHTML = html;
+            body.appendChild(section);
         });
-        if (items.length === 0) body.innerHTML = '<tr><td colspan="6" class="empty-state">' + t('noItems') + '</td></tr>';
-    } catch (e) { body.innerHTML = '<tr><td colspan="6">' + t('failedLoad') + '</td></tr>'; }
+    } catch (e) {
+        body.innerHTML = '<div class="empty-state"><p>' + t('failedLoad') + '</p></div>';
+    }
 }
+// Legacy alias
+function showAllItems() { showAllAreas(); }
 
 // ============ Alerts Panel ============
 function openAlertsPanel() {
@@ -750,7 +788,7 @@ function renderZoneGrid(zones) {
     }
 
     var grid = document.createElement('div');
-    grid.className = 'zone-grid';
+    grid.className = 'wh-zones-grid';
 
     zones.forEach(function(z, idx) {
         var color = z.color || '#7b2ff7';
@@ -786,74 +824,39 @@ async function renderZoneDetail() {
         currentZoneData = await API.getZone(currentZoneId);
         var zone = currentZoneData;
         var areas = zone.areas || [];
-        var unassigned = zone.unassigned_items || [];
+        var color = zone.color || '#7b2ff7';
 
         var html = '<div class="zone-detail">';
         // Zone header
-        html += '<div class="zone-detail-header">';
-        html += '<h2>' + escapeHtml(zone.name) + '</h2>';
+        html += '<div class="zone-detail-header" style="border-color:' + color + '">';
+        html += '<div class="zone-detail-head-icon" style="background:' + color + '"><i class="fas fa-warehouse"></i></div>';
+        html += '<div class="zone-detail-head-info"><h2>' + escapeHtml(zone.name) + '</h2>';
         if (zone.location) html += '<div class="zone-detail-location"><i class="fas fa-map-marker-alt"></i> ' + escapeHtml(zone.location) + '</div>';
         if (zone.description) html += '<div class="zone-detail-desc">' + escapeHtml(zone.description) + '</div>';
-        html += '</div>';
+        html += '</div></div>';
 
         // Areas section
         html += '<div class="zone-areas-section">';
-        html += '<div class="zone-areas-header"><h3><i class="fas fa-th-large"></i> ' + t('areas') + '</h3>';
-        html += '<button class="btn-add btn-sm" onclick="openAddAreaModal()"><i class="fas fa-plus"></i> ' + t('addArea') + '</button></div>';
-        html += '<div class="zone-areas-grid">';
+        html += '<div class="zone-areas-header"><h3><i class="fas fa-th-large"></i> ' + t('areas') + ' <span class="section-count">(' + areas.length + ')</span></h3>';
+        html += '<button class="btn-add-strong" onclick="openAddAreaModal()"><i class="fas fa-plus-circle"></i> ' + t('addArea') + '</button></div>';
 
-        areas.forEach(function(area) {
-            var areaItemCount = (area.items || []).length;
-            html += '<div class="zone-area-card" onclick="openAreaItems(' + area.id + ',\'' + escapeHtml(area.name).replace(/'/g, "\\'") + '\')">';
-            html += '<button class="btn-icon zone-area-delete" onclick="event.stopPropagation();deleteArea(' + area.id + ')"><i class="fas fa-trash-alt" style="color:var(--danger);font-size:11px"></i></button>';
-            html += '<div class="zone-area-card-icon"><i class="fas fa-th-large"></i></div>';
-            html += '<div class="zone-area-card-name">' + escapeHtml(area.name) + '</div>';
-            html += '<div class="zone-area-card-count">' + areaItemCount + ' ' + t('items') + '</div>';
-            html += '</div>';
-        });
-
-        html += '</div></div>';
-
-        // General items section (unassigned)
-        html += '<div class="zone-general-section">';
-        html += '<h3><i class="fas fa-cubes"></i> ' + t('generalItems') + '</h3>';
-        html += '<div class="table-responsive"><table class="items-table"><thead><tr>';
-        html += '<th>' + t('itemName') + '</th><th>' + t('description') + '</th><th>' + t('stock') + '</th><th>' + t('minStock') + '</th><th>' + t('status') + '</th><th>' + t('actions') + '</th>';
-        html += '</tr></thead><tbody>';
-
-        if (unassigned.length === 0) {
-            html += '<tr><td colspan="6" class="empty-state" style="padding:12px">' + t('noItems') + '</td></tr>';
+        if (areas.length === 0) {
+            html += '<div class="empty-state"><i class="fas fa-th-large"></i><p>' + t('noAreasYet') + '</p></div>';
         } else {
-            unassigned.forEach(function(item) {
-                var q = Number(item.qty), ms = Number(item.min_stock), status = getStatus(q, ms);
-                html += '<tr>' +
-                    '<td><div class="item-name-cell">' +
-                    (item.image ? '<img src="' + escapeHtml(item.image) + '" class="item-thumb" onclick="openImageViewer(\'' + escapeHtml(item.image) + '\')" onerror="this.style.display=\'none\'">' : '') +
-                    '<input type="text" class="stock-input" style="width:120px" value="' + escapeHtml(item.name) + '" onchange="updateZoneItem(' + item.id + ',{name:this.value})">' +
-                    '</div></td>' +
-                    '<td><input type="text" class="stock-input desc-input" value="' + escapeHtml(item.description || '') + '" onchange="updateZoneItem(' + item.id + ',{description:this.value})"></td>' +
-                    '<td><input type="number" class="stock-input" min="0" value="' + q + '" onchange="updateZoneItem(' + item.id + ',{qty:parseInt(this.value)})"></td>' +
-                    '<td><input type="number" class="stock-input" min="0" value="' + ms + '" style="width:60px" onchange="updateZoneItem(' + item.id + ',{min_stock:parseInt(this.value)})"></td>' +
-                    '<td><span class="status-badge ' + status.cls + '">' + status.icon + ' ' + status.label + '</span></td>' +
-                    '<td class="item-actions">' +
-                    '<label class="btn-icon" style="cursor:pointer"><i class="fas fa-image"></i><input type="file" accept="image/*" style="display:none" onchange="uploadZoneItemImg(' + item.id + ',this.files[0])"></label>' +
-                    '<button class="btn-icon delete" onclick="deleteZoneItem(' + item.id + ')"><i class="fas fa-trash-alt"></i></button>' +
-                    '</td></tr>';
+            html += '<div class="zone-areas-grid">';
+            areas.forEach(function(area) {
+                var areaItemCount = (area.items || []).length;
+                html += '<div class="zone-area-card" onclick="openAreaItems(' + area.id + ',\'' + escapeHtml(area.name).replace(/'/g, "\\'") + '\')">';
+                html += '<button class="zone-area-delete" onclick="event.stopPropagation();deleteArea(' + area.id + ')" title="Delete"><i class="fas fa-times"></i></button>';
+                html += '<div class="zone-area-card-icon" style="background:' + color + '"><i class="fas fa-th-large"></i></div>';
+                html += '<div class="zone-area-card-name">' + escapeHtml(area.name) + '</div>';
+                html += '<div class="zone-area-card-count"><i class="fas fa-cube"></i> ' + areaItemCount + ' ' + t('items') + '</div>';
+                html += '</div>';
             });
+            html += '</div>';
         }
 
-        html += '</tbody></table></div>';
-
-        // Add item bar for zone
-        html += '<div class="add-item-bar">';
-        html += '<input type="text" id="newZoneItemName" placeholder="' + t('itemNamePlaceholder') + '">';
-        html += '<input type="number" id="newZoneItemQty" placeholder="1" min="0" value="1">';
-        html += '<input type="number" id="newZoneItemMin" placeholder="5" min="0" value="5">';
-        html += '<input type="text" id="newZoneItemDesc" placeholder="' + t('descriptionPlaceholder') + '">';
-        html += '<button class="btn-add" onclick="addZoneItem()"><i class="fas fa-plus"></i> ' + t('add') + '</button>';
         html += '</div></div>';
-
-        html += '</div>';
         content.innerHTML = html;
     } catch (e) {
         content.innerHTML = '<div class="empty-state"><p>' + t('failedLoad') + '</p></div>';
@@ -871,26 +874,40 @@ function openAreaItems(areaId, areaName) {
         if (area) areaItems = area.items || [];
     }
 
-    var tbody = document.getElementById('areaItemsBody');
-    tbody.innerHTML = '';
+    document.getElementById('areaModalCount').textContent = areaItems.length;
+    var grid = document.getElementById('areaItemsBody');
+    grid.innerHTML = '';
     if (areaItems.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="empty-state" style="padding:12px">' + t('noItems') + '</td></tr>';
+        grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-box-open"></i><p>' + t('noItems') + '</p></div>';
     } else {
         areaItems.forEach(function(item) {
             var q = Number(item.qty), ms = Number(item.min_stock), status = getStatus(q, ms);
-            tbody.innerHTML += '<tr>' +
-                '<td><div class="item-name-cell">' +
-                (item.image ? '<img src="' + escapeHtml(item.image) + '" class="item-thumb" onclick="openImageViewer(\'' + escapeHtml(item.image) + '\')" onerror="this.style.display=\'none\'">' : '') +
-                '<input type="text" class="stock-input" style="width:120px" value="' + escapeHtml(item.name) + '" onchange="updateZoneItem(' + item.id + ',{name:this.value})">' +
-                '</div></td>' +
-                '<td><input type="text" class="stock-input desc-input" value="' + escapeHtml(item.description || '') + '" onchange="updateZoneItem(' + item.id + ',{description:this.value})"></td>' +
-                '<td><input type="number" class="stock-input" min="0" value="' + q + '" onchange="updateZoneItem(' + item.id + ',{qty:parseInt(this.value)})"></td>' +
-                '<td><input type="number" class="stock-input" min="0" value="' + ms + '" style="width:60px" onchange="updateZoneItem(' + item.id + ',{min_stock:parseInt(this.value)})"></td>' +
-                '<td><span class="status-badge ' + status.cls + '">' + status.icon + ' ' + status.label + '</span></td>' +
-                '<td class="item-actions">' +
-                '<label class="btn-icon" style="cursor:pointer"><i class="fas fa-image"></i><input type="file" accept="image/*" style="display:none" onchange="uploadZoneItemImg(' + item.id + ',this.files[0])"></label>' +
-                '<button class="btn-icon delete" onclick="deleteZoneItem(' + item.id + ')"><i class="fas fa-trash-alt"></i></button>' +
-                '</td></tr>';
+            var card = document.createElement('div');
+            card.className = 'area-item-card';
+            card.innerHTML =
+                '<button class="area-item-delete" onclick="deleteZoneItem(' + item.id + ')" title="Delete"><i class="fas fa-times"></i></button>' +
+                '<div class="area-item-image" ' + (item.image ? 'onclick="openImageViewer(\'' + escapeHtml(item.image) + '\')" style="cursor:pointer"' : '') + '>' +
+                    (item.image
+                        ? '<img src="' + escapeHtml(item.image) + '" onerror="this.parentElement.innerHTML=\'<i class=&quot;fas fa-box&quot;></i>\'">'
+                        : '<i class="fas fa-box"></i>') +
+                    '<label class="area-item-upload-overlay" title="Upload image">' +
+                        '<i class="fas fa-camera"></i>' +
+                        '<input type="file" accept="image/*" style="display:none" onchange="uploadZoneItemImg(' + item.id + ',this.files[0])">' +
+                    '</label>' +
+                '</div>' +
+                '<input type="text" class="area-item-name" value="' + escapeHtml(item.name) + '" onchange="updateZoneItem(' + item.id + ',{name:this.value})">' +
+                '<input type="text" class="area-item-desc" placeholder="' + t('descriptionPlaceholder') + '" value="' + escapeHtml(item.description || '') + '" onchange="updateZoneItem(' + item.id + ',{description:this.value})">' +
+                '<div class="area-item-stock">' +
+                    '<button class="area-item-qty-btn" onclick="(function(el){var inp=el.parentElement.querySelector(\'input\');var v=Math.max(0,parseInt(inp.value||0)-1);inp.value=v;updateZoneItem(' + item.id + ',{qty:v});})(this)">−</button>' +
+                    '<input type="number" class="area-item-qty ' + status.qcls + '" min="0" value="' + q + '" onchange="updateZoneItem(' + item.id + ',{qty:parseInt(this.value)})">' +
+                    '<button class="area-item-qty-btn" onclick="(function(el){var inp=el.parentElement.querySelector(\'input\');var v=parseInt(inp.value||0)+1;inp.value=v;updateZoneItem(' + item.id + ',{qty:v});})(this)">+</button>' +
+                '</div>' +
+                '<div class="area-item-min">' +
+                    '<label>' + t('minStock') + '</label>' +
+                    '<input type="number" min="0" value="' + ms + '" onchange="updateZoneItem(' + item.id + ',{min_stock:parseInt(this.value)})">' +
+                '</div>' +
+                '<div class="area-item-status ' + status.cls + '">' + status.icon + ' ' + status.label + '</div>';
+            grid.appendChild(card);
         });
     }
 

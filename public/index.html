@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FABY Keeper</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%237b2ff7'/%3E%3Cstop offset='100%25' stop-color='%2300d2ff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='22' fill='url(%23g)'/%3E%3Crect x='28' y='18' width='44' height='52' rx='6' fill='none' stroke='white' stroke-width='5'/%3E%3Ccircle cx='50' cy='42' r='8' fill='none' stroke='white' stroke-width='4'/%3E%3Crect x='47' y='48' width='6' height='12' rx='2' fill='white'/%3E%3Crect x='22' y='72' width='56' height='12' rx='4' fill='rgba(255,255,255,0.35)'/%3E%3C/svg%3E">
-    <link rel="stylesheet" href="/css/style.css?v=6">
+    <link rel="stylesheet" href="/css/style.css?v=7">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -88,12 +88,12 @@
             </button>
             <h1 id="pageTitle" data-i18n="home">Home</h1>
             <div class="topbar-right">
-                <button class="topbar-btn alert-btn" onclick="openAlertsPanel()">
+                <button class="topbar-alert-btn" onclick="openAlertsPanel()" title="Alerts">
                     <i class="fas fa-bell"></i>
-                    <span class="alert-badge" id="alertBadge"><span id="alertCount">0</span></span>
+                    <span class="topbar-alert-count" id="alertBadge"><span id="alertCount">0</span></span>
                 </button>
-                <button class="topbar-btn add-btn" id="addBtn" onclick="handleAddBtn()" style="display:none;">
-                    <i class="fas fa-plus"></i>
+                <button class="topbar-add-btn" id="addBtn" onclick="handleAddBtn()" style="display:none;">
+                    <i class="fas fa-plus-circle"></i>
                     <span id="addBtnText" data-i18n="add">Add</span>
                 </button>
             </div>
@@ -173,29 +173,29 @@
                 </div>
             </div>
             <div class="stats-bar">
-                <div class="stat-card clickable" onclick="showAllItems()">
-                    <div class="stat-icon"><i class="fas fa-box-open"></i></div>
+                <div class="stat-card clickable" onclick="showAllAreas()">
+                    <div class="stat-icon stat-icon-blue"><i class="fas fa-box-open"></i></div>
                     <div class="stat-info">
                         <span class="stat-value" id="statLockers">0</span>
                         <span class="stat-label" data-i18n="totalLockers">Total Lockers</span>
                     </div>
                 </div>
-                <div class="stat-card clickable" onclick="showAllItems()">
-                    <div class="stat-icon"><i class="fas fa-cubes"></i></div>
+                <div class="stat-card clickable" onclick="showAllAreas()">
+                    <div class="stat-icon stat-icon-green"><i class="fas fa-th-large"></i></div>
                     <div class="stat-info">
                         <span class="stat-value" id="statItems">0</span>
-                        <span class="stat-label" data-i18n="totalItems">Total Items</span>
+                        <span class="stat-label" data-i18n="allAreas">All Areas</span>
                     </div>
                 </div>
-                <div class="stat-card clickable" onclick="showAllItems()">
-                    <div class="stat-icon"><i class="fas fa-layer-group"></i></div>
+                <div class="stat-card clickable" onclick="showAllAreas()">
+                    <div class="stat-icon stat-icon-purple"><i class="fas fa-layer-group"></i></div>
                     <div class="stat-info">
                         <span class="stat-value" id="statStock">0</span>
                         <span class="stat-label" data-i18n="totalStock">Total Stock</span>
                     </div>
                 </div>
                 <div class="stat-card stat-card-alert clickable" onclick="openAlertsPanel()">
-                    <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="stat-icon stat-icon-orange"><i class="fas fa-exclamation-triangle"></i></div>
                     <div class="stat-info">
                         <span class="stat-value" id="statAlerts">0</span>
                         <span class="stat-label" data-i18n="alerts">Alerts</span>
@@ -629,31 +629,17 @@
     </div>
 </div>
 
-<!-- All Items Panel -->
-<div class="modal-overlay" id="allItemsPanel">
+<!-- All Areas Panel -->
+<div class="modal-overlay" id="allAreasPanel">
     <div class="modal-content modal-lg">
         <div class="modal-header">
-            <h2 data-i18n="allItems">All Items</h2>
-            <button class="modal-close" onclick="closeModal('allItemsPanel')">
+            <h2><i class="fas fa-th-large"></i> <span data-i18n="allAreas">All Areas</span></h2>
+            <button class="modal-close" onclick="closeModal('allAreasPanel')">
                 <i class="fas fa-times"></i>
             </button>
         </div>
         <div class="modal-body">
-            <div class="table-responsive">
-                <table class="items-table">
-                    <thead>
-                        <tr>
-                            <th data-i18n="itemName">Item Name</th>
-                            <th data-i18n="description">Description</th>
-                            <th data-i18n="stock">Stock</th>
-                            <th data-i18n="minStock">Min Stock</th>
-                            <th data-i18n="location">Location</th>
-                            <th data-i18n="status">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="allItemsBody"></tbody>
-                </table>
-            </div>
+            <div class="all-areas-grid" id="allAreasBody"></div>
         </div>
     </div>
 </div>
@@ -687,39 +673,36 @@
 
 <!-- Area Items Modal -->
 <div class="modal-overlay" id="areaItemsModal">
-    <div class="modal-content locker-modal">
-        <div class="modal-header">
-            <h2 id="areaModalName" data-i18n="areaItems">Area Items</h2>
+    <div class="modal-content area-items-modal-content">
+        <div class="modal-header area-modal-header">
+            <div class="area-modal-title">
+                <div class="area-modal-icon"><i class="fas fa-th-large"></i></div>
+                <div>
+                    <h2 id="areaModalName">Area Items</h2>
+                    <div class="area-modal-sub"><span id="areaModalCount">0</span> <span data-i18n="items">items</span></div>
+                </div>
+            </div>
             <button class="modal-close" onclick="closeModal('areaItemsModal')">
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <div class="modal-body">
-            <div class="table-responsive">
-                <table class="items-table">
-                    <thead>
-                        <tr>
-                            <th data-i18n="itemName">Item Name</th>
-                            <th data-i18n="description">Description</th>
-                            <th data-i18n="stock">Stock</th>
-                            <th data-i18n="minStock">Min Stock</th>
-                            <th data-i18n="status">Status</th>
-                            <th data-i18n="actions">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="areaItemsBody"></tbody>
-                </table>
-            </div>
+        <div class="modal-body area-items-body">
+            <div class="area-items-grid" id="areaItemsBody"></div>
         </div>
-        <div class="modal-footer add-item-bar">
-            <input type="text" id="newAreaItemName" data-i18n-placeholder="itemName" placeholder="Item name">
-            <input type="number" id="newAreaItemQty" placeholder="1" min="0" value="1">
-            <input type="number" id="newAreaItemMin" placeholder="0" min="0" value="0">
-            <input type="text" id="newAreaItemDesc" data-i18n-placeholder="description" placeholder="Description">
-            <input type="file" id="newAreaItemFile" accept="image/*">
-            <button class="btn-add" onclick="addAreaItem()">
+        <div class="modal-footer area-add-bar">
+            <div class="area-add-inputs">
+                <input type="text" id="newAreaItemName" data-i18n-placeholder="itemNamePlaceholder" placeholder="Item name...">
+                <input type="number" id="newAreaItemQty" placeholder="Qty" min="0" value="1" title="Quantity">
+                <input type="number" id="newAreaItemMin" placeholder="Min" min="0" value="0" title="Min stock">
+                <input type="text" id="newAreaItemDesc" data-i18n-placeholder="descriptionPlaceholder" placeholder="Description (optional)">
+                <label class="area-image-upload" title="Upload image">
+                    <i class="fas fa-camera"></i>
+                    <input type="file" id="newAreaItemFile" accept="image/*">
+                </label>
+            </div>
+            <button class="btn-add-strong" onclick="addAreaItem()">
                 <i class="fas fa-plus"></i>
-                <span data-i18n="add">Add</span>
+                <span data-i18n="addItem">Add Item</span>
             </button>
         </div>
     </div>
@@ -761,8 +744,8 @@
 
 
 <!-- Scripts -->
-<script src="/js/api.js?v=6"></script>
-<script src="/js/app.js?v=6"></script>
+<script src="/js/api.js?v=7"></script>
+<script src="/js/app.js?v=7"></script>
 
 </body>
 </html>

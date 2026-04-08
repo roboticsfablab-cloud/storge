@@ -79,6 +79,25 @@ module.exports = function (db) {
         res.json(updated.rows[0]);
     });
 
+    router.patch('/:id/move', async (req, res) => {
+        const itemResult = await db.execute({ sql: 'SELECT * FROM items WHERE id = ?', args: [req.params.id] });
+        if (itemResult.rows.length === 0) return res.status(404).json({ error: 'Item not found' });
+
+        const targetId = parseInt(req.body.locker_id);
+        if (!targetId) return res.status(400).json({ error: 'Target locker required' });
+
+        const target = await db.execute({ sql: 'SELECT id FROM lockers WHERE id = ?', args: [targetId] });
+        if (target.rows.length === 0) return res.status(404).json({ error: 'Target locker not found' });
+
+        if (Number(itemResult.rows[0].locker_id) === targetId) {
+            return res.json(itemResult.rows[0]);
+        }
+
+        await db.execute({ sql: 'UPDATE items SET locker_id = ? WHERE id = ?', args: [targetId, req.params.id] });
+        const updated = await db.execute({ sql: 'SELECT * FROM items WHERE id = ?', args: [req.params.id] });
+        res.json(updated.rows[0]);
+    });
+
     router.patch('/:id/qty', async (req, res) => {
         const itemResult = await db.execute({ sql: 'SELECT * FROM items WHERE id = ?', args: [req.params.id] });
         if (itemResult.rows.length === 0) return res.status(404).json({ error: 'Item not found' });

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FABY Keeper</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%237b2ff7'/%3E%3Cstop offset='100%25' stop-color='%2300d2ff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='22' fill='url(%23g)'/%3E%3Crect x='28' y='18' width='44' height='52' rx='6' fill='none' stroke='white' stroke-width='5'/%3E%3Ccircle cx='50' cy='42' r='8' fill='none' stroke='white' stroke-width='4'/%3E%3Crect x='47' y='48' width='6' height='12' rx='2' fill='white'/%3E%3Crect x='22' y='72' width='56' height='12' rx='4' fill='rgba(255,255,255,0.35)'/%3E%3C/svg%3E">
-    <link rel="stylesheet" href="/css/style.css?v=7">
+    <link rel="stylesheet" href="/css/style.css?v=8">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -173,21 +173,14 @@
                 </div>
             </div>
             <div class="stats-bar">
-                <div class="stat-card clickable" onclick="showAllAreas()">
+                <div class="stat-card clickable" onclick="showAllCabinetItems()">
                     <div class="stat-icon stat-icon-blue"><i class="fas fa-box-open"></i></div>
                     <div class="stat-info">
                         <span class="stat-value" id="statLockers">0</span>
                         <span class="stat-label" data-i18n="totalLockers">Total Lockers</span>
                     </div>
                 </div>
-                <div class="stat-card clickable" onclick="showAllAreas()">
-                    <div class="stat-icon stat-icon-green"><i class="fas fa-th-large"></i></div>
-                    <div class="stat-info">
-                        <span class="stat-value" id="statItems">0</span>
-                        <span class="stat-label" data-i18n="allAreas">All Areas</span>
-                    </div>
-                </div>
-                <div class="stat-card clickable" onclick="showAllAreas()">
+                <div class="stat-card clickable" onclick="showAllCabinetItems()">
                     <div class="stat-icon stat-icon-purple"><i class="fas fa-layer-group"></i></div>
                     <div class="stat-info">
                         <span class="stat-value" id="statStock">0</span>
@@ -200,6 +193,18 @@
                         <span class="stat-value" id="statAlerts">0</span>
                         <span class="stat-label" data-i18n="alerts">Alerts</span>
                     </div>
+                </div>
+            </div>
+            <div class="layout-toolbar">
+                <div class="layout-toolbar-label"><i class="fas fa-th"></i> <span data-i18n="layout">Layout</span></div>
+                <div class="layout-toolbar-controls">
+                    <label class="layout-ctl"><span data-i18n="rows">Rows</span>
+                        <input type="number" id="lockerRowsInput" min="1" max="20" value="0" placeholder="auto" oninput="setLockerLayout()">
+                    </label>
+                    <label class="layout-ctl"><span data-i18n="columns">Columns</span>
+                        <input type="number" id="lockerColsInput" min="1" max="12" value="0" placeholder="auto" oninput="setLockerLayout()">
+                    </label>
+                    <button class="btn-icon layout-reset" onclick="resetLockerLayout()" title="Auto"><i class="fas fa-magic"></i></button>
                 </div>
             </div>
             <div class="locker-grid-container">
@@ -478,11 +483,23 @@
         <div class="modal-body">
             <div class="form-group">
                 <label data-i18n="lockerNumber">Locker Number</label>
-                <input type="text" id="newLockerNumber" placeholder="#">
+                <input type="number" id="newLockerNumber" min="1" placeholder="#">
             </div>
             <div class="form-group">
                 <label data-i18n="lockerName">Locker Name</label>
                 <input type="text" id="newLockerName" data-i18n-placeholder="lockerName" placeholder="Locker name">
+            </div>
+            <div class="form-group">
+                <label data-i18n="description">Description</label>
+                <input type="text" id="newLockerDesc" data-i18n-placeholder="descriptionPlaceholder" placeholder="Description (optional)">
+            </div>
+            <div class="form-group">
+                <label data-i18n="picture">Image</label>
+                <label class="file-picker">
+                    <i class="fas fa-camera"></i>
+                    <span data-i18n="chooseImage">Choose image</span>
+                    <input type="file" id="newLockerFile" accept="image/*">
+                </label>
             </div>
         </div>
         <div class="modal-footer">
@@ -491,6 +508,88 @@
                 <i class="fas fa-plus"></i>
                 <span data-i18n="add">Add</span>
             </button>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Locker Modal -->
+<div class="modal-overlay" id="editLockerModal">
+    <div class="modal-content modal-sm">
+        <div class="modal-header">
+            <h2><i class="fas fa-pen"></i> <span data-i18n="editLocker">Edit Cabinet</span></h2>
+            <button class="modal-close" onclick="closeModal('editLockerModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="edit-locker-preview">
+                <div class="edit-locker-image" id="editLockerImage"><i class="fas fa-box-open"></i></div>
+                <label class="file-picker file-picker-sm">
+                    <i class="fas fa-camera"></i>
+                    <span data-i18n="changeImage">Change image</span>
+                    <input type="file" id="editLockerFile" accept="image/*" onchange="onEditLockerFile(this)">
+                </label>
+            </div>
+            <div class="form-group">
+                <label data-i18n="lockerNumber">Cabinet Number</label>
+                <input type="number" id="editLockerNumber" min="1">
+            </div>
+            <div class="form-group">
+                <label data-i18n="lockerName">Cabinet Name</label>
+                <input type="text" id="editLockerName" data-i18n-placeholder="lockerName" placeholder="Cabinet name">
+            </div>
+            <div class="form-group">
+                <label data-i18n="description">Description</label>
+                <textarea id="editLockerDesc" rows="3" data-i18n-placeholder="descriptionPlaceholder" placeholder="Description"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeModal('editLockerModal')" data-i18n="cancel">Cancel</button>
+            <button class="btn-add" onclick="saveEditLocker()">
+                <i class="fas fa-save"></i>
+                <span data-i18n="save">Save</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Move Item Modal -->
+<div class="modal-overlay" id="moveItemModal">
+    <div class="modal-content modal-sm">
+        <div class="modal-header">
+            <h2><i class="fas fa-exchange-alt"></i> <span data-i18n="moveItem">Move Item</span></h2>
+            <button class="modal-close" onclick="closeModal('moveItemModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="move-item-info" id="moveItemInfo"></div>
+            <div class="form-group">
+                <label data-i18n="targetLocker">Target Cabinet</label>
+                <div class="move-locker-grid" id="moveLockerGrid"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeModal('moveItemModal')" data-i18n="cancel">Cancel</button>
+            <button class="btn-add" onclick="confirmMoveItem()">
+                <i class="fas fa-exchange-alt"></i>
+                <span data-i18n="move">Move</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- All Cabinet Items Modal -->
+<div class="modal-overlay" id="allCabinetItemsModal">
+    <div class="modal-content modal-lg">
+        <div class="modal-header">
+            <h2><i class="fas fa-th-large"></i> <span data-i18n="allCabinetItems">All Cabinet Items</span></h2>
+            <button class="modal-close" onclick="closeModal('allCabinetItemsModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="all-cab-items-grid" id="allCabinetItemsBody"></div>
         </div>
     </div>
 </div>
@@ -744,8 +843,8 @@
 
 
 <!-- Scripts -->
-<script src="/js/api.js?v=7"></script>
-<script src="/js/app.js?v=7"></script>
+<script src="/js/api.js?v=8"></script>
+<script src="/js/app.js?v=8"></script>
 
 </body>
 </html>

@@ -22,12 +22,14 @@ const API = {
     createLocker(data)     { return this.request('POST', '/lockers', data); },
     updateLocker(id, data) { return this.request('PUT', '/lockers/' + id, data); },
     deleteLocker(id)       { return this.request('DELETE', '/lockers/' + id); },
+    uploadLockerImage(id, f) { return this.upload('/lockers/' + id + '/image', f); },
 
     // Items
     getAllItems()           { return this.request('GET', '/items'); },
     addItem(lid, data)     { return this.request('POST', '/items/locker/' + lid, data); },
     updateItem(id, data)   { return this.request('PUT', '/items/' + id, data); },
     changeQty(id, delta)   { return this.request('PATCH', '/items/' + id + '/qty', { delta }); },
+    moveItem(id, lockerId) { return this.request('PATCH', '/items/' + id + '/move', { locker_id: lockerId }); },
     deleteItem(id)         { return this.request('DELETE', '/items/' + id); },
     uploadImage(id, file)  { return this.upload('/items/' + id + '/image', file); },
 

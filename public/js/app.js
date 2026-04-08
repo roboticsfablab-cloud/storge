@@ -41,9 +41,14 @@ const i18n = {
         returned:'Returned', transferred:'Transferred',
         startDate:'Start Date', endDate:'End Date', notes:'Notes',
         itemsRunningLow:'{count} item(s) in {lockers} locker(s) running low!',
-        addNewLocker:'Add New Locker', lockerNameUpdated:'Locker name updated',
+        addNewLocker:'Add New Locker', lockerNameUpdated:'Cabinet updated',
         qty:'Qty', descriptionPlaceholder:'Description (optional)',
         itemNamePlaceholder:'Item name...',
+        editLocker:'Edit Cabinet', moveItem:'Move Item', move:'Move',
+        targetLocker:'Target Cabinet', selectTargetLocker:'Select target cabinet',
+        itemMoved:'Item moved', allCabinetItems:'All Cabinet Items',
+        layout:'Layout', rows:'Rows', columns:'Columns',
+        chooseImage:'Choose image', changeImage:'Change image',
     },
     ar: {
         appTitle:'FABY Keeper', home:'الرئيسية', lockers:'الخزائن', warehouse:'المستودع',
@@ -86,9 +91,14 @@ const i18n = {
         returned:'مُرجع', transferred:'منقول',
         startDate:'تاريخ البداية', endDate:'تاريخ النهاية', notes:'ملاحظات',
         itemsRunningLow:'{count} عنصر في {lockers} خزانة بمخزون منخفض!',
-        addNewLocker:'إضافة خزانة جديدة', lockerNameUpdated:'تم تحديث اسم الخزانة',
+        addNewLocker:'إضافة خزانة جديدة', lockerNameUpdated:'تم تحديث الخزانة',
         qty:'الكمية', descriptionPlaceholder:'الوصف (اختياري)',
         itemNamePlaceholder:'اسم العنصر...',
+        editLocker:'تعديل الخزانة', moveItem:'نقل العنصر', move:'نقل',
+        targetLocker:'الخزانة المستهدفة', selectTargetLocker:'اختر الخزانة المستهدفة',
+        itemMoved:'تم نقل العنصر', allCabinetItems:'جميع عناصر الخزائن',
+        layout:'التخطيط', rows:'الصفوف', columns:'الأعمدة',
+        chooseImage:'اختر صورة', changeImage:'تغيير الصورة',
     }
 };
 
@@ -233,6 +243,7 @@ function navigateTo(page) {
 
     if (page === 'lockers') {
         document.getElementById('addBtnText').textContent = t('addLocker');
+        applyLockerLayout();
         renderGrid();
     } else if (page === 'warehouse') {
         document.getElementById('addBtnText').textContent = t('addZone');
@@ -414,9 +425,49 @@ document.addEventListener('click', function(e) {
 // ============ Lockers ============
 function updateStats(lockers) {
     document.getElementById('statLockers').textContent = lockers.length;
-    document.getElementById('statItems').textContent = lockers.reduce(function(s, l) { return s + Number(l.item_count); }, 0);
-    document.getElementById('statStock').textContent = lockers.reduce(function(s, l) { return s + Number(l.total_qty); }, 0);
+    var stockEl = document.getElementById('statStock');
+    if (stockEl) stockEl.textContent = lockers.reduce(function(s, l) { return s + Number(l.total_qty); }, 0);
     document.getElementById('statAlerts').textContent = lockers.reduce(function(s, l) { return s + Number(l.low_stock_count); }, 0);
+}
+
+// ----- Layout (rows × columns) -----
+function applyLockerLayout() {
+    var grid = document.getElementById('lockerGrid');
+    if (!grid) return;
+    var cols = parseInt(localStorage.getItem('lockerCols')) || 0;
+    var rows = parseInt(localStorage.getItem('lockerRows')) || 0;
+    if (cols > 0) {
+        grid.style.gridTemplateColumns = 'repeat(' + cols + ', minmax(0, 1fr))';
+    } else {
+        grid.style.gridTemplateColumns = '';
+    }
+    if (rows > 0) {
+        grid.style.gridAutoRows = 'minmax(0, 1fr)';
+        grid.style.gridTemplateRows = 'repeat(' + rows + ', minmax(0, 1fr))';
+    } else {
+        grid.style.gridTemplateRows = '';
+    }
+    grid.classList.toggle('custom-layout', cols > 0 || rows > 0);
+    var ci = document.getElementById('lockerColsInput');
+    var ri = document.getElementById('lockerRowsInput');
+    if (ci && document.activeElement !== ci) ci.value = cols || '';
+    if (ri && document.activeElement !== ri) ri.value = rows || '';
+}
+
+function setLockerLayout() {
+    var c = parseInt(document.getElementById('lockerColsInput').value) || 0;
+    var r = parseInt(document.getElementById('lockerRowsInput').value) || 0;
+    localStorage.setItem('lockerCols', c);
+    localStorage.setItem('lockerRows', r);
+    applyLockerLayout();
+}
+
+function resetLockerLayout() {
+    localStorage.removeItem('lockerCols');
+    localStorage.removeItem('lockerRows');
+    var ci = document.getElementById('lockerColsInput'); if (ci) ci.value = '';
+    var ri = document.getElementById('lockerRowsInput'); if (ri) ri.value = '';
+    applyLockerLayout();
 }
 
 async function renderGrid() {
@@ -434,15 +485,24 @@ async function renderGrid() {
             var hasAlert = Number(locker.low_stock_count) > 0;
             var ic = Number(locker.item_count), tq = Number(locker.total_qty);
             var card = document.createElement('div');
-            card.className = 'locker-card' + (hasAlert ? ' has-alert' : '');
+            card.className = 'locker-card' + (hasAlert ? ' has-alert' : '') + (locker.image ? ' has-image' : '');
             card.onclick = function() { openLockerModal(locker.id); };
-            card.innerHTML = '<button class="btn-icon locker-delete-btn" onclick="event.stopPropagation();deleteLocker(' + locker.id + ')"><i class="fas fa-trash-alt"></i></button>' +
-                '<div class="locker-visual"><div class="locker-door"><div class="locker-number">' + locker.id + '</div><div class="locker-handle"></div></div></div>' +
+            var visualInner = locker.image
+                ? '<div class="locker-img-wrap"><img src="' + escapeHtml(locker.image) + '" alt="" onerror="this.parentElement.innerHTML=\'<i class=\\\'fas fa-box-open\\\'></i>\'"></div>'
+                : '<div class="locker-number">' + locker.id + '</div>';
+            card.innerHTML = '<div class="locker-card-actions">' +
+                    '<button class="btn-icon locker-edit-btn" onclick="event.stopPropagation();openEditLockerModal(' + locker.id + ')" title="Edit"><i class="fas fa-pen"></i></button>' +
+                    '<button class="btn-icon locker-delete-btn" onclick="event.stopPropagation();deleteLocker(' + locker.id + ')" title="Delete"><i class="fas fa-trash-alt"></i></button>' +
+                '</div>' +
+                '<div class="locker-tag">#' + locker.id + '</div>' +
+                '<div class="locker-visual"><div class="locker-door">' + visualInner + '<div class="locker-handle"></div></div></div>' +
                 '<div class="locker-info"><div class="locker-name">' + escapeHtml(locker.name || t('locker') + ' ' + locker.id) + '</div>' +
+                (locker.description ? '<div class="locker-desc">' + escapeHtml(locker.description) + '</div>' : '') +
                 '<div class="locker-stock-count"><i class="fas fa-box"></i> ' + ic + ' ' + t('items') + ' &middot; ' + tq + ' ' + t('pcs') + '</div>' +
                 '<div class="locker-progress"><div class="locker-progress-bar ' + (hasAlert ? 'bar-alert' : 'bar-ok') + '" style="width:' + (ic > 0 ? Math.min(100, Math.round(tq / (ic * 5) * 100)) : 100) + '%"></div></div></div>';
             grid.appendChild(card);
         });
+        applyLockerLayout();
         updateAlertBadge();
     } catch (e) {
         grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><p>' + t('failedLoad') + '</p></div>';
@@ -523,6 +583,7 @@ function renderItems() {
                 '<button class="btn-icon" onclick="changeQty(' + item.id + ',1)"><i class="fas fa-plus"></i></button>' +
                 '<button class="btn-icon" onclick="changeQty(' + item.id + ',-1)"><i class="fas fa-minus"></i></button>' +
                 '<label class="btn-icon" style="cursor:pointer"><i class="fas fa-image"></i><input type="file" accept="image/*" style="display:none" onchange="uploadItemImage(' + item.id + ',this.files[0])"></label>' +
+                '<button class="btn-icon" title="' + t('moveItem') + '" onclick="openMoveItemModal(' + item.id + ',\'' + escapeHtml(item.name).replace(/\\/g,"\\\\").replace(/'/g,"\\'") + '\')"><i class="fas fa-exchange-alt"></i></button>' +
                 '<button class="btn-icon delete" onclick="removeItem(' + item.id + ')"><i class="fas fa-trash-alt"></i></button>' +
                 '</td>';
             tbody.appendChild(tr);
@@ -541,6 +602,7 @@ function renderItems() {
             var card = document.createElement('div');
             card.className = 'item-card' + hl;
             card.innerHTML = '<button class="btn-icon item-card-delete delete" onclick="removeItem(' + item.id + ')"><i class="fas fa-times"></i></button>' +
+                '<button class="btn-icon item-card-move" title="' + t('moveItem') + '" onclick="openMoveItemModal(' + item.id + ',\'' + escapeHtml(item.name).replace(/\\/g,"\\\\").replace(/'/g,"\\'") + '\')"><i class="fas fa-exchange-alt"></i></button>' +
                 '<div class="item-card-img"' + (item.image ? ' onclick="openImageViewer(\'' + escapeHtml(item.image) + '\')" style="cursor:pointer"' : '') + '>' +
                 (item.image ? '<img src="' + escapeHtml(item.image) + '" onerror="this.parentElement.innerHTML=\'<i class=\\\'fas fa-box\\\'></i>\'">' : '<i class="fas fa-box"></i>') +
                 '</div>' +
@@ -634,6 +696,8 @@ async function editLockerName() {
 function openAddLockerModal() {
     document.getElementById('newLockerNumber').value = '';
     document.getElementById('newLockerName').value = '';
+    var d = document.getElementById('newLockerDesc'); if (d) d.value = '';
+    var f = document.getElementById('newLockerFile'); if (f) f.value = '';
     document.getElementById('addLockerModal').classList.add('active');
 }
 
@@ -643,11 +707,169 @@ async function saveNewLocker() {
     var num = parseInt(document.getElementById('newLockerNumber').value);
     if (!num || num < 1) { document.getElementById('newLockerNumber').focus(); return; }
     try {
-        await API.createLocker({ id: num, name: document.getElementById('newLockerName').value.trim() });
+        var created = await API.createLocker({
+            id: num,
+            name: document.getElementById('newLockerName').value.trim(),
+            description: (document.getElementById('newLockerDesc') || {}).value || ''
+        });
+        var fi = document.getElementById('newLockerFile');
+        if (fi && fi.files && fi.files[0]) {
+            try { await API.uploadLockerImage(created.id, fi.files[0]); } catch (e) {}
+        }
         showToast(t('lockerAdded') + ' ' + num);
         closeAddLockerModal();
         renderGrid();
     } catch (e) { showToast(e.message, 'error'); }
+}
+
+// ============ Edit Locker ============
+let editingLockerId = null;
+async function openEditLockerModal(id) {
+    try {
+        var locker = await API.getLocker(id);
+        editingLockerId = id;
+        document.getElementById('editLockerNumber').value = locker.id;
+        document.getElementById('editLockerName').value = locker.name || '';
+        document.getElementById('editLockerDesc').value = locker.description || '';
+        var img = document.getElementById('editLockerImage');
+        img.innerHTML = locker.image
+            ? '<img src="' + escapeHtml(locker.image) + '" alt="">'
+            : '<i class="fas fa-box-open"></i>';
+        var fi = document.getElementById('editLockerFile'); if (fi) fi.value = '';
+        document.getElementById('editLockerModal').classList.add('active');
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+function onEditLockerFile(input) {
+    if (!input.files || !input.files[0]) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+        document.getElementById('editLockerImage').innerHTML = '<img src="' + ev.target.result + '" alt="">';
+    };
+    reader.readAsDataURL(input.files[0]);
+}
+
+async function saveEditLocker() {
+    if (!editingLockerId) return;
+    var newNum = parseInt(document.getElementById('editLockerNumber').value);
+    var name = document.getElementById('editLockerName').value.trim();
+    var desc = document.getElementById('editLockerDesc').value.trim();
+    if (!newNum || newNum < 1) { document.getElementById('editLockerNumber').focus(); return; }
+    try {
+        var payload = { name: name, description: desc };
+        if (Number(newNum) !== Number(editingLockerId)) payload.new_id = newNum;
+        var updated = await API.updateLocker(editingLockerId, payload);
+        var newId = updated && updated.id ? updated.id : newNum;
+        var fi = document.getElementById('editLockerFile');
+        if (fi && fi.files && fi.files[0]) {
+            try { await API.uploadLockerImage(newId, fi.files[0]); } catch (e) {}
+        }
+        showToast(t('lockerNameUpdated'));
+        closeModal('editLockerModal');
+        editingLockerId = null;
+        renderGrid();
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+// ============ Move Item ============
+let movingItemId = null;
+let moveTargetLockerId = null;
+async function openMoveItemModal(itemId, itemName) {
+    movingItemId = itemId;
+    moveTargetLockerId = null;
+    document.getElementById('moveItemInfo').innerHTML =
+        '<i class="fas fa-cube"></i> <strong>' + escapeHtml(itemName) + '</strong>';
+    var grid = document.getElementById('moveLockerGrid');
+    grid.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i></div>';
+    document.getElementById('moveItemModal').classList.add('active');
+    try {
+        var lockers = await API.getLockers();
+        grid.innerHTML = '';
+        lockers.forEach(function(l) {
+            var disabled = Number(l.id) === Number(currentLockerId);
+            var cell = document.createElement('div');
+            cell.className = 'move-locker-cell' + (disabled ? ' disabled' : '');
+            cell.innerHTML = (l.image
+                ? '<div class="move-locker-img"><img src="' + escapeHtml(l.image) + '" alt=""></div>'
+                : '<div class="move-locker-num">' + l.id + '</div>') +
+                '<div class="move-locker-name">' + escapeHtml(l.name || (t('locker') + ' ' + l.id)) + '</div>';
+            if (!disabled) {
+                cell.onclick = function() {
+                    moveTargetLockerId = l.id;
+                    grid.querySelectorAll('.move-locker-cell').forEach(function(c) { c.classList.remove('selected'); });
+                    cell.classList.add('selected');
+                };
+            }
+            grid.appendChild(cell);
+        });
+    } catch (e) {
+        grid.innerHTML = '<div class="empty-state">' + t('failedLoad') + '</div>';
+    }
+}
+
+async function confirmMoveItem() {
+    if (!movingItemId || !moveTargetLockerId) {
+        showToast(t('selectTargetLocker') || 'Select target cabinet', 'warning');
+        return;
+    }
+    try {
+        await API.moveItem(movingItemId, moveTargetLockerId);
+        showToast(t('itemMoved') || 'Item moved');
+        closeModal('moveItemModal');
+        movingItemId = null;
+        moveTargetLockerId = null;
+        if (currentLockerId) {
+            currentLockerData = await API.getLocker(currentLockerId);
+            renderItems();
+        }
+        renderGrid();
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+// ============ All Cabinet Items ============
+async function showAllCabinetItems() {
+    var body = document.getElementById('allCabinetItemsBody');
+    body.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> ' + t('loading') + '</div>';
+    document.getElementById('allCabinetItemsModal').classList.add('active');
+    try {
+        var items = await API.getAllItems();
+        if (!items.length) {
+            body.innerHTML = '<div class="empty-state"><i class="fas fa-box-open"></i><p>' + t('noItems') + '</p></div>';
+            return;
+        }
+        // Group by locker
+        var groups = {};
+        items.forEach(function(it) {
+            var k = it.locker_id;
+            if (!groups[k]) groups[k] = { locker_id: k, locker_name: it.locker_name, items: [] };
+            groups[k].items.push(it);
+        });
+        body.innerHTML = '';
+        Object.keys(groups).sort(function(a,b){return Number(a)-Number(b);}).forEach(function(k) {
+            var g = groups[k];
+            var section = document.createElement('div');
+            section.className = 'all-cab-section';
+            var inner = '<div class="all-cab-section-header"><i class="fas fa-box-open"></i> ' +
+                '<span class="all-cab-section-name">' + t('locker') + ' ' + g.locker_id + (g.locker_name ? ' · ' + escapeHtml(g.locker_name) : '') + '</span>' +
+                '<span class="all-cab-section-count">' + g.items.length + ' ' + t('items') + '</span>' +
+                '<button class="btn-icon" onclick="closeModal(\'allCabinetItemsModal\');openLockerModal(' + g.locker_id + ')"><i class="fas fa-arrow-right"></i></button>' +
+                '</div><div class="all-cab-items">';
+            g.items.forEach(function(it) {
+                var q = Number(it.qty), ms = Number(it.min_stock), st = getStatus(q, ms);
+                inner += '<div class="all-cab-item ' + st.qcls + '" onclick="closeModal(\'allCabinetItemsModal\');highlightItemId=' + it.id + ';openLockerModal(' + it.locker_id + ')">' +
+                    (it.image ? '<img src="' + escapeHtml(it.image) + '" alt="">' : '<div class="all-cab-item-icon"><i class="fas fa-cube"></i></div>') +
+                    '<div class="all-cab-item-info">' +
+                    '<div class="all-cab-item-name">' + escapeHtml(it.name) + '</div>' +
+                    '<div class="all-cab-item-meta">' + t('qty') + ': ' + q + ' · ' + st.label + '</div>' +
+                    '</div></div>';
+            });
+            inner += '</div>';
+            section.innerHTML = inner;
+            body.appendChild(section);
+        });
+    } catch (e) {
+        body.innerHTML = '<div class="empty-state"><p>' + t('failedLoad') + '</p></div>';
+    }
 }
 // alias for compatibility
 function addLocker() { saveNewLocker(); }

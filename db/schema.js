@@ -135,6 +135,8 @@ async function ensureTables() {
         `ALTER TABLE departments ADD COLUMN image TEXT DEFAULT ''`,
         `ALTER TABLE department_items ADD COLUMN receipt_date TEXT DEFAULT ''`,
         `ALTER TABLE department_items ADD COLUMN purpose TEXT DEFAULT ''`,
+        `ALTER TABLE lockers ADD COLUMN description TEXT DEFAULT ''`,
+        `ALTER TABLE lockers ADD COLUMN image TEXT DEFAULT ''`,
     ];
     for (const sql of migrations) {
         try { await client.execute(sql); } catch (e) { /* column exists */ }

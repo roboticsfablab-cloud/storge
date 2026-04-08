@@ -217,11 +217,25 @@ document.addEventListener('click', function(e) {
 });
 
 // ============ Navigation ============
+function persistNavState() {
+    try {
+        var state = {
+            page: currentPage,
+            deptId: currentDeptId,
+            empId: currentEmpId,
+            zoneId: currentZoneId,
+            deptTab: currentDeptTab,
+        };
+        localStorage.setItem('navState', JSON.stringify(state));
+    } catch (e) {}
+}
+
 function navigateTo(page) {
     document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
     var pageEl = document.getElementById('page-' + page);
     if (pageEl) pageEl.classList.add('active');
     currentPage = page;
+    persistNavState();
 
     // Update sidebar active state
     document.querySelectorAll('.sidebar-link').forEach(function(l) { l.classList.remove('active'); });
@@ -995,6 +1009,7 @@ async function renderWarehouse() {
 function selectZone(id) {
     currentZoneId = id;
     currentZoneData = null;
+    persistNavState();
     renderWarehouse();
 }
 
@@ -1285,6 +1300,7 @@ function switchDeptTab(tab) {
     document.getElementById('deptTabEmployees').classList.toggle('active', tab === 'employees');
     document.getElementById('deptTabDepts').classList.toggle('active', tab === 'depts');
     document.getElementById('addBtnText').textContent = tab === 'employees' ? t('addEmployee') : t('addDepartment');
+    persistNavState();
 }
 
 // ============ Departments ============
@@ -1962,4 +1978,29 @@ if (newItemFile) {
 // ============ Init ============
 applyTheme();
 applyLanguage();
-loadHomeCounts();
+
+(function restoreNavState() {
+    var raw;
+    try { raw = localStorage.getItem('navState'); } catch (e) {}
+    if (!raw) { loadHomeCounts(); return; }
+    var state;
+    try { state = JSON.parse(raw); } catch (e) { loadHomeCounts(); return; }
+    if (!state || !state.page || state.page === 'home') { loadHomeCounts(); return; }
+
+    var validPages = ['home','lockers','warehouse','departments','dept-detail','emp-detail'];
+    if (validPages.indexOf(state.page) === -1) { loadHomeCounts(); return; }
+
+    if (state.page === 'dept-detail') {
+        if (!state.deptId) { loadHomeCounts(); return; }
+        currentDeptId = state.deptId;
+    }
+    if (state.page === 'emp-detail') {
+        if (!state.empId) { loadHomeCounts(); return; }
+        currentEmpId = state.empId;
+    }
+    if (state.page === 'warehouse' && state.zoneId) currentZoneId = state.zoneId;
+    if (state.page === 'departments' && state.deptTab) currentDeptTab = state.deptTab;
+
+    navigateTo(state.page);
+    if (state.page === 'departments' && state.deptTab) switchDeptTab(state.deptTab);
+})();

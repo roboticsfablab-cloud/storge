@@ -4518,38 +4518,20 @@ textarea.input {
   border-radius: 8px !important;
 }
 
-/* Locker card extensions */
-.locker-card-actions {
+/* Locker card corner action buttons */
+.locker-edit-btn {
   position: absolute;
   top: 6px;
-  inset-inline-start: 6px;
-  display: flex;
-  gap: 4px;
-  opacity: 0;
-  z-index: 3;
-  transition: opacity var(--transition-fast);
-}
-.locker-card:hover .locker-card-actions { opacity: 1; }
-.locker-edit-btn {
+  right: 6px;
+  left: auto;
   font-size: 12px;
   color: var(--accent);
+  opacity: 0;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+  z-index: 3;
 }
-.locker-edit-btn:hover { transform: scale(1.15); }
-
-.locker-tag {
-  position: absolute;
-  top: 8px;
-  inset-inline-end: 8px;
-  font-size: 10px;
-  font-weight: 800;
-  padding: 3px 8px;
-  border-radius: 20px;
-  background: var(--accent-gradient);
-  color: #fff;
-  letter-spacing: .5px;
-  z-index: 2;
-  box-shadow: 0 4px 10px rgba(123, 47, 247, .3);
-}
+.locker-card:hover .locker-edit-btn { opacity: 1; }
+.locker-edit-btn:hover { transform: scale(1.2); }
 
 .locker-img-wrap {
   width: 100%;

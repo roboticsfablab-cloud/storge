@@ -490,13 +490,11 @@ async function renderGrid() {
             var visualInner = locker.image
                 ? '<div class="locker-img-wrap"><img src="' + escapeHtml(locker.image) + '" alt="" onerror="this.parentElement.innerHTML=\'<i class=\\\'fas fa-box-open\\\'></i>\'"></div>'
                 : '<div class="locker-number">' + locker.id + '</div>';
-            card.innerHTML = '<div class="locker-card-actions">' +
-                    '<button class="btn-icon locker-edit-btn" onclick="event.stopPropagation();openEditLockerModal(' + locker.id + ')" title="Edit"><i class="fas fa-pen"></i></button>' +
-                    '<button class="btn-icon locker-delete-btn" onclick="event.stopPropagation();deleteLocker(' + locker.id + ')" title="Delete"><i class="fas fa-trash-alt"></i></button>' +
-                '</div>' +
-                '<div class="locker-tag">#' + locker.id + '</div>' +
+            var displayName = locker.name ? (locker.name + ' #' + locker.id) : (t('locker') + ' #' + locker.id);
+            card.innerHTML = '<button class="btn-icon locker-delete-btn" onclick="event.stopPropagation();deleteLocker(' + locker.id + ')" title="Delete"><i class="fas fa-trash-alt"></i></button>' +
+                '<button class="btn-icon locker-edit-btn" onclick="event.stopPropagation();openEditLockerModal(' + locker.id + ')" title="Edit"><i class="fas fa-pen"></i></button>' +
                 '<div class="locker-visual"><div class="locker-door">' + visualInner + '<div class="locker-handle"></div></div></div>' +
-                '<div class="locker-info"><div class="locker-name">' + escapeHtml(locker.name || t('locker') + ' ' + locker.id) + '</div>' +
+                '<div class="locker-info"><div class="locker-name">' + escapeHtml(displayName) + '</div>' +
                 (locker.description ? '<div class="locker-desc">' + escapeHtml(locker.description) + '</div>' : '') +
                 '<div class="locker-stock-count"><i class="fas fa-box"></i> ' + ic + ' ' + t('items') + ' &middot; ' + tq + ' ' + t('pcs') + '</div>' +
                 '<div class="locker-progress"><div class="locker-progress-bar ' + (hasAlert ? 'bar-alert' : 'bar-ok') + '" style="width:' + (ic > 0 ? Math.min(100, Math.round(tq / (ic * 5) * 100)) : 100) + '%"></div></div></div>';

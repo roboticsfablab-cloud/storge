@@ -605,13 +605,16 @@ function renderItems() {
     if (items.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><i class="fas fa-box-open"></i><p>' + t('noItems') + '</p></td></tr>';
     } else {
-        items.forEach(function(item) {
+        items.forEach(function(item, idx) {
             var q = Number(item.qty), ms = Number(item.min_stock), status = getStatus(q, ms);
             var hl = highlightItemId == item.id ? ' highlighted' : '';
             var tr = document.createElement('tr');
-            tr.className = hl;
+            tr.className = 'locker-item-row' + hl;
+            tr.style.animationDelay = (idx * 0.04) + 's';
             tr.innerHTML = '<td><div class="item-name-cell">' +
-                (item.image ? '<img src="' + escapeHtml(item.image) + '" class="item-thumb" onclick="event.stopPropagation();openImageViewer(\'' + escapeHtml(item.image) + '\')" onerror="this.style.display=\'none\'">' : '') +
+                '<div class="locker-item-thumb"' + (item.image ? ' onclick="event.stopPropagation();openImageViewer(\'' + escapeHtml(item.image) + '\')" style="cursor:pointer"' : '') + '>' +
+                (item.image ? '<img src="' + escapeHtml(item.image) + '" onerror="this.parentElement.innerHTML=\'<i class=\\\'fas fa-cube\\\'></i>\'">' : '<i class="fas fa-cube"></i>') +
+                '</div>' +
                 '<input type="text" class="stock-input" style="width:130px;text-align:' + dir + '" value="' + escapeHtml(item.name) + '" onchange="updateItem(' + item.id + ',{name:this.value})">' +
                 '</div></td>' +
                 '<td><input type="text" class="stock-input desc-input" style="text-align:' + dir + '" value="' + escapeHtml(item.description || '') + '" placeholder="' + t('descriptionPlaceholder') + '" onchange="updateItem(' + item.id + ',{description:this.value})"></td>' +
@@ -619,11 +622,11 @@ function renderItems() {
                 '<td><input type="number" class="stock-input" min="0" value="' + ms + '" style="width:60px" onchange="updateItem(' + item.id + ',{min_stock:parseInt(this.value)})"></td>' +
                 '<td><span class="status-badge ' + status.cls + '">' + status.icon + ' ' + status.label + '</span></td>' +
                 '<td class="item-actions">' +
-                '<button class="btn-icon" onclick="changeQty(' + item.id + ',1)"><i class="fas fa-plus"></i></button>' +
-                '<button class="btn-icon" onclick="changeQty(' + item.id + ',-1)"><i class="fas fa-minus"></i></button>' +
-                '<label class="btn-icon" style="cursor:pointer"><i class="fas fa-image"></i><input type="file" accept="image/*" style="display:none" onchange="uploadItemImage(' + item.id + ',this.files[0])"></label>' +
-                '<button class="btn-icon" title="' + t('moveItem') + '" onclick="openMoveItemModal(' + item.id + ',\'' + escapeHtml(item.name).replace(/\\/g,"\\\\").replace(/'/g,"\\'") + '\')"><i class="fas fa-exchange-alt"></i></button>' +
-                '<button class="btn-icon delete" onclick="removeItem(' + item.id + ')"><i class="fas fa-trash-alt"></i></button>' +
+                '<button class="locker-action-btn locker-action-plus" onclick="changeQty(' + item.id + ',1)" title="+1"><i class="fas fa-plus"></i></button>' +
+                '<button class="locker-action-btn locker-action-minus" onclick="changeQty(' + item.id + ',-1)" title="-1"><i class="fas fa-minus"></i></button>' +
+                '<label class="locker-action-btn locker-action-img" style="cursor:pointer" title="Image"><i class="fas fa-camera"></i><input type="file" accept="image/*" style="display:none" onchange="uploadItemImage(' + item.id + ',this.files[0])"></label>' +
+                '<button class="locker-action-btn locker-action-move" title="' + t('moveItem') + '" onclick="openMoveItemModal(' + item.id + ',\'' + escapeHtml(item.name).replace(/\\/g,"\\\\").replace(/'/g,"\\'") + '\')"><i class="fas fa-dolly"></i></button>' +
+                '<button class="locker-action-btn locker-action-delete" onclick="removeItem(' + item.id + ')"><i class="fas fa-trash-alt"></i></button>' +
                 '</td>';
             tbody.appendChild(tr);
         });
@@ -635,25 +638,33 @@ function renderItems() {
     if (items.length === 0) {
         gridEl.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-box-open"></i><p>' + t('noItems') + '</p></div>';
     } else {
-        items.forEach(function(item) {
+        items.forEach(function(item, idx) {
             var q = Number(item.qty), ms = Number(item.min_stock), status = getStatus(q, ms);
             var hl = highlightItemId == item.id ? ' highlighted' : '';
             var card = document.createElement('div');
-            card.className = 'item-card' + hl;
-            card.innerHTML = '<button class="btn-icon item-card-delete delete" onclick="removeItem(' + item.id + ')"><i class="fas fa-times"></i></button>' +
-                '<button class="btn-icon item-card-move" title="' + t('moveItem') + '" onclick="openMoveItemModal(' + item.id + ',\'' + escapeHtml(item.name).replace(/\\/g,"\\\\").replace(/'/g,"\\'") + '\')"><i class="fas fa-exchange-alt"></i></button>' +
-                '<div class="item-card-img"' + (item.image ? ' onclick="openImageViewer(\'' + escapeHtml(item.image) + '\')" style="cursor:pointer"' : '') + '>' +
-                (item.image ? '<img src="' + escapeHtml(item.image) + '" onerror="this.parentElement.innerHTML=\'<i class=\\\'fas fa-box\\\'></i>\'">' : '<i class="fas fa-box"></i>') +
+            card.className = 'item-card-v2' + hl;
+            card.style.animationDelay = (idx * 0.06) + 's';
+            card.innerHTML =
+                '<div class="item-v2-toolbar">' +
+                    '<button class="item-v2-tool item-v2-tool-move" title="' + t('moveItem') + '" onclick="openMoveItemModal(' + item.id + ',\'' + escapeHtml(item.name).replace(/\\/g,"\\\\").replace(/'/g,"\\'") + '\')"><i class="fas fa-dolly"></i></button>' +
+                    '<button class="item-v2-tool item-v2-tool-delete" onclick="removeItem(' + item.id + ')"><i class="fas fa-trash-alt"></i></button>' +
                 '</div>' +
-                '<input type="text" class="item-card-edit" value="' + escapeHtml(item.name) + '" onchange="updateItem(' + item.id + ',{name:this.value})">' +
-                (item.description ? '<div class="item-card-desc">' + escapeHtml(item.description) + '</div>' : '') +
-                '<div class="item-card-qty-row">' +
-                '<button class="btn-icon" onclick="changeQty(' + item.id + ',-1)"><i class="fas fa-minus"></i></button>' +
-                '<span class="item-card-qty ' + status.qcls + '">' + q + '</span>' +
-                '<button class="btn-icon" onclick="changeQty(' + item.id + ',1)"><i class="fas fa-plus"></i></button>' +
+                '<div class="item-v2-visual"' + (item.image ? ' onclick="openImageViewer(\'' + escapeHtml(item.image) + '\')" style="cursor:pointer"' : '') + '>' +
+                    (item.image ? '<img src="' + escapeHtml(item.image) + '" onerror="this.parentElement.innerHTML=\'<i class=\\\'fas fa-cube\\\'></i>\'">' : '<i class="fas fa-cube"></i>') +
+                    '<div class="item-v2-status-dot ' + status.qcls + '"></div>' +
                 '</div>' +
-                '<div class="item-card-min">Min: <input type="number" value="' + ms + '" min="0" style="width:50px" class="stock-input" onchange="updateItem(' + item.id + ',{min_stock:parseInt(this.value)})"></div>' +
-                '<div class="item-card-label">' + status.label + '</div>';
+                '<input type="text" class="item-v2-name" value="' + escapeHtml(item.name) + '" onchange="updateItem(' + item.id + ',{name:this.value})">' +
+                (item.description ? '<div class="item-v2-desc">' + escapeHtml(item.description) + '</div>' : '') +
+                '<div class="item-v2-qty-ring">' +
+                    '<button class="item-v2-qty-btn" onclick="changeQty(' + item.id + ',-1)"><i class="fas fa-minus"></i></button>' +
+                    '<div class="item-v2-qty-display ' + status.qcls + '">' + q + '</div>' +
+                    '<button class="item-v2-qty-btn" onclick="changeQty(' + item.id + ',1)"><i class="fas fa-plus"></i></button>' +
+                '</div>' +
+                '<div class="item-v2-footer">' +
+                    '<div class="item-v2-min">' + t('minStock') + ': <input type="number" value="' + ms + '" min="0" class="stock-input" onchange="updateItem(' + item.id + ',{min_stock:parseInt(this.value)})"></div>' +
+                    '<label class="item-v2-upload" title="Upload"><i class="fas fa-camera"></i><input type="file" accept="image/*" style="display:none" onchange="uploadItemImage(' + item.id + ',this.files[0])"></label>' +
+                '</div>' +
+                '<div class="item-v2-label ' + status.qcls + '">' + status.icon + ' ' + status.label + '</div>';
             gridEl.appendChild(card);
         });
     }
@@ -2028,7 +2039,7 @@ async function renderEmpItems() {
     if (empItems.length === 0) {
         grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-hand-holding" style="font-size:32px;opacity:0.3"></i><p>' + t('noItems') + '</p></div>';
     } else {
-        empItems.forEach(function(item) {
+        empItems.forEach(function(item, idx) {
             var statusLabel = item.covenant_status || item.status || t('active');
             var statusCls = 'active';
             if (statusLabel === 'returned') statusCls = 'returned';
@@ -2038,33 +2049,45 @@ async function renderEmpItems() {
 
             // Calculate duration
             var durationText = '';
+            var durationDays = 0;
             if (item.receipt_date || item.start_date) {
                 var start = new Date(item.receipt_date || item.start_date);
                 var now = new Date();
-                var days = Math.floor((now - start) / (1000 * 60 * 60 * 24));
-                durationText = days + ' ' + t('days');
+                durationDays = Math.floor((now - start) / (1000 * 60 * 60 * 24));
+                durationText = durationDays + ' ' + t('days');
             }
 
+            // Duration color
+            var durCls = durationDays > 90 ? 'dur-long' : durationDays > 30 ? 'dur-mid' : 'dur-short';
+
             var card = document.createElement('div');
-            card.className = 'emp-custody-card';
+            card.className = 'custody-card-v2';
+            card.style.animationDelay = (idx * 0.06) + 's';
             card.innerHTML =
-                '<div class="emp-custody-card-header">' +
-                    '<div class="emp-custody-card-img"' + (item.image ? ' onclick="openImageViewer(\'' + escapeHtml(item.image) + '\')" style="cursor:pointer"' : '') + '>' +
+                '<div class="custody-v2-status-strip ' + statusCls + '"></div>' +
+                '<div class="custody-v2-top">' +
+                    '<div class="custody-v2-img"' + (item.image ? ' onclick="openImageViewer(\'' + escapeHtml(item.image) + '\')" style="cursor:pointer"' : '') + '>' +
                         (item.image ? '<img src="' + escapeHtml(item.image) + '" onerror="this.parentElement.innerHTML=\'<i class=\\\'fas fa-box\\\'></i>\'">' : '<i class="fas fa-box"></i>') +
+                        '<div class="custody-v2-qty-badge">x' + Number(item.qty) + '</div>' +
                     '</div>' +
-                    '<div class="emp-custody-card-info">' +
-                        '<div class="emp-custody-card-name"><i class="fas fa-tag" style="font-size:10px;opacity:0.5;margin-right:4px"></i>' + escapeHtml(item.name || '') + '</div>' +
-                        '<div class="emp-custody-card-qty"><i class="fas fa-sort-numeric-up" style="font-size:10px;opacity:0.5;margin-right:4px"></i>x' + Number(item.qty) + '</div>' +
+                    '<div class="custody-v2-info">' +
+                        '<div class="custody-v2-name">' + escapeHtml(item.name || '') + '</div>' +
+                        '<div class="custody-v2-status"><span class="history-status-badge ' + statusCls + '">' + escapeHtml(statusLabel) + '</span></div>' +
                     '</div>' +
-                    '<div class="emp-custody-card-actions">' +
-                        '<label class="btn-icon" style="cursor:pointer" title="Upload Image"><i class="fas fa-camera" style="font-size:11px"></i><input type="file" accept="image/*" style="display:none" onchange="uploadDeptItemImg(' + item.id + ',this.files[0])"></label>' +
-                        '<button class="btn-icon delete" onclick="deleteEmpItem(' + item.id + ')"><i class="fas fa-trash-alt" style="font-size:11px"></i></button>' +
+                    '<div class="custody-v2-tools">' +
+                        '<label class="custody-v2-tool-btn" title="Upload"><i class="fas fa-camera"></i><input type="file" accept="image/*" style="display:none" onchange="uploadDeptItemImg(' + item.id + ',this.files[0])"></label>' +
+                        '<button class="custody-v2-tool-btn custody-v2-tool-del" onclick="deleteEmpItem(' + item.id + ')"><i class="fas fa-trash-alt"></i></button>' +
                     '</div>' +
                 '</div>' +
-                '<div class="emp-custody-card-body">' +
-                    (durationText ? '<div class="emp-custody-meta"><i class="fas fa-clock"></i> <span>' + t('custodyDuration') + ': <strong>' + durationText + '</strong></span></div>' : '') +
-                    '<div class="emp-custody-meta"><i class="fas fa-circle-check"></i> <span>' + t('status') + ': <span class="history-status-badge ' + statusCls + '">' + escapeHtml(statusLabel) + '</span></span></div>' +
-                '</div>';
+                (durationText ?
+                '<div class="custody-v2-duration">' +
+                    '<div class="custody-v2-dur-icon ' + durCls + '"><i class="fas fa-hourglass-half"></i></div>' +
+                    '<div class="custody-v2-dur-text">' +
+                        '<span class="custody-v2-dur-label">' + t('custodyDuration') + '</span>' +
+                        '<span class="custody-v2-dur-value ' + durCls + '">' + durationText + '</span>' +
+                    '</div>' +
+                    '<div class="custody-v2-dur-bar"><div class="custody-v2-dur-fill ' + durCls + '" style="width:' + Math.min(100, (durationDays / 365) * 100) + '%"></div></div>' +
+                '</div>' : '') ;
             grid.appendChild(card);
         });
     }

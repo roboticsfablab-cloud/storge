@@ -1003,18 +1003,58 @@ function openAlertsPanel() {
     var list = document.getElementById('alertsList');
     list.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i></div>';
     document.getElementById('alertsPanel').classList.add('active');
+    var countEl = document.getElementById('alertPanelCount');
     API.getAlerts().then(function(alerts) {
         list.innerHTML = '';
+        if (countEl) countEl.textContent = alerts.length + ' ' + t('items');
         if (alerts.length === 0) {
-            list.innerHTML = '<div class="empty-state"><i class="fas fa-check-circle" style="color:var(--success)"></i><p>' + t('allHealthy') + '</p></div>';
+            list.innerHTML = '<div class="alert-healthy"><div class="alert-healthy-icon"><i class="fas fa-shield-alt"></i></div><p>' + t('allHealthy') + '</p></div>';
             return;
         }
+        // Group by locker
+        var groups = {};
         alerts.forEach(function(a) {
-            var div = document.createElement('div');
-            div.className = 'alert-item';
-            div.onclick = function() { closeModal('alertsPanel'); openLockerModal(a.locker_id); };
-            div.innerHTML = '<i class="fas fa-exclamation-triangle"></i><div class="alert-item-text"><div class="alert-item-locker">' + t('locker') + ' ' + a.locker_id + (a.locker_name ? ' - ' + escapeHtml(a.locker_name) : '') + '</div><div class="alert-item-detail">' + escapeHtml(a.item_name) + ': ' + Number(a.qty) + ' ' + t('left') + ' (' + t('min') + ': ' + Number(a.min_stock) + ')</div></div>';
-            list.appendChild(div);
+            var k = a.locker_id;
+            if (!groups[k]) groups[k] = { id: k, name: a.locker_name, items: [] };
+            groups[k].items.push(a);
+        });
+        Object.keys(groups).forEach(function(k, gi) {
+            var g = groups[k];
+            var section = document.createElement('div');
+            section.className = 'alert-section';
+            section.style.animationDelay = (gi * 0.08) + 's';
+            var inner = '<div class="alert-section-header" onclick="closeModal(\'alertsPanel\');openLockerModal(' + g.id + ')">' +
+                '<div class="alert-section-icon"><i class="fas fa-box-open"></i></div>' +
+                '<div class="alert-section-info">' +
+                    '<div class="alert-section-name">' + t('locker') + ' ' + g.id + (g.name ? ' — ' + escapeHtml(g.name) : '') + '</div>' +
+                    '<div class="alert-section-count">' + g.items.length + ' ' + t('alerts') + '</div>' +
+                '</div>' +
+                '<i class="fas fa-chevron-right alert-section-arrow"></i>' +
+            '</div><div class="alert-section-items">';
+            g.items.forEach(function(a, idx) {
+                var q = Number(a.qty), ms = Number(a.min_stock);
+                var isOut = q === 0;
+                var pct = ms > 0 ? Math.min(100, Math.round((q / ms) * 100)) : 0;
+                inner += '<div class="alert-card' + (isOut ? ' alert-card-danger' : '') + '" style="animation-delay:' + ((gi * 0.08) + (idx * 0.04)) + 's" onclick="closeModal(\'alertsPanel\');highlightItemId=' + a.id + ';openLockerModal(' + a.locker_id + ')">' +
+                    '<div class="alert-card-indicator ' + (isOut ? 'out' : 'low') + '"></div>' +
+                    '<div class="alert-card-body">' +
+                        '<div class="alert-card-top">' +
+                            '<span class="alert-card-name">' + escapeHtml(a.item_name) + '</span>' +
+                            '<span class="alert-card-badge ' + (isOut ? 'out' : 'low') + '">' +
+                                (isOut ? '<i class="fas fa-times-circle"></i> ' + t('outOfStock') : '<i class="fas fa-exclamation-triangle"></i> ' + t('lowStock')) +
+                            '</span>' +
+                        '</div>' +
+                        '<div class="alert-card-meters">' +
+                            '<div class="alert-card-stat"><span class="alert-card-stat-label"><i class="fas fa-cubes"></i> ' + t('stock') + '</span><span class="alert-card-stat-value ' + (isOut ? 'out' : 'low') + '">' + q + '</span></div>' +
+                            '<div class="alert-card-stat"><span class="alert-card-stat-label"><i class="fas fa-shield-alt"></i> ' + t('minStock') + '</span><span class="alert-card-stat-value">' + ms + '</span></div>' +
+                            '<div class="alert-card-bar-wrap"><div class="alert-card-bar ' + (isOut ? 'out' : 'low') + '" style="width:' + pct + '%"></div></div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+            });
+            inner += '</div>';
+            section.innerHTML = inner;
+            list.appendChild(section);
         });
     }).catch(function() { list.innerHTML = '<div class="empty-state">' + t('failedLoad') + '</div>'; });
 }

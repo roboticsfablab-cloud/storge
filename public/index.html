@@ -798,13 +798,19 @@
 <!-- Alerts Panel -->
 <div class="modal-overlay" id="alertsPanel">
     <div class="modal-content modal-md">
-        <div class="modal-header">
-            <h2 data-i18n="alerts">Alerts</h2>
+        <div class="modal-header alert-panel-header">
+            <div class="alert-panel-title">
+                <div class="alert-panel-icon"><i class="fas fa-bell"></i></div>
+                <div>
+                    <h2 data-i18n="lowStockAlerts">Low Stock Alerts</h2>
+                    <div class="alert-panel-count" id="alertPanelCount"></div>
+                </div>
+            </div>
             <button class="modal-close" onclick="closeModal('alertsPanel')">
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body" style="padding:0">
             <div class="alerts-list" id="alertsList">
                 <div class="no-results" data-i18n="noItems">No alerts</div>
             </div>

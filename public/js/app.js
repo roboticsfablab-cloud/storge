@@ -599,36 +599,50 @@ function renderItems() {
     var items = currentLockerData.items || [];
     var dir = currentLang === 'ar' ? 'right' : 'left';
 
-    // List view
-    var tbody = document.getElementById('itemsTableBody');
-    tbody.innerHTML = '';
+    // List view (card-based)
+    var listEl = document.getElementById('itemsTableBody');
+    listEl.innerHTML = '';
     if (items.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><i class="fas fa-box-open"></i><p>' + t('noItems') + '</p></td></tr>';
+        listEl.innerHTML = '<div class="empty-state"><i class="fas fa-box-open"></i><p>' + t('noItems') + '</p></div>';
     } else {
         items.forEach(function(item, idx) {
             var q = Number(item.qty), ms = Number(item.min_stock), status = getStatus(q, ms);
-            var hl = highlightItemId == item.id ? ' highlighted' : '';
-            var tr = document.createElement('tr');
-            tr.className = 'locker-item-row' + hl;
-            tr.style.animationDelay = (idx * 0.04) + 's';
-            tr.innerHTML = '<td><div class="item-name-cell">' +
-                '<div class="locker-item-thumb"' + (item.image ? ' onclick="event.stopPropagation();openImageViewer(\'' + escapeHtml(item.image) + '\')" style="cursor:pointer"' : '') + '>' +
-                (item.image ? '<img src="' + escapeHtml(item.image) + '" onerror="this.parentElement.innerHTML=\'<i class=\\\'fas fa-cube\\\'></i>\'">' : '<i class="fas fa-cube"></i>') +
+            var hl = highlightItemId == item.id ? ' lk-hl' : '';
+            var pct = ms > 0 ? Math.min(100, Math.round((q / (ms * 3)) * 100)) : 100;
+            var card = document.createElement('div');
+            card.className = 'lk-item' + hl;
+            card.style.animationDelay = (idx * 0.05) + 's';
+            card.innerHTML =
+                '<div class="lk-item-color-bar ' + status.qcls + '"></div>' +
+                '<div class="lk-item-img"' + (item.image ? ' onclick="openImageViewer(\'' + escapeHtml(item.image) + '\')" style="cursor:pointer"' : '') + '>' +
+                    (item.image ? '<img src="' + escapeHtml(item.image) + '" onerror="this.parentElement.innerHTML=\'<i class=\\\'fas fa-cube\\\'></i>\'">' : '<i class="fas fa-cube"></i>') +
                 '</div>' +
-                '<input type="text" class="stock-input" style="width:130px;text-align:' + dir + '" value="' + escapeHtml(item.name) + '" onchange="updateItem(' + item.id + ',{name:this.value})">' +
-                '</div></td>' +
-                '<td><input type="text" class="stock-input desc-input" style="text-align:' + dir + '" value="' + escapeHtml(item.description || '') + '" placeholder="' + t('descriptionPlaceholder') + '" onchange="updateItem(' + item.id + ',{description:this.value})"></td>' +
-                '<td><input type="number" class="stock-input" min="0" value="' + q + '" onchange="updateItem(' + item.id + ',{qty:parseInt(this.value)})"></td>' +
-                '<td><input type="number" class="stock-input" min="0" value="' + ms + '" style="width:60px" onchange="updateItem(' + item.id + ',{min_stock:parseInt(this.value)})"></td>' +
-                '<td><span class="status-badge ' + status.cls + '">' + status.icon + ' ' + status.label + '</span></td>' +
-                '<td class="item-actions">' +
-                '<button class="locker-action-btn locker-action-plus" onclick="changeQty(' + item.id + ',1)" title="+1"><i class="fas fa-plus"></i></button>' +
-                '<button class="locker-action-btn locker-action-minus" onclick="changeQty(' + item.id + ',-1)" title="-1"><i class="fas fa-minus"></i></button>' +
-                '<label class="locker-action-btn locker-action-img" style="cursor:pointer" title="Image"><i class="fas fa-camera"></i><input type="file" accept="image/*" style="display:none" onchange="uploadItemImage(' + item.id + ',this.files[0])"></label>' +
-                '<button class="locker-action-btn locker-action-move" title="' + t('moveItem') + '" onclick="openMoveItemModal(' + item.id + ',\'' + escapeHtml(item.name).replace(/\\/g,"\\\\").replace(/'/g,"\\'") + '\')"><i class="fas fa-dolly"></i></button>' +
-                '<button class="locker-action-btn locker-action-delete" onclick="removeItem(' + item.id + ')"><i class="fas fa-trash-alt"></i></button>' +
-                '</td>';
-            tbody.appendChild(tr);
+                '<div class="lk-item-body">' +
+                    '<div class="lk-item-top-row">' +
+                        '<input type="text" class="lk-item-name" style="text-align:' + dir + '" value="' + escapeHtml(item.name) + '" onchange="updateItem(' + item.id + ',{name:this.value})">' +
+                        '<span class="lk-item-status ' + status.qcls + '">' + status.icon + ' ' + status.label + '</span>' +
+                    '</div>' +
+                    '<input type="text" class="lk-item-desc" style="text-align:' + dir + '" value="' + escapeHtml(item.description || '') + '" placeholder="' + t('descriptionPlaceholder') + '" onchange="updateItem(' + item.id + ',{description:this.value})">' +
+                    '<div class="lk-item-meters">' +
+                        '<div class="lk-item-meter">' +
+                            '<span class="lk-meter-label"><i class="fas fa-cubes"></i> ' + t('stock') + '</span>' +
+                            '<input type="number" class="lk-meter-input" min="0" value="' + q + '" onchange="updateItem(' + item.id + ',{qty:parseInt(this.value)})">' +
+                        '</div>' +
+                        '<div class="lk-item-meter">' +
+                            '<span class="lk-meter-label"><i class="fas fa-shield-alt"></i> ' + t('minStock') + '</span>' +
+                            '<input type="number" class="lk-meter-input" min="0" value="' + ms + '" onchange="updateItem(' + item.id + ',{min_stock:parseInt(this.value)})">' +
+                        '</div>' +
+                        '<div class="lk-item-bar-wrap"><div class="lk-item-bar ' + status.qcls + '" style="width:' + pct + '%"></div></div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="lk-item-actions">' +
+                    '<button class="lk-act lk-act-plus" onclick="changeQty(' + item.id + ',1)" title="+1"><i class="fas fa-plus"></i></button>' +
+                    '<button class="lk-act lk-act-minus" onclick="changeQty(' + item.id + ',-1)" title="-1"><i class="fas fa-minus"></i></button>' +
+                    '<label class="lk-act lk-act-cam" title="Image"><i class="fas fa-camera"></i><input type="file" accept="image/*" style="display:none" onchange="uploadItemImage(' + item.id + ',this.files[0])"></label>' +
+                    '<button class="lk-act lk-act-move" title="' + t('moveItem') + '" onclick="openMoveItemModal(' + item.id + ',\'' + escapeHtml(item.name).replace(/\\/g,"\\\\").replace(/'/g,"\\'") + '\')"><i class="fas fa-dolly"></i></button>' +
+                    '<button class="lk-act lk-act-del" onclick="removeItem(' + item.id + ')"><i class="fas fa-trash-alt"></i></button>' +
+                '</div>';
+            listEl.appendChild(card);
         });
     }
 

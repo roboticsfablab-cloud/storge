@@ -490,35 +490,23 @@
         <div class="modal-body">
             <!-- List View -->
             <div class="locker-view active" id="listView">
-                <div class="table-responsive">
-                    <table class="items-table">
-                        <thead>
-                            <tr>
-                                <th data-i18n="itemName">Item Name</th>
-                                <th data-i18n="description">Description</th>
-                                <th data-i18n="stock">Stock</th>
-                                <th data-i18n="minStock">Min Stock</th>
-                                <th data-i18n="status">Status</th>
-                                <th data-i18n="actions">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="itemsTableBody"></tbody>
-                    </table>
-                </div>
+                <div class="lk-items-list" id="itemsTableBody"></div>
             </div>
             <!-- Grid View -->
             <div class="locker-view" id="gridView">
                 <div class="items-grid" id="itemsGrid"></div>
             </div>
         </div>
-        <div class="modal-footer add-item-bar">
-            <input type="text" id="newItemName" data-i18n-placeholder="itemName" placeholder="Item name">
-            <input type="number" id="newItemQty" placeholder="1" min="0" value="1">
-            <input type="number" id="newItemMin" placeholder="0" min="0" value="0">
-            <input type="text" id="newItemDesc" data-i18n-placeholder="description" placeholder="Description">
-            <input type="file" id="newItemFile" accept="image/*">
-            <button class="btn-add" onclick="addItem()">
-                <i class="fas fa-plus"></i>
+        <div class="modal-footer lk-add-bar">
+            <div class="lk-add-fields">
+                <div class="lk-add-field"><i class="fas fa-tag"></i><input type="text" id="newItemName" data-i18n-placeholder="itemName" placeholder="Item name"></div>
+                <div class="lk-add-field lk-add-sm"><i class="fas fa-sort-numeric-up"></i><input type="number" id="newItemQty" placeholder="1" min="0" value="1"></div>
+                <div class="lk-add-field lk-add-sm"><i class="fas fa-shield-alt"></i><input type="number" id="newItemMin" placeholder="0" min="0" value="0"></div>
+                <div class="lk-add-field"><i class="fas fa-align-left"></i><input type="text" id="newItemDesc" data-i18n-placeholder="description" placeholder="Description"></div>
+                <label class="lk-add-file"><i class="fas fa-camera"></i><input type="file" id="newItemFile" accept="image/*" style="display:none"></label>
+            </div>
+            <button class="btn-add-strong" onclick="addItem()">
+                <i class="fas fa-plus-circle"></i>
                 <span data-i18n="add">Add</span>
             </button>
         </div>

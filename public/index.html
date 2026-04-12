@@ -252,21 +252,21 @@
                 </div>
             </div>
             <div class="stats-bar" id="deptStatsBar">
-                <div class="stat-card">
+                <div class="stat-card clickable" onclick="showAllDepts()">
                     <div class="stat-icon stat-icon-purple"><i class="fas fa-sitemap"></i></div>
                     <div class="stat-info">
                         <span class="stat-value" id="statDepts">0</span>
                         <span class="stat-label" data-i18n="departments">Departments</span>
                     </div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card clickable" onclick="showAllDeptEquipment()">
                     <div class="stat-icon stat-icon-blue"><i class="fas fa-tools"></i></div>
                     <div class="stat-info">
                         <span class="stat-value" id="statDeptItems">0</span>
                         <span class="stat-label" data-i18n="equipment">Equipment</span>
                     </div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card clickable" onclick="navigateTo('employees')">
                     <div class="stat-icon stat-icon-green"><i class="fas fa-users"></i></div>
                     <div class="stat-info">
                         <span class="stat-value" id="statDeptEmps">0</span>
@@ -289,14 +289,14 @@
                 </div>
             </div>
             <div class="stats-bar" id="empStatsBar">
-                <div class="stat-card">
+                <div class="stat-card clickable" onclick="showAllEmps()">
                     <div class="stat-icon stat-icon-cyan"><i class="fas fa-id-badge"></i></div>
                     <div class="stat-info">
                         <span class="stat-value" id="statEmps">0</span>
                         <span class="stat-label" data-i18n="employees">Employees</span>
                     </div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card clickable" onclick="showAllCustodyItems()">
                     <div class="stat-icon stat-icon-purple"><i class="fas fa-hand-holding"></i></div>
                     <div class="stat-info">
                         <span class="stat-value" id="statEmpCustody">0</span>
@@ -906,9 +906,39 @@
 </div>
 
 
+<!-- All Department Equipment Panel -->
+<div class="modal-overlay" id="allDeptEquipPanel">
+    <div class="modal-content modal-lg">
+        <div class="modal-header">
+            <h2><i class="fas fa-tools"></i> <span data-i18n="allEquipment">All Equipment</span></h2>
+            <button class="modal-close" onclick="closeModal('allDeptEquipPanel')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="all-equip-grid" id="allDeptEquipBody"></div>
+        </div>
+    </div>
+</div>
+
+<!-- All Custody Items Panel -->
+<div class="modal-overlay" id="allCustodyPanel">
+    <div class="modal-content modal-lg">
+        <div class="modal-header">
+            <h2><i class="fas fa-hand-holding"></i> <span data-i18n="custodyItems">All Custody Items</span></h2>
+            <button class="modal-close" onclick="closeModal('allCustodyPanel')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="all-custody-grid" id="allCustodyBody"></div>
+        </div>
+    </div>
+</div>
+
 <!-- Scripts -->
-<script src="/js/api.js?v=11"></script>
-<script src="/js/app.js?v=11"></script>
+<script src="/js/api.js?v=12"></script>
+<script src="/js/app.js?v=12"></script>
 
 </body>
 </html>

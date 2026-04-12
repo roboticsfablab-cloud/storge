@@ -50,7 +50,7 @@ const i18n = {
         layout:'Layout', rows:'Rows', columns:'Columns',
         chooseImage:'Choose image', changeImage:'Change image',
         employeesDesc:'Manage employees and custody',
-        custodyItems:'Custody Items', selectManager:'Select Manager',
+        custodyItems:'Custody Items', selectManager:'Select Manager', allEquipment:'All Equipment',
         searchEmployees:'Search employees...',
         custodyDuration:'Custody Duration', days:'days',
     },
@@ -104,7 +104,7 @@ const i18n = {
         layout:'التخطيط', rows:'الصفوف', columns:'الأعمدة',
         chooseImage:'اختر صورة', changeImage:'تغيير الصورة',
         employeesDesc:'إدارة الموظفين والعهدة',
-        custodyItems:'عناصر العهدة', selectManager:'اختر المدير',
+        custodyItems:'عناصر العهدة', selectManager:'اختر المدير', allEquipment:'جميع المعدات',
         searchEmployees:'البحث عن موظفين...',
         custodyDuration:'مدة العهدة', days:'يوم',
     }
@@ -1397,6 +1397,116 @@ async function deleteDept(id) {
         await API.deleteDepartment(id);
         renderDepartments();
     } catch (e) { showToast(e.message, 'error'); }
+}
+
+// ============ Department Stat Actions ============
+function showAllDepts() {
+    // Scroll to the department grid
+    var grid = document.getElementById('deptGrid');
+    if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function showAllDeptEquipment() {
+    var body = document.getElementById('allDeptEquipBody');
+    body.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> ' + t('loading') + '</div>';
+    document.getElementById('allDeptEquipPanel').classList.add('active');
+    try {
+        var depts = await API.getDepartments();
+        var allItems = [];
+        for (var i = 0; i < depts.length; i++) {
+            var detail = await API.getDepartment(depts[i].id);
+            (detail.items || []).forEach(function(item) {
+                item._deptName = detail.name;
+                item._deptId = detail.id;
+                allItems.push(item);
+            });
+        }
+        body.innerHTML = '';
+        if (allItems.length === 0) {
+            body.innerHTML = '<div class="empty-state"><i class="fas fa-tools"></i><p>' + t('noItems') + '</p></div>';
+            return;
+        }
+        allItems.forEach(function(item) {
+            var card = document.createElement('div');
+            card.className = 'all-equip-card';
+            card.onclick = function() { closeModal('allDeptEquipPanel'); currentDeptId = item._deptId; navigateTo('dept-detail'); };
+            card.innerHTML =
+                '<div class="all-equip-card-img">' +
+                    (item.image ? '<img src="' + escapeHtml(item.image) + '" onerror="this.parentElement.innerHTML=\'<i class=\\\'fas fa-cube\\\'></i>\'">' : '<i class="fas fa-cube"></i>') +
+                '</div>' +
+                '<div class="all-equip-card-info">' +
+                    '<div class="all-equip-card-name">' + escapeHtml(item.name) + '</div>' +
+                    '<div class="all-equip-card-meta"><i class="fas fa-building"></i> ' + escapeHtml(item._deptName) + '</div>' +
+                    '<div class="all-equip-card-meta"><i class="fas fa-sort-numeric-up"></i> x' + Number(item.qty) + '</div>' +
+                    (item.employee_name ? '<div class="all-equip-card-meta"><i class="fas fa-user"></i> ' + escapeHtml(item.employee_name) + '</div>' : '') +
+                '</div>';
+            body.appendChild(card);
+        });
+    } catch (e) {
+        body.innerHTML = '<div class="empty-state"><p>' + t('failedLoad') + '</p></div>';
+    }
+}
+
+// ============ Employee Stat Actions ============
+function showAllEmps() {
+    var grid = document.getElementById('empGrid');
+    if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function showAllCustodyItems() {
+    var body = document.getElementById('allCustodyBody');
+    body.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> ' + t('loading') + '</div>';
+    document.getElementById('allCustodyPanel').classList.add('active');
+    try {
+        var employees = await API.getEmployees();
+        var allItems = [];
+        for (var i = 0; i < employees.length; i++) {
+            var detail = await API.getEmployee(employees[i].id);
+            (detail.items || []).forEach(function(item) {
+                item._empName = detail.name;
+                item._empId = detail.id;
+                item._empPhoto = detail.photo;
+                allItems.push(item);
+            });
+        }
+        body.innerHTML = '';
+        if (allItems.length === 0) {
+            body.innerHTML = '<div class="empty-state"><i class="fas fa-hand-holding"></i><p>' + t('noItems') + '</p></div>';
+            return;
+        }
+        allItems.forEach(function(item) {
+            var statusLabel = item.covenant_status || item.status || t('active');
+            var statusCls = 'active';
+            if (statusLabel === 'returned') statusCls = 'returned';
+            else if (statusLabel === 'transferred') statusCls = 'transferred';
+            else if (statusLabel === 'ended') statusCls = 'ended';
+
+            var durationText = '';
+            if (item.receipt_date || item.start_date) {
+                var start = new Date(item.receipt_date || item.start_date);
+                var now = new Date();
+                var days = Math.floor((now - start) / (1000 * 60 * 60 * 24));
+                durationText = days + ' ' + t('days');
+            }
+
+            var card = document.createElement('div');
+            card.className = 'all-custody-card';
+            card.onclick = function() { closeModal('allCustodyPanel'); currentEmpId = item._empId; navigateTo('emp-detail'); };
+            card.innerHTML =
+                '<div class="all-custody-card-img">' +
+                    (item.image ? '<img src="' + escapeHtml(item.image) + '" onerror="this.parentElement.innerHTML=\'<i class=\\\'fas fa-box\\\'></i>\'">' : '<i class="fas fa-box"></i>') +
+                '</div>' +
+                '<div class="all-custody-card-info">' +
+                    '<div class="all-equip-card-name">' + escapeHtml(item.name) + '</div>' +
+                    '<div class="all-equip-card-meta"><i class="fas fa-user"></i> ' + escapeHtml(item._empName) + '</div>' +
+                    (durationText ? '<div class="all-equip-card-meta"><i class="fas fa-clock"></i> ' + durationText + '</div>' : '') +
+                    '<div class="all-equip-card-meta"><span class="history-status-badge ' + statusCls + '">' + escapeHtml(statusLabel) + '</span></div>' +
+                '</div>';
+            body.appendChild(card);
+        });
+    } catch (e) {
+        body.innerHTML = '<div class="empty-state"><p>' + t('failedLoad') + '</p></div>';
+    }
 }
 
 // ============ Employees ============

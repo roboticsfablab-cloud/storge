@@ -47,6 +47,8 @@
   --home-card1-border: rgba(139, 92, 246, 0.3);
   --home-card2-border: rgba(249, 115, 22, 0.3);
   --home-card3-border: rgba(16, 185, 129, 0.3);
+  --home-card4-bg: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(59, 130, 246, 0.15));
+  --home-card4-border: rgba(6, 182, 212, 0.3);
 }
 
 /* ---------- Light Theme ---------- */
@@ -85,6 +87,8 @@
   --home-card1-border: rgba(124, 58, 237, 0.2);
   --home-card2-border: rgba(249, 115, 22, 0.2);
   --home-card3-border: rgba(16, 185, 129, 0.2);
+  --home-card4-bg: linear-gradient(135deg, rgba(6, 182, 212, 0.08), rgba(59, 130, 246, 0.08));
+  --home-card4-border: rgba(6, 182, 212, 0.2);
 }
 
 /* ---------- Reset & Base ---------- */
@@ -1139,9 +1143,9 @@ textarea {
 
 .home-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 24px;
-  max-width: 900px;
+  max-width: 1100px;
   margin: 0 auto;
 }
 
@@ -1176,6 +1180,10 @@ textarea {
   background: var(--home-card3-bg);
   border-color: var(--home-card3-border);
 }
+.home-card:nth-child(4) {
+  background: var(--home-card4-bg);
+  border-color: var(--home-card4-border);
+}
 
 .home-card:hover {
   transform: translateY(-12px) scale(1.02);
@@ -1194,6 +1202,10 @@ textarea {
   border-color: rgba(16, 185, 129, 0.5);
   box-shadow: 0 24px 48px rgba(16, 185, 129, 0.2);
 }
+.home-card:nth-child(4):hover {
+  border-color: rgba(6, 182, 212, 0.5);
+  box-shadow: 0 24px 48px rgba(6, 182, 212, 0.2);
+}
 
 [data-theme="light"] .home-card:hover {
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.08);
@@ -1206,6 +1218,9 @@ textarea {
 }
 [data-theme="light"] .home-card:nth-child(3):hover {
   box-shadow: 0 24px 48px rgba(16, 185, 129, 0.1);
+}
+[data-theme="light"] .home-card:nth-child(4):hover {
+  box-shadow: 0 24px 48px rgba(6, 182, 212, 0.1);
 }
 
 .home-card-bg {
@@ -1223,6 +1238,9 @@ textarea {
 }
 .home-card:nth-child(3) .home-card-bg {
   background: linear-gradient(135deg, #10b981, #06b6d4);
+}
+.home-card:nth-child(4) .home-card-bg {
+  background: linear-gradient(135deg, #06b6d4, #3b82f6);
 }
 
 .home-card:hover .home-card-bg {
@@ -1257,6 +1275,10 @@ textarea {
   background: linear-gradient(135deg, #10b981, #06b6d4);
   box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
 }
+.home-card:nth-child(4) .home-card-icon {
+  background: linear-gradient(135deg, #06b6d4, #3b82f6);
+  box-shadow: 0 6px 20px rgba(6, 182, 212, 0.4);
+}
 
 .home-card:hover .home-card-icon {
   animation: iconBounce 0.6s ease;
@@ -1281,7 +1303,7 @@ textarea {
 /* ---------- Stats Bar ---------- */
 .stats-bar {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 16px;
   padding: 16px 24px;
   max-width: 1200px;
@@ -2199,6 +2221,42 @@ textarea {
   color: var(--text-primary);
 }
 
+.dept-card-manager {
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.dept-card-manager i {
+  color: var(--accent);
+  font-size: 11px;
+}
+
+.dept-card-counts {
+  display: flex;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.dept-card-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 4px 10px;
+  background: var(--bg-input);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dept-card-count i {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
 /* ---------- Department Detail Page ---------- */
 .dept-detail-header {
   display: flex;
@@ -2312,12 +2370,14 @@ textarea {
   background: var(--accent-gradient);
 }
 
-.dept-tab-content {
+.dept-tab-content,
+.dept-dtab-content {
   display: none;
   padding: 20px 24px;
 }
 
-.dept-tab-content.active {
+.dept-tab-content.active,
+.dept-dtab-content.active {
   display: block;
   animation: fadeInPage 0.3s ease;
 }
@@ -2685,6 +2745,46 @@ textarea {
 .emp-card-stat strong {
   font-weight: 700;
   color: var(--text-primary);
+}
+
+.emp-card-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.emp-card-title {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.emp-card-delete {
+  position: absolute;
+  top: 10px;
+  inset-inline-end: 10px;
+  font-size: 12px;
+  z-index: 2;
+}
+
+.emp-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.emp-card-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.emp-card-stat i {
+  font-size: 13px;
 }
 
 /* ---------- Employee Detail Page ---------- */
@@ -3657,6 +3757,10 @@ textarea.input {
 .stat-icon.stat-icon-orange {
   background: linear-gradient(135deg, #f59e0b, #ef4444);
   box-shadow: 0 6px 18px rgba(245, 158, 11, 0.4);
+}
+.stat-icon.stat-icon-cyan {
+  background: linear-gradient(135deg, #06b6d4, #3b82f6);
+  box-shadow: 0 6px 18px rgba(6, 182, 212, 0.35);
 }
 
 /* ---------- Zone grid alias (JS uses .wh-zones-grid now) ---------- */
@@ -4815,4 +4919,400 @@ textarea.input {
   z-index: 2;
 }
 .item-card-move:hover { transform: scale(1.15); }
+
+/* ============ Employee Custody Cards ============ */
+.emp-custody-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.emp-custody-card {
+  background: var(--bg-card-solid);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all var(--transition-med);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.emp-custody-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+}
+
+.emp-custody-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 16px 10px;
+}
+
+.emp-custody-card-img {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: var(--accent-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 20px;
+  flex-shrink: 0;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25);
+}
+
+.emp-custody-card-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.emp-custody-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.emp-custody-card-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.emp-custody-card-qty {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.emp-custody-card-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.emp-custody-card-body {
+  padding: 0 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.emp-custody-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 6px 10px;
+  background: var(--bg-input);
+  border-radius: 8px;
+}
+
+.emp-custody-meta i {
+  font-size: 11px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.emp-custody-meta strong {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+/* ============ Employee Add Item Form ============ */
+.emp-add-item-form {
+  background: var(--bg-card-solid);
+  border: 2px dashed var(--glass-border);
+  border-radius: 16px;
+  padding: 20px;
+  transition: border-color var(--transition-fast);
+}
+
+.emp-add-item-form:hover {
+  border-color: var(--accent);
+}
+
+.emp-add-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+
+.emp-add-item-header i {
+  font-size: 18px;
+}
+
+.emp-add-item-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.emp-add-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 12px;
+  flex: 1;
+  min-width: 130px;
+  transition: border-color var(--transition-fast);
+}
+
+.emp-add-field:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12);
+}
+
+.emp-add-field i {
+  font-size: 12px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.emp-add-field input {
+  background: transparent;
+  border: none;
+  padding: 10px 0;
+  font-size: 13px;
+  color: var(--text-primary);
+  font-family: inherit;
+  width: 100%;
+  outline: none;
+}
+
+.emp-add-field input::placeholder {
+  color: var(--text-muted);
+}
+
+.emp-add-field input[type="number"] {
+  max-width: 60px;
+}
+
+.emp-add-file-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.emp-add-file-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.emp-add-file-btn i {
+  font-size: 14px;
+}
+
+/* ============ Employee Section Title ============ */
+.emp-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 18px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--border);
+}
+
+.emp-section-title i {
+  color: var(--accent);
+  font-size: 18px;
+}
+
+/* ============ Form Group with Icons ============ */
+.form-group-icon label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-group-icon label i {
+  color: var(--accent);
+  font-size: 13px;
+  width: 16px;
+  text-align: center;
+}
+
+/* ============ Department Items V2 (Dynamic Cards) ============ */
+.dept-item-card-v2 {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  background: var(--bg-card-solid);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  margin-bottom: 10px;
+  transition: all var(--transition-fast);
+  animation: fadeInPage 0.3s ease backwards;
+}
+
+.dept-item-card-v2:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-sm);
+  transform: translateX(4px);
+}
+
+.dept-item-v2-visual {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: var(--accent-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 22px;
+  flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.25);
+}
+
+.dept-item-v2-visual img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dept-item-v2-qty {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 6px 0 6px 0;
+}
+
+.dept-item-v2-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.dept-item-v2-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.dept-item-v2-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.dept-item-v2-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dept-item-v2-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: var(--bg-input);
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.dept-item-v2-tag i {
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+.dept-item-v2-tag.status-tag {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-size: 10px;
+}
+
+.dept-item-v2-tag.status-tag.active {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success);
+}
+
+.dept-item-v2-tag.status-tag.returned {
+  background: rgba(100, 116, 139, 0.15);
+  color: var(--text-muted);
+}
+
+.dept-item-v2-tag.status-tag.transferred {
+  background: rgba(6, 182, 212, 0.15);
+  color: var(--accent2);
+}
+
+.dept-item-v2-tag.status-tag.ended {
+  background: rgba(100, 116, 139, 0.15);
+  color: var(--text-muted);
+}
+
+.dept-item-v2-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* ============ Responsive for new components ============ */
+@media (max-width: 900px) {
+  .home-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .emp-custody-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .home-grid {
+    grid-template-columns: 1fr;
+  }
+  .dept-item-card-v2 {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+  }
+  .dept-item-v2-actions {
+    flex-direction: row;
+    align-self: flex-end;
+  }
+  .emp-add-item-fields {
+    flex-direction: column;
+  }
+  .emp-add-field {
+    min-width: 100%;
+  }
+}
 

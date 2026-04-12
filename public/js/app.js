@@ -49,6 +49,10 @@ const i18n = {
         itemMoved:'Item moved', allCabinetItems:'All Cabinet Items',
         layout:'Layout', rows:'Rows', columns:'Columns',
         chooseImage:'Choose image', changeImage:'Change image',
+        employeesDesc:'Manage employees and custody',
+        custodyItems:'Custody Items', selectManager:'Select Manager',
+        searchEmployees:'Search employees...',
+        custodyDuration:'Custody Duration', days:'days',
     },
     ar: {
         appTitle:'FABY Keeper', home:'الرئيسية', lockers:'الخزائن', warehouse:'المستودع',
@@ -99,6 +103,10 @@ const i18n = {
         itemMoved:'تم نقل العنصر', allCabinetItems:'جميع عناصر الخزائن',
         layout:'التخطيط', rows:'الصفوف', columns:'الأعمدة',
         chooseImage:'اختر صورة', changeImage:'تغيير الصورة',
+        employeesDesc:'إدارة الموظفين والعهدة',
+        custodyItems:'عناصر العهدة', selectManager:'اختر المدير',
+        searchEmployees:'البحث عن موظفين...',
+        custodyDuration:'مدة العهدة', days:'يوم',
     }
 };
 
@@ -112,7 +120,7 @@ let currentZoneId = null, currentZoneData = null;
 let currentAreaId = null;
 let currentDeptId = null, currentDeptData = null;
 let currentEmpId = null, currentEmpData = null;
-let currentDeptTab = 'depts';
+let currentDeptTab = 'depts'; // kept for legacy compat
 let searchTimeout = null;
 let currentCovenantItemId = null;
 
@@ -179,7 +187,8 @@ function toggleLanguage() {
     applyLanguage();
     if (currentPage === 'lockers') renderGrid();
     else if (currentPage === 'warehouse') renderWarehouse();
-    else if (currentPage === 'departments') { renderDepartments(); renderEmployees(); }
+    else if (currentPage === 'departments') { renderDepartments(); }
+    else if (currentPage === 'employees') { renderEmployees(); }
     else if (currentPage === 'dept-detail') renderDeptDetail();
     else if (currentPage === 'emp-detail') renderEmpDetail();
 }
@@ -242,9 +251,13 @@ function navigateTo(page) {
     var link = document.querySelector('.sidebar-link[data-page="' + page + '"]');
     if (link) link.classList.add('active');
     // For sub-pages, highlight parent
-    if (page === 'dept-detail' || page === 'emp-detail') {
+    if (page === 'dept-detail') {
         var deptLink = document.querySelector('.sidebar-link[data-page="departments"]');
         if (deptLink) deptLink.classList.add('active');
+    }
+    if (page === 'emp-detail') {
+        var empLink = document.querySelector('.sidebar-link[data-page="employees"]');
+        if (empLink) empLink.classList.add('active');
     }
 
     var addBtn = document.getElementById('addBtn');
@@ -263,8 +276,10 @@ function navigateTo(page) {
         document.getElementById('addBtnText').textContent = t('addZone');
         renderWarehouse();
     } else if (page === 'departments') {
-        document.getElementById('addBtnText').textContent = currentDeptTab === 'employees' ? t('addEmployee') : t('addDepartment');
+        document.getElementById('addBtnText').textContent = t('addDepartment');
         renderDepartments();
+    } else if (page === 'employees') {
+        document.getElementById('addBtnText').textContent = t('addEmployee');
         renderEmployees();
     } else if (page === 'home') {
         loadHomeCounts();
@@ -280,6 +295,7 @@ function navigateTo(page) {
         lockers: t('lockers'),
         warehouse: t('warehouse'),
         departments: t('departments'),
+        employees: t('employees'),
         'dept-detail': t('departments'),
         'emp-detail': t('employees')
     };
@@ -296,19 +312,18 @@ function navigateTo(page) {
 function handleAddBtn() {
     if (currentPage === 'lockers') openAddLockerModal();
     else if (currentPage === 'warehouse') document.getElementById('addZoneModal').classList.add('active');
-    else if (currentPage === 'departments') {
-        if (currentDeptTab === 'employees') openAddEmpModal();
-        else document.getElementById('addDeptModal').classList.add('active');
-    }
+    else if (currentPage === 'departments') openAddDeptModal();
+    else if (currentPage === 'employees') openAddEmpModal();
 }
 
 async function loadHomeCounts() {
     try {
-        var results = await Promise.all([API.getLockers(), API.getZones(), API.getDepartments()]);
-        var lockers = results[0], zones = results[1], depts = results[2];
+        var results = await Promise.all([API.getLockers(), API.getZones(), API.getDepartments(), API.getEmployees()]);
+        var lockers = results[0], zones = results[1], depts = results[2], emps = results[3];
         document.getElementById('homeLockerCount').textContent = lockers.length + ' ' + t('lockers');
         document.getElementById('homeWarehouseCount').textContent = zones.length + ' ' + t('zones');
         document.getElementById('homeDeptCount').textContent = depts.length + ' ' + t('departments');
+        document.getElementById('homeEmpCount').textContent = emps.length + ' ' + t('employees');
     } catch (e) { /* ignore */ }
 }
 
@@ -364,7 +379,19 @@ function handleDeptSearch(value) {
     searchTimeout = setTimeout(async function() {
         try {
             var data = await API.search(value.trim());
-            renderSearchResults(results, { employees: data.employees, departments: data.departments }, false);
+            renderSearchResults(results, { departments: data.departments }, false);
+        } catch (e) { results.style.display = 'none'; }
+    }, 300);
+}
+
+function handleEmpSearch(value) {
+    clearTimeout(searchTimeout);
+    var results = document.getElementById('empSearchResults');
+    if (!value.trim()) { results.style.display = 'none'; return; }
+    searchTimeout = setTimeout(async function() {
+        try {
+            var data = await API.search(value.trim());
+            renderSearchResults(results, { employees: data.employees }, false);
         } catch (e) { results.style.display = 'none'; }
     }, 300);
 }
@@ -1294,12 +1321,8 @@ async function uploadZoneItemImg(id, file) {
 
 // ============ Departments Page (Tabs) ============
 function switchDeptTab(tab) {
+    // legacy compat - no-op now since employees have their own page
     currentDeptTab = tab;
-    document.getElementById('tabEmployees').classList.toggle('active', tab === 'employees');
-    document.getElementById('tabDepts').classList.toggle('active', tab === 'depts');
-    document.getElementById('deptTabEmployees').classList.toggle('active', tab === 'employees');
-    document.getElementById('deptTabDepts').classList.toggle('active', tab === 'depts');
-    document.getElementById('addBtnText').textContent = tab === 'employees' ? t('addEmployee') : t('addDepartment');
     persistNavState();
 }
 
@@ -1309,6 +1332,14 @@ async function renderDepartments() {
     try {
         var depts = await API.getDepartments();
         grid.innerHTML = '';
+
+        // Update stats
+        var totalItems = depts.reduce(function(s,d) { return s + Number(d.item_count || 0); }, 0);
+        var totalEmps = depts.reduce(function(s,d) { return s + Number(d.employee_count || 0); }, 0);
+        var sd = document.getElementById('statDepts'); if (sd) sd.textContent = depts.length;
+        var si = document.getElementById('statDeptItems'); if (si) si.textContent = totalItems;
+        var se = document.getElementById('statDeptEmps'); if (se) se.textContent = totalEmps;
+
         if (depts.length === 0) {
             grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-building"></i><p>' + t('noDepts') + '</p></div>';
             return;
@@ -1320,14 +1351,28 @@ async function renderDepartments() {
             card.innerHTML = '<button class="btn-icon locker-delete-btn" onclick="event.stopPropagation();deleteDept(' + d.id + ')"><i class="fas fa-trash-alt"></i></button>' +
                 '<div class="dept-card-icon"><i class="fas fa-building"></i></div>' +
                 '<div class="dept-card-name">' + escapeHtml(d.name) + '</div>' +
-                '<div class="dept-card-manager">' + (d.manager ? escapeHtml(d.manager) : '') + '</div>' +
+                (d.manager ? '<div class="dept-card-manager"><i class="fas fa-user-shield"></i> ' + escapeHtml(d.manager) + '</div>' : '') +
                 '<div class="dept-card-counts">' +
-                '<div class="dept-card-count"><i class="fas fa-user-tie"></i> ' + Number(d.employee_count || 0) + ' ' + t('employees') + '</div>' +
+                '<div class="dept-card-count"><i class="fas fa-users"></i> ' + Number(d.employee_count || 0) + ' ' + t('employees') + '</div>' +
                 '<div class="dept-card-count"><i class="fas fa-tools"></i> ' + Number(d.item_count || 0) + ' ' + t('items') + '</div>' +
                 '</div>';
             grid.appendChild(card);
         });
     } catch (e) { grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">' + t('failedLoad') + '</div>'; }
+}
+
+async function openAddDeptModal() {
+    document.getElementById('newDeptName').value = '';
+    document.getElementById('newDeptDesc').value = '';
+    var mgrSelect = document.getElementById('newDeptManager');
+    mgrSelect.innerHTML = '<option value="">' + t('selectManager') + '</option>';
+    try {
+        var emps = await API.getEmployees();
+        emps.forEach(function(e) {
+            mgrSelect.innerHTML += '<option value="' + escapeHtml(e.name) + '">' + escapeHtml(e.name) + (e.job_title ? ' - ' + escapeHtml(e.job_title) : '') + '</option>';
+        });
+    } catch (e) { /* ignore */ }
+    document.getElementById('addDeptModal').classList.add('active');
 }
 
 async function addDepartment() {
@@ -1336,7 +1381,7 @@ async function addDepartment() {
     try {
         await API.createDepartment({
             name: name,
-            manager: document.getElementById('newDeptManager').value.trim(),
+            manager: document.getElementById('newDeptManager').value || '',
             description: document.getElementById('newDeptDesc').value.trim()
         });
         document.getElementById('addDeptModal').classList.remove('active');
@@ -1360,8 +1405,14 @@ async function renderEmployees() {
     try {
         var employees = await API.getEmployees();
         grid.innerHTML = '';
+
+        // Update stats
+        var totalCustody = employees.reduce(function(s,e) { return s + Number(e.item_count || 0); }, 0);
+        var se = document.getElementById('statEmps'); if (se) se.textContent = employees.length;
+        var sc = document.getElementById('statEmpCustody'); if (sc) sc.textContent = totalCustody;
+
         if (employees.length === 0) {
-            grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-user-tie"></i><p>' + t('noEmployees') + '</p></div>';
+            grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-id-badge"></i><p>' + t('noEmployees') + '</p></div>';
             return;
         }
         employees.forEach(function(emp) {
@@ -1373,11 +1424,11 @@ async function renderEmployees() {
                 '<div class="emp-avatar">' + (emp.photo ? '<img src="' + escapeHtml(emp.photo) + '" onerror="this.parentElement.innerHTML=\'<i class=\\\'fas fa-user\\\'></i>\'">' : '<i class="fas fa-user"></i>') + '</div>' +
                 '<div>' +
                 '<div class="emp-card-name">' + escapeHtml(emp.name) + '</div>' +
-                '<div class="emp-card-title">' + escapeHtml(emp.job_title || '') + '</div>' +
+                '<div class="emp-card-title"><i class="fas fa-briefcase" style="font-size:10px;opacity:0.6;margin-right:4px"></i>' + escapeHtml(emp.job_title || '') + '</div>' +
                 (emp.department_name ? '<div class="emp-card-dept" onclick="event.stopPropagation();currentDeptId=' + (emp.department_id || 0) + ';navigateTo(\'dept-detail\')"><i class="fas fa-building"></i> ' + escapeHtml(emp.department_name) + '</div>' : '') +
                 '</div></div>' +
                 '<div class="emp-card-footer">' +
-                '<div class="emp-card-stat"><i class="fas fa-tools"></i> ' + Number(emp.item_count || 0) + ' ' + t('items') + '</div>' +
+                '<div class="emp-card-stat"><i class="fas fa-hand-holding" style="color:var(--accent)"></i> ' + Number(emp.item_count || 0) + ' ' + t('custodyItems') + '</div>' +
                 '<label class="btn-icon" style="cursor:pointer" onclick="event.stopPropagation()"><i class="fas fa-camera" style="font-size:12px"></i><input type="file" accept="image/*" style="display:none" onchange="uploadEmpPhoto(' + emp.id + ',this.files[0])"></label>' +
                 '</div>';
             grid.appendChild(card);
@@ -1388,6 +1439,7 @@ async function renderEmployees() {
 async function openAddEmpModal() {
     document.getElementById('newEmpName').value = '';
     document.getElementById('newEmpTitle').value = '';
+    var photoInput = document.getElementById('newEmpPhoto'); if (photoInput) photoInput.value = '';
     var select = document.getElementById('newEmpDept');
     select.innerHTML = '<option value="">--</option>';
     try {
@@ -1403,11 +1455,15 @@ async function addEmployee() {
     var name = document.getElementById('newEmpName').value.trim();
     if (!name) return;
     try {
-        await API.createEmployee({
+        var created = await API.createEmployee({
             name: name,
             job_title: document.getElementById('newEmpTitle').value.trim(),
             department_id: document.getElementById('newEmpDept').value || null
         });
+        var photoInput = document.getElementById('newEmpPhoto');
+        if (photoInput && photoInput.files && photoInput.files[0] && created && created.id) {
+            try { await API.uploadEmployeePhoto(created.id, photoInput.files[0]); } catch (e) {}
+        }
         document.getElementById('addEmpModal').classList.remove('active');
         renderEmployees();
         showToast(t('added'));
@@ -1566,23 +1622,34 @@ async function renderItemsTab() {
         return;
     }
 
-    items.forEach(function(item) {
+    items.forEach(function(item, idx) {
+        var statusLabel = item.covenant_status || t('active');
+        var statusCls = 'active';
+        if (statusLabel === 'returned') statusCls = 'returned';
+        else if (statusLabel === 'transferred') statusCls = 'transferred';
+        else if (statusLabel === 'ended') statusCls = 'ended';
+
         var card = document.createElement('div');
-        card.className = 'dept-item-card';
-        card.innerHTML = '<button class="btn-icon dept-item-card-delete" onclick="deleteDeptItem(' + item.id + ')"><i class="fas fa-times" style="color:var(--danger);font-size:12px"></i></button>' +
-            '<div class="dept-item-card-img"' + (item.image ? ' onclick="openImageViewer(\'' + escapeHtml(item.image) + '\')" style="cursor:pointer"' : '') + '>' +
-            (item.image ? '<img src="' + escapeHtml(item.image) + '">' : '<i class="fas fa-tools"></i>') +
+        card.className = 'dept-item-card-v2';
+        card.style.animationDelay = (idx * 0.05) + 's';
+        card.innerHTML =
+            '<div class="dept-item-v2-visual"' + (item.image ? ' onclick="openImageViewer(\'' + escapeHtml(item.image) + '\')" style="cursor:pointer"' : '') + '>' +
+                (item.image ? '<img src="' + escapeHtml(item.image) + '" onerror="this.parentElement.innerHTML=\'<i class=\\\'fas fa-cube\\\'></i>\'">' : '<i class="fas fa-cube"></i>') +
+                '<div class="dept-item-v2-qty"><span>x' + Number(item.qty) + '</span></div>' +
             '</div>' +
-            '<div class="dept-item-card-body">' +
-            '<div class="dept-item-card-name">' + escapeHtml(item.name) + '</div>' +
-            (item.description ? '<div class="dept-item-card-desc">' + escapeHtml(item.description) + '</div>' : '') +
-            '<div class="dept-item-card-footer">' +
-            '<div class="dept-item-card-qty">x' + Number(item.qty) + '</div>' +
-            (item.employee_name ? '<div class="dept-item-card-assignee" onclick="if(' + (item.employee_id || 0) + '){currentEmpId=' + (item.employee_id || 0) + ';navigateTo(\'emp-detail\')}" style="cursor:pointer"><i class="fas fa-user"></i> ' + escapeHtml(item.employee_name) + '</div>' : '') +
+            '<div class="dept-item-v2-body">' +
+                '<div class="dept-item-v2-name">' + escapeHtml(item.name) + '</div>' +
+                (item.description ? '<div class="dept-item-v2-desc">' + escapeHtml(item.description) + '</div>' : '') +
+                '<div class="dept-item-v2-meta">' +
+                    (item.employee_name ? '<span class="dept-item-v2-tag" onclick="if(' + (item.employee_id || 0) + '){currentEmpId=' + (item.employee_id || 0) + ';navigateTo(\'emp-detail\')}" style="cursor:pointer"><i class="fas fa-user"></i> ' + escapeHtml(item.employee_name) + '</span>' : '') +
+                    (item.receipt_date ? '<span class="dept-item-v2-tag"><i class="fas fa-calendar-alt"></i> ' + escapeHtml(item.receipt_date) + '</span>' : '') +
+                    (item.purpose ? '<span class="dept-item-v2-tag"><i class="fas fa-bullseye"></i> ' + escapeHtml(item.purpose) + '</span>' : '') +
+                    '<span class="dept-item-v2-tag status-tag ' + statusCls + '">' + escapeHtml(statusLabel) + '</span>' +
+                '</div>' +
             '</div>' +
-            (item.receipt_date ? '<div style="font-size:11px;color:var(--text-muted);margin-top:4px"><i class="fas fa-calendar"></i> ' + escapeHtml(item.receipt_date) + '</div>' : '') +
-            (item.purpose ? '<div style="font-size:11px;color:var(--text-muted)"><i class="fas fa-tag"></i> ' + escapeHtml(item.purpose) + '</div>' : '') +
-            '<button class="btn-icon" onclick="event.stopPropagation();openCovenantModal({id:' + item.id + ',name:\'' + escapeHtml(item.name || '').replace(/'/g, "\\'") + '\'})" title="' + t('covenantHistory') + '" style="margin-top:4px"><i class="fas fa-exchange-alt" style="font-size:11px"></i> <span style="font-size:11px">' + t('covenantHistory') + '</span></button>' +
+            '<div class="dept-item-v2-actions">' +
+                '<button class="btn-icon" onclick="event.stopPropagation();openCovenantModal({id:' + item.id + ',name:\'' + escapeHtml(item.name || '').replace(/'/g, "\\'") + '\'})" title="' + t('covenantHistory') + '"><i class="fas fa-exchange-alt"></i></button>' +
+                '<button class="btn-icon delete" onclick="deleteDeptItem(' + item.id + ')"><i class="fas fa-trash-alt"></i></button>' +
             '</div>';
         container.appendChild(card);
     });
@@ -1836,7 +1903,7 @@ async function renderEmpDetail() {
             }
         }
 
-        // Items table
+        // Items - custody cards
         await renderEmpItems();
 
     } catch (e) { showToast(t('failedLoad'), 'error'); }
@@ -1845,11 +1912,11 @@ async function renderEmpDetail() {
 async function renderEmpItems() {
     var emp = currentEmpData;
     var empItems = emp.items || [];
-    var tbody = document.querySelector('#empItemsTable tbody');
-    tbody.innerHTML = '';
+    var grid = document.getElementById('empCustodyGrid');
+    grid.innerHTML = '';
 
     if (empItems.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" class="empty-state" style="padding:14px">' + t('noItems') + '</td></tr>';
+        grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-hand-holding" style="font-size:32px;opacity:0.3"></i><p>' + t('noItems') + '</p></div>';
     } else {
         empItems.forEach(function(item) {
             var statusLabel = item.covenant_status || item.status || t('active');
@@ -1860,30 +1927,35 @@ async function renderEmpItems() {
             else if (statusLabel === 'paused') statusCls = 'paused';
 
             // Calculate duration
-            var duration = '';
+            var durationText = '';
             if (item.receipt_date || item.start_date) {
                 var start = new Date(item.receipt_date || item.start_date);
                 var now = new Date();
                 var days = Math.floor((now - start) / (1000 * 60 * 60 * 24));
-                duration = days + ' days';
+                durationText = days + ' ' + t('days');
             }
 
-            tbody.innerHTML += '<tr>' +
-                '<td><input type="text" class="stock-input" value="' + escapeHtml(item.name || '') + '" onchange="updateEmpItemInline(' + item.id + ',{name:this.value})"></td>' +
-                '<td><div class="item-name-cell">' +
-                (item.image ? '<img src="' + escapeHtml(item.image) + '" class="item-thumb" onclick="openImageViewer(\'' + escapeHtml(item.image) + '\')" style="cursor:pointer" onerror="this.style.display=\'none\'">' : '<i class="fas fa-image" style="color:var(--text-muted)"></i>') +
-                '<label class="btn-icon" style="cursor:pointer"><i class="fas fa-upload" style="font-size:10px"></i><input type="file" accept="image/*" style="display:none" onchange="uploadDeptItemImg(' + item.id + ',this.files[0])"></label>' +
-                '</div></td>' +
-                '<td><input type="number" class="stock-input" min="1" value="' + Number(item.qty) + '" style="width:60px" onchange="updateEmpItemInline(' + item.id + ',{qty:parseInt(this.value)})"></td>' +
-                '<td>' + escapeHtml(item.department_name || '') + '</td>' +
-                '<td><input type="date" class="stock-input" value="' + escapeHtml(item.receipt_date || '') + '" onchange="updateEmpItemInline(' + item.id + ',{receipt_date:this.value})"></td>' +
-                '<td><input type="text" class="stock-input" value="' + escapeHtml(item.purpose || '') + '" onchange="updateEmpItemInline(' + item.id + ',{purpose:this.value})"></td>' +
-                '<td>' + duration + '</td>' +
-                '<td><span class="history-status-badge ' + statusCls + '">' + escapeHtml(statusLabel) + '</span></td>' +
-                '<td><button class="btn-icon" onclick="openCovenantModal({id:' + item.id + ',name:\'' + escapeHtml(item.name || '').replace(/'/g, "\\'") + '\'})" title="' + t('covenantHistory') + '"><i class="fas fa-exchange-alt" style="font-size:11px"></i></button></td>' +
-                '<td class="item-actions">' +
-                '<button class="btn-icon delete" onclick="deleteEmpItem(' + item.id + ')"><i class="fas fa-trash-alt"></i></button>' +
-                '</td></tr>';
+            var card = document.createElement('div');
+            card.className = 'emp-custody-card';
+            card.innerHTML =
+                '<div class="emp-custody-card-header">' +
+                    '<div class="emp-custody-card-img"' + (item.image ? ' onclick="openImageViewer(\'' + escapeHtml(item.image) + '\')" style="cursor:pointer"' : '') + '>' +
+                        (item.image ? '<img src="' + escapeHtml(item.image) + '" onerror="this.parentElement.innerHTML=\'<i class=\\\'fas fa-box\\\'></i>\'">' : '<i class="fas fa-box"></i>') +
+                    '</div>' +
+                    '<div class="emp-custody-card-info">' +
+                        '<div class="emp-custody-card-name"><i class="fas fa-tag" style="font-size:10px;opacity:0.5;margin-right:4px"></i>' + escapeHtml(item.name || '') + '</div>' +
+                        '<div class="emp-custody-card-qty"><i class="fas fa-sort-numeric-up" style="font-size:10px;opacity:0.5;margin-right:4px"></i>x' + Number(item.qty) + '</div>' +
+                    '</div>' +
+                    '<div class="emp-custody-card-actions">' +
+                        '<label class="btn-icon" style="cursor:pointer" title="Upload Image"><i class="fas fa-camera" style="font-size:11px"></i><input type="file" accept="image/*" style="display:none" onchange="uploadDeptItemImg(' + item.id + ',this.files[0])"></label>' +
+                        '<button class="btn-icon delete" onclick="deleteEmpItem(' + item.id + ')"><i class="fas fa-trash-alt" style="font-size:11px"></i></button>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="emp-custody-card-body">' +
+                    (durationText ? '<div class="emp-custody-meta"><i class="fas fa-clock"></i> <span>' + t('custodyDuration') + ': <strong>' + durationText + '</strong></span></div>' : '') +
+                    '<div class="emp-custody-meta"><i class="fas fa-circle-check"></i> <span>' + t('status') + ': <span class="history-status-badge ' + statusCls + '">' + escapeHtml(statusLabel) + '</span></span></div>' +
+                '</div>';
+            grid.appendChild(card);
         });
     }
 }
@@ -1987,7 +2059,7 @@ applyLanguage();
     try { state = JSON.parse(raw); } catch (e) { loadHomeCounts(); return; }
     if (!state || !state.page || state.page === 'home') { loadHomeCounts(); return; }
 
-    var validPages = ['home','lockers','warehouse','departments','dept-detail','emp-detail'];
+    var validPages = ['home','lockers','warehouse','departments','employees','dept-detail','emp-detail'];
     if (validPages.indexOf(state.page) === -1) { loadHomeCounts(); return; }
 
     if (state.page === 'dept-detail') {

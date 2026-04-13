@@ -1160,7 +1160,9 @@ async function renderZoneDetail() {
         html += '<div class="zone-detail-head-info"><h2>' + escapeHtml(zone.name) + '</h2>';
         if (zone.location) html += '<div class="zone-detail-location"><i class="fas fa-map-marker-alt"></i> ' + escapeHtml(zone.location) + '</div>';
         if (zone.description) html += '<div class="zone-detail-desc">' + escapeHtml(zone.description) + '</div>';
-        html += '</div></div>';
+        html += '</div>';
+        html += '<button class="btn-icon zone-edit-btn" onclick="openEditZoneModal()" title="Edit Zone"><i class="fas fa-pen" style="color:' + color + '"></i></button>';
+        html += '</div>';
 
         // Areas section
         html += '<div class="zone-areas-section">';
@@ -1174,6 +1176,7 @@ async function renderZoneDetail() {
             areas.forEach(function(area) {
                 var areaItemCount = (area.items || []).length;
                 html += '<div class="zone-area-card" onclick="openAreaItems(' + area.id + ',\'' + escapeHtml(area.name).replace(/'/g, "\\'") + '\')">';
+                html += '<button class="zone-area-edit" onclick="event.stopPropagation();openEditAreaModal(' + area.id + ',\'' + escapeHtml(area.name).replace(/'/g, "\\'") + '\',\'' + escapeHtml(area.description || '').replace(/'/g, "\\'") + '\')" title="Edit"><i class="fas fa-pen"></i></button>';
                 html += '<button class="zone-area-delete" onclick="event.stopPropagation();deleteArea(' + area.id + ')" title="Delete"><i class="fas fa-times"></i></button>';
                 html += '<div class="zone-area-card-icon" style="background:' + color + '"><i class="fas fa-th-large"></i></div>';
                 html += '<div class="zone-area-card-name">' + escapeHtml(area.name) + '</div>';
@@ -1258,6 +1261,31 @@ async function addZone() {
 }
 function saveNewZone() { addZone(); }
 
+function openEditZoneModal() {
+    if (!currentZoneData) return;
+    document.getElementById('editZoneName').value = currentZoneData.name || '';
+    document.getElementById('editZoneLocation').value = currentZoneData.location || '';
+    document.getElementById('editZoneDesc').value = currentZoneData.description || '';
+    document.getElementById('editZoneColor').value = currentZoneData.color || '#7b2ff7';
+    document.getElementById('editZoneModal').classList.add('active');
+}
+
+async function saveEditZone() {
+    var name = document.getElementById('editZoneName').value.trim();
+    if (!name) return;
+    try {
+        await API.updateZone(currentZoneId, {
+            name: name,
+            location: document.getElementById('editZoneLocation').value.trim(),
+            description: document.getElementById('editZoneDesc').value.trim(),
+            color: document.getElementById('editZoneColor').value
+        });
+        document.getElementById('editZoneModal').classList.remove('active');
+        renderWarehouse();
+        showToast(t('saved') || 'Saved');
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
 async function deleteZone(id) {
     if (!confirm(t('deleteConfirm'))) return;
     try {
@@ -1285,6 +1313,31 @@ async function addArea() {
     } catch (e) { showToast(e.message, 'error'); }
 }
 function saveNewArea() { addArea(); }
+
+var editingAreaId = null;
+
+function openEditAreaModal(areaId, areaName, areaDesc) {
+    editingAreaId = areaId;
+    document.getElementById('editAreaName').value = areaName || '';
+    document.getElementById('editAreaDesc').value = areaDesc || '';
+    document.getElementById('editAreaModal').classList.add('active');
+}
+
+async function saveEditArea() {
+    if (!editingAreaId) return;
+    var name = document.getElementById('editAreaName').value.trim();
+    if (!name) return;
+    try {
+        await API.updateArea(editingAreaId, {
+            name: name,
+            description: document.getElementById('editAreaDesc').value.trim()
+        });
+        document.getElementById('editAreaModal').classList.remove('active');
+        currentZoneData = await API.getZone(currentZoneId);
+        await renderZoneDetail();
+        showToast(t('saved') || 'Saved');
+    } catch (e) { showToast(e.message, 'error'); }
+}
 
 async function deleteArea(id) {
     if (!confirm(t('deleteConfirm'))) return;

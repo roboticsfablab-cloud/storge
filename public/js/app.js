@@ -1220,7 +1220,8 @@ function renderZoneGrid(zones) {
         card.className = 'zone-card';
         card.style.animationDelay = (idx * 0.08) + 's';
         card.onclick = function() { selectZone(z.id); };
-        card.innerHTML = '<button class="btn-icon zone-card-delete" onclick="event.stopPropagation();deleteZone(' + z.id + ')"><i class="fas fa-trash-alt" style="color:var(--danger)"></i></button>' +
+        card.innerHTML = '<button class="btn-icon zone-card-print" onclick="event.stopPropagation();printZone(' + z.id + ')" title="' + t('print') + '"><i class="fas fa-print"></i></button>' +
+            '<button class="btn-icon zone-card-delete" onclick="event.stopPropagation();deleteZone(' + z.id + ')"><i class="fas fa-trash-alt" style="color:var(--danger)"></i></button>' +
             '<div class="zone-card-color" style="background:' + color + '"></div>' +
             '<div class="zone-card-header">' +
             '<div class="zone-card-icon" style="background:' + color + '">' + (hasAlert ? '<i class="fas fa-exclamation-triangle"></i>' : '<i class="fas fa-warehouse"></i>') + '</div>' +
@@ -1257,6 +1258,7 @@ async function renderZoneDetail() {
         if (zone.location) html += '<div class="zone-detail-location"><i class="fas fa-map-marker-alt"></i> ' + escapeHtml(zone.location) + '</div>';
         if (zone.description) html += '<div class="zone-detail-desc">' + escapeHtml(zone.description) + '</div>';
         html += '</div>';
+        html += '<button class="btn-icon zone-edit-btn" onclick="printZone(' + zone.id + ')" title="' + t('print') + '" style="margin-right:6px"><i class="fas fa-print" style="color:' + color + '"></i></button>';
         html += '<button class="btn-icon zone-edit-btn" onclick="openEditZoneModal()" title="Edit Zone"><i class="fas fa-pen" style="color:' + color + '"></i></button>';
         html += '</div>';
 
@@ -3123,6 +3125,57 @@ function printLockerItems() {
         ],
         rows: items
     });
+}
+
+// ---- Whole Warehouse Zone (all areas + all items) ----
+async function printZone(zoneId) {
+    try {
+        var zone = await API.getZone(zoneId);
+        var areas = zone.areas || [];
+        var items = zone.items || [];
+        var areaById = {};
+        areas.forEach(function(a){ areaById[a.id] = a; });
+
+        var rows = items.slice().sort(function(a, b){
+            var an = (areaById[a.area_id] && areaById[a.area_id].name) || '~';
+            var bn = (areaById[b.area_id] && areaById[b.area_id].name) || '~';
+            if (an !== bn) return an.localeCompare(bn);
+            return (a.name || '').localeCompare(b.name || '');
+        });
+
+        if (!rows.length && !areas.length) { showToast(t('noData'), 'warning'); return; }
+
+        // If there are no items, still print a page showing the area structure
+        if (!rows.length) {
+            rows = areas.map(function(a){
+                return { area_id: a.id, name: '—', qty: 0, min_stock: 0, description: '' };
+            });
+        }
+
+        var title = t('zone') + ' ' + t('report') + ' — ' + (zone.name || '');
+        var subtitle = (zone.location ? t('location') + ': ' + zone.location + '  •  ' : '')
+                     + t('areas') + ': ' + areas.length + '  •  '
+                     + t('items') + ': ' + items.length + '  •  '
+                     + t('totalStock') + ': ' + items.reduce(function(s,i){return s+Number(i.qty||0);},0);
+
+        printTable({
+            title: title,
+            subtitle: subtitle,
+            orientation: 'portrait',
+            columns: [
+                { label: t('area'), value: function(r){
+                    var a = areaById[r.area_id];
+                    return a ? a.name : '— ' + t('generalItems') + ' —';
+                } },
+                { label: t('itemName'), value: function(r){ return r.name || ''; } },
+                { label: t('description'), value: function(r){ return r.description || ''; } },
+                { label: t('qty'), value: function(r){ return r.qty; } },
+                { label: t('minStock'), value: function(r){ return r.min_stock; } },
+                { label: t('status'), value: function(r){ return _statusLabel(r.qty, r.min_stock); } }
+            ],
+            rows: rows
+        });
+    } catch (e) { showToast(e.message || t('failedLoad'), 'error'); }
 }
 
 // ---- Warehouse area items ----

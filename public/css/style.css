@@ -7856,3 +7856,21 @@ textarea.input {
 [dir="rtl"] .emp-tab-print + .emp-tab-print {
     margin-right: 0;
 }
+
+.zone-card-print {
+    position: absolute;
+    top: 10px;
+    right: 46px;
+    z-index: 2;
+    width: 30px; height: 30px;
+    background: rgba(127,127,127,0.10);
+    border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+}
+.zone-card-print:hover {
+    background: #000;
+    color: #fff;
+    transform: rotate(-6deg) scale(1.08);
+}
+[dir="rtl"] .zone-card-print { right: auto; left: 46px; }

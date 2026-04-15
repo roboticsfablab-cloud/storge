@@ -1073,6 +1073,84 @@
 </div>
 
 
+<!-- Return to Original Department Modal (for incoming custody) -->
+<div class="modal-overlay" id="deptReturnModal">
+    <div class="modal-content modal-md">
+        <div class="modal-header">
+            <h2>
+                <i class="fas fa-undo"></i>
+                <span data-i18n="returnToOriginalDept">Return to Original Department</span>
+                <span class="covenant-item-name" id="deptReturnItemName"></span>
+            </h2>
+            <button class="modal-close" onclick="closeModal('deptReturnModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <!-- Read-only summary block -->
+            <div class="custody-readonly-block">
+                <div class="custody-readonly-row">
+                    <label>
+                        <i class="fas fa-lock"></i>
+                        <span data-i18n="sourceDepartment">Source Department</span>
+                    </label>
+                    <div class="custody-readonly-value" id="deptReturnSource">--</div>
+                </div>
+                <div class="custody-readonly-row">
+                    <label>
+                        <i class="fas fa-lock"></i>
+                        <span data-i18n="custodyPeriod">Custody Period</span>
+                    </label>
+                    <div class="custody-readonly-value" id="deptReturnPeriod">--</div>
+                </div>
+                <div class="custody-readonly-row">
+                    <label>
+                        <i class="fas fa-lock"></i>
+                        <span data-i18n="conditionOnReceipt">Condition Upon Receipt</span>
+                    </label>
+                    <div class="custody-readonly-value" id="deptReturnOrigCondition">--</div>
+                </div>
+                <div class="custody-readonly-row" id="deptReturnOrigNotesRow" style="display:none">
+                    <label>
+                        <i class="fas fa-lock"></i>
+                        <span data-i18n="originalNotes">Original Transfer Notes</span>
+                    </label>
+                    <div class="custody-readonly-value" id="deptReturnOrigNotes">--</div>
+                </div>
+            </div>
+
+            <!-- Editable return controls -->
+            <div class="custody-return-block">
+                <h3 class="custody-return-title">
+                    <i class="fas fa-undo"></i>
+                    <span data-i18n="returnToDepartment">Return to Department</span>
+                </h3>
+                <div class="form-field">
+                    <label data-i18n="returnCondition">Item Condition Upon Return</label>
+                    <div class="condition-radio-group">
+                        <label class="condition-radio">
+                            <input type="radio" name="deptReturnCondition" value="good" checked>
+                            <span data-i18n="conditionGood">Good</span>
+                        </label>
+                        <label class="condition-radio condition-radio-bad">
+                            <input type="radio" name="deptReturnCondition" value="not_good">
+                            <span data-i18n="conditionNotGood">Not Good</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-field">
+                    <label data-i18n="returnNotes">Return Notes</label>
+                    <textarea id="deptReturnNotes" rows="3" data-i18n-placeholder="returnNotesPh" placeholder="Notes about the return..."></textarea>
+                </div>
+                <button class="btn-add custody-return-btn" onclick="submitDeptReturn()">
+                    <i class="fas fa-undo"></i>
+                    <span data-i18n="returnToOriginalDept">Return to Original Department</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Employee Custody Details Modal -->
 <div class="modal-overlay" id="empCustodyDetailsModal">
     <div class="modal-content modal-md">
@@ -1184,8 +1262,8 @@
 </div>
 
 <!-- Scripts -->
-<script src="/js/api.js?v=17"></script>
-<script src="/js/app.js?v=17"></script>
+<script src="/js/api.js?v=18"></script>
+<script src="/js/app.js?v=18"></script>
 
 </body>
 </html>

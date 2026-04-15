@@ -1897,14 +1897,67 @@ function renderIncomingTab() {
     });
 }
 
-async function returnIncomingCustody(itemId, entityType) {
-    if (!confirm(t('returnConfirm'))) return;
+let currentDeptReturnId = null;
+let currentDeptReturnEntity = 'item';
+
+function returnIncomingCustody(itemId, entityType) {
+    currentDeptReturnId = itemId;
+    currentDeptReturnEntity = entityType === 'equipment' ? 'equipment' : 'item';
+
+    var dept = currentDeptData || {};
+    var list = currentDeptReturnEntity === 'equipment'
+        ? (dept.incoming_equipment || [])
+        : (dept.incoming_items || []);
+    var rec = list.find(function(x){ return x.id === itemId; });
+
+    document.getElementById('deptReturnItemName').textContent = rec ? ' - ' + (rec.name || '') : '';
+    document.getElementById('deptReturnSource').textContent = rec && rec.source_dept_name ? rec.source_dept_name : t('notRecorded');
+    var period = '';
+    if (rec) {
+        period = (rec.start_date || rec.transfer_date || '');
+        if (rec.end_date) period += ' → ' + rec.end_date;
+    }
+    document.getElementById('deptReturnPeriod').textContent = period || t('notRecorded');
+
+    var condText = rec && rec.condition
+        ? (rec.condition === 'good' ? t('conditionGood') : t('conditionNotGood'))
+        : t('notRecorded');
+    if (rec && rec.condition_notes) condText += ' — ' + rec.condition_notes;
+    document.getElementById('deptReturnOrigCondition').textContent = condText;
+
+    var origNotesRow = document.getElementById('deptReturnOrigNotesRow');
+    if (rec && rec.notes) {
+        origNotesRow.style.display = '';
+        document.getElementById('deptReturnOrigNotes').textContent = rec.notes;
+    } else {
+        origNotesRow.style.display = 'none';
+    }
+
+    document.getElementById('deptReturnNotes').value = '';
+    var goodRadio = document.querySelector('input[name="deptReturnCondition"][value="good"]');
+    if (goodRadio) goodRadio.checked = true;
+
+    document.getElementById('deptReturnModal').classList.add('active');
+}
+
+async function submitDeptReturn() {
+    if (!currentDeptReturnId) return;
+    var conditionEl = document.querySelector('input[name="deptReturnCondition"]:checked');
+    var condition = conditionEl ? conditionEl.value : 'good';
+    var notes = document.getElementById('deptReturnNotes').value.trim();
+    var payload = {
+        return_date: new Date().toISOString().split('T')[0],
+        return_condition: condition,
+        return_notes: notes
+    };
     try {
-        if (entityType === 'equipment') {
-            await API.returnEquipmentCustody(itemId, { return_date: new Date().toISOString().split('T')[0] });
+        if (currentDeptReturnEntity === 'equipment') {
+            await API.returnEquipmentCustody(currentDeptReturnId, payload);
         } else {
-            await API.returnCustody(itemId, { return_date: new Date().toISOString().split('T')[0] });
+            await API.returnCustody(currentDeptReturnId, payload);
         }
+        closeModal('deptReturnModal');
+        currentDeptReturnId = null;
         if (currentDeptId && currentPage === 'dept-detail') {
             currentDeptData = await API.getDepartment(currentDeptId);
             renderIncomingTab();

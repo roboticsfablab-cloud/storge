@@ -333,6 +333,11 @@
                     <i class="fas fa-cubes"></i>
                     <span data-i18n="items">Items</span>
                 </button>
+                <button class="dept-dtab" id="tabIncoming" onclick="switchDeptDetailTab('incoming')">
+                    <i class="fas fa-inbox"></i>
+                    <span data-i18n="incomingCustody">Incoming Custody</span>
+                    <span class="dept-tab-badge" id="incomingBadge" style="display:none">0</span>
+                </button>
             </div>
 
             <!-- Equipment Tab -->
@@ -408,6 +413,12 @@
                         <span data-i18n="add">Add</span>
                     </button>
                 </div>
+            </div>
+
+            <!-- Incoming Custody Tab -->
+            <div class="dept-dtab-content" id="deptIncomingTab">
+                <h3 class="emp-section-title"><i class="fas fa-inbox"></i> <span data-i18n="incomingCustodyTitle">Items Under Temporary Custody</span></h3>
+                <div class="incoming-grid" id="deptIncomingGrid"></div>
             </div>
 
             <!-- Items Tab -->
@@ -999,11 +1010,27 @@
             </div>
             <div class="covenant-transfer-form">
                 <h3 data-i18n="transferCustody">Transfer Custody</h3>
+                <div class="transfer-mode-toggle">
+                    <button type="button" class="transfer-mode-btn active" data-mode="employee" onclick="setTransferMode('employee')">
+                        <i class="fas fa-user"></i>
+                        <span data-i18n="transferToEmployee">Transfer to Employee</span>
+                    </button>
+                    <button type="button" class="transfer-mode-btn" data-mode="department" onclick="setTransferMode('department')">
+                        <i class="fas fa-building"></i>
+                        <span data-i18n="transferToDepartment">Transfer to Department</span>
+                    </button>
+                </div>
                 <div class="transfer-form-grid">
-                    <div class="form-field">
+                    <div class="form-field" id="covenantEmployeeField">
                         <label data-i18n="employeeName">Employee Name</label>
                         <select id="covenantTransferTo">
                             <option value="" data-i18n="selectEmployee">Select Employee</option>
+                        </select>
+                    </div>
+                    <div class="form-field" id="covenantDepartmentField" style="display:none">
+                        <label data-i18n="targetDepartment">Target Department</label>
+                        <select id="covenantTransferToDept">
+                            <option value="" data-i18n="selectDepartment">Select Department</option>
                         </select>
                     </div>
                     <div class="form-field">
@@ -1157,8 +1184,8 @@
 </div>
 
 <!-- Scripts -->
-<script src="/js/api.js?v=16"></script>
-<script src="/js/app.js?v=16"></script>
+<script src="/js/api.js?v=17"></script>
+<script src="/js/app.js?v=17"></script>
 
 </body>
 </html>

@@ -53,6 +53,12 @@ module.exports = function (db) {
                   WHERE di.department_id = ? ORDER BY di.created_at`,
             args: [req.params.id]
         });
+        const equipment = await db.execute({
+            sql: `SELECT de.*, e.name AS employee_name FROM department_equipment de
+                  LEFT JOIN employees e ON e.id = de.employee_id
+                  WHERE de.department_id = ? ORDER BY de.created_at`,
+            args: [req.params.id]
+        });
         const history = await db.execute({
             sql: `SELECT rh.*, e.name AS employee_name, e.job_title, e.photo AS employee_photo
                   FROM responsibility_history rh
@@ -64,19 +70,63 @@ module.exports = function (db) {
         const itemsWithCovenant = [];
         for (const item of items.rows) {
             const ch = await db.execute({
-                sql: `SELECT ch.*, fe.name AS from_employee_name, te.name AS to_employee_name
+                sql: `SELECT ch.*, fe.name AS from_employee_name, te.name AS to_employee_name,
+                             td.name AS to_department_name, fd.name AS from_department_name
                       FROM covenant_history ch
                       LEFT JOIN employees fe ON fe.id = ch.from_employee_id
                       LEFT JOIN employees te ON te.id = ch.to_employee_id
-                      WHERE ch.item_id = ? ORDER BY ch.transfer_date DESC`,
+                      LEFT JOIN departments td ON td.id = ch.to_department_id
+                      LEFT JOIN departments fd ON fd.id = ch.from_department_id
+                      WHERE ch.item_id = ? AND ch.entity_type = 'item' ORDER BY ch.transfer_date DESC`,
                 args: [item.id]
             });
             itemsWithCovenant.push({ ...item, covenant_history: ch.rows });
         }
+        const equipmentWithCovenant = [];
+        for (const eq of equipment.rows) {
+            const ch = await db.execute({
+                sql: `SELECT ch.*, fe.name AS from_employee_name, te.name AS to_employee_name,
+                             td.name AS to_department_name, fd.name AS from_department_name
+                      FROM covenant_history ch
+                      LEFT JOIN employees fe ON fe.id = ch.from_employee_id
+                      LEFT JOIN employees te ON te.id = ch.to_employee_id
+                      LEFT JOIN departments td ON td.id = ch.to_department_id
+                      LEFT JOIN departments fd ON fd.id = ch.from_department_id
+                      WHERE ch.item_id = ? AND ch.entity_type = 'equipment' ORDER BY ch.transfer_date DESC`,
+                args: [eq.id]
+            });
+            equipmentWithCovenant.push({ ...eq, covenant_history: ch.rows });
+        }
+        // Incoming items (from other departments under this dept's temporary custody)
+        const incomingItems = await db.execute({
+            sql: `SELECT di.*, ch.id AS transfer_id, ch.start_date, ch.end_date, ch.transfer_date,
+                         ch.condition, ch.condition_notes, ch.notes,
+                         fd.id AS source_dept_id, fd.name AS source_dept_name
+                  FROM covenant_history ch
+                  JOIN department_items di ON di.id = ch.item_id
+                  LEFT JOIN departments fd ON fd.id = di.department_id
+                  WHERE ch.entity_type = 'item' AND ch.status = 'active'
+                    AND ch.to_department_id = ? AND di.department_id <> ?`,
+            args: [req.params.id, req.params.id]
+        });
+        const incomingEquipment = await db.execute({
+            sql: `SELECT de.*, ch.id AS transfer_id, ch.start_date, ch.end_date, ch.transfer_date,
+                         ch.condition, ch.condition_notes, ch.notes,
+                         fd.id AS source_dept_id, fd.name AS source_dept_name
+                  FROM covenant_history ch
+                  JOIN department_equipment de ON de.id = ch.item_id
+                  LEFT JOIN departments fd ON fd.id = de.department_id
+                  WHERE ch.entity_type = 'equipment' AND ch.status = 'active'
+                    AND ch.to_department_id = ? AND de.department_id <> ?`,
+            args: [req.params.id, req.params.id]
+        });
         res.json({
             ...dept.rows[0],
             employees: employees.rows,
             items: itemsWithCovenant,
+            equipment: equipmentWithCovenant,
+            incoming_items: incomingItems.rows,
+            incoming_equipment: incomingEquipment.rows,
             history: history.rows
         });
     });
@@ -103,8 +153,10 @@ module.exports = function (db) {
     // Delete department
     router.delete('/:id', async (req, res) => {
         await db.execute({ sql: 'DELETE FROM department_lockers WHERE department_id = ?', args: [req.params.id] });
-        await db.execute({ sql: 'DELETE FROM covenant_history WHERE item_id IN (SELECT id FROM department_items WHERE department_id = ?)', args: [req.params.id] });
+        await db.execute({ sql: "DELETE FROM covenant_history WHERE entity_type = 'item' AND item_id IN (SELECT id FROM department_items WHERE department_id = ?)", args: [req.params.id] });
+        await db.execute({ sql: "DELETE FROM covenant_history WHERE entity_type = 'equipment' AND item_id IN (SELECT id FROM department_equipment WHERE department_id = ?)", args: [req.params.id] });
         await db.execute({ sql: 'DELETE FROM department_items WHERE department_id = ?', args: [req.params.id] });
+        await db.execute({ sql: 'DELETE FROM department_equipment WHERE department_id = ?', args: [req.params.id] });
         await db.execute({ sql: 'DELETE FROM responsibility_history WHERE department_id = ?', args: [req.params.id] });
         await db.execute({ sql: 'UPDATE employees SET department_id = NULL WHERE department_id = ?', args: [req.params.id] });
         await db.execute({ sql: 'DELETE FROM departments WHERE id = ?', args: [req.params.id] });
@@ -171,28 +223,37 @@ module.exports = function (db) {
     // ========== Covenant History ==========
     router.get('/items/:id/covenant', async (req, res) => {
         const ch = await db.execute({
-            sql: `SELECT ch.*, fe.name AS from_employee_name, te.name AS to_employee_name
+            sql: `SELECT ch.*, fe.name AS from_employee_name, te.name AS to_employee_name,
+                         td.name AS to_department_name, fd.name AS from_department_name
                   FROM covenant_history ch
                   LEFT JOIN employees fe ON fe.id = ch.from_employee_id
                   LEFT JOIN employees te ON te.id = ch.to_employee_id
-                  WHERE ch.item_id = ? ORDER BY ch.transfer_date DESC`,
+                  LEFT JOIN departments td ON td.id = ch.to_department_id
+                  LEFT JOIN departments fd ON fd.id = ch.from_department_id
+                  WHERE ch.item_id = ? AND ch.entity_type = 'item' ORDER BY ch.transfer_date DESC`,
             args: [req.params.id]
         });
         res.json(ch.rows);
     });
 
     router.post('/items/:id/covenant', async (req, res) => {
-        const { from_employee_id, to_employee_id, transfer_date, status, notes, start_date, end_date, condition, condition_notes } = req.body;
-        if (!to_employee_id) return res.status(400).json({ error: 'Target employee required' });
-        // Close any existing active custody for this item
-        await db.execute({ sql: "UPDATE covenant_history SET status = 'transferred' WHERE item_id = ? AND status = 'active'", args: [req.params.id] });
+        const { from_employee_id, to_employee_id, to_department_id, transfer_date, status, notes, start_date, end_date, condition, condition_notes } = req.body;
+        if (!to_employee_id && !to_department_id) return res.status(400).json({ error: 'Target employee or department required' });
+        // Close any existing active custody for this item (entity_type=item)
+        await db.execute({ sql: "UPDATE covenant_history SET status = 'transferred' WHERE entity_type = 'item' AND item_id = ? AND status = 'active'", args: [req.params.id] });
         const td = transfer_date || start_date || new Date().toISOString().split('T')[0];
         const result = await db.execute({
-            sql: 'INSERT INTO covenant_history (item_id, from_employee_id, to_employee_id, transfer_date, status, notes, start_date, end_date, condition, condition_notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            args: [req.params.id, from_employee_id || null, to_employee_id, td, status || 'active', notes || '', start_date || td, end_date || '', condition || '', condition_notes || '']
+            sql: `INSERT INTO covenant_history
+                  (entity_type, item_id, from_employee_id, to_employee_id, to_department_id, transfer_date, status, notes, start_date, end_date, condition, condition_notes)
+                  VALUES ('item', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            args: [req.params.id, from_employee_id || null, to_employee_id || null, to_department_id || null, td, status || 'active', notes || '', start_date || td, end_date || '', condition || '', condition_notes || '']
         });
-        // Update the item's current employee
-        await db.execute({ sql: 'UPDATE department_items SET employee_id = ? WHERE id = ?', args: [to_employee_id, req.params.id] });
+        // If transferring to an employee, set department_items.employee_id; else clear it (item is on loan to another dept)
+        if (to_employee_id) {
+            await db.execute({ sql: 'UPDATE department_items SET employee_id = ? WHERE id = ?', args: [to_employee_id, req.params.id] });
+        } else {
+            await db.execute({ sql: 'UPDATE department_items SET employee_id = NULL WHERE id = ?', args: [req.params.id] });
+        }
         const entry = await db.execute({ sql: 'SELECT * FROM covenant_history WHERE id = ?', args: [Number(result.lastInsertRowid)] });
         res.status(201).json(entry.rows[0]);
     });
@@ -214,13 +275,12 @@ module.exports = function (db) {
         res.json({ success: true });
     });
 
-    // Mark item as returned (early return from custody)
+    // Mark item as returned (early return from custody) — works for employee OR department transfer
     router.post('/items/:id/return-custody', async (req, res) => {
         const { return_date, return_notes, return_condition } = req.body;
         const today = return_date || new Date().toISOString().split('T')[0];
-        // Find active covenant for this item
         const active = await db.execute({
-            sql: "SELECT id FROM covenant_history WHERE item_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1",
+            sql: "SELECT id FROM covenant_history WHERE entity_type = 'item' AND item_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1",
             args: [req.params.id]
         });
         if (active.rows.length > 0) {
@@ -230,8 +290,109 @@ module.exports = function (db) {
                 args: [today, return_notes || '', return_condition || '', cid]
             });
         }
-        // Clear employee assignment so it goes back to the department
         await db.execute({ sql: 'UPDATE department_items SET employee_id = NULL WHERE id = ?', args: [req.params.id] });
+        res.json({ success: true });
+    });
+
+    // ========== Department Equipment (NEW: data fully separated from Items) ==========
+    router.get('/:id/equipment', async (req, res) => {
+        const eq = await db.execute({
+            sql: `SELECT de.*, e.name AS employee_name FROM department_equipment de
+                  LEFT JOIN employees e ON e.id = de.employee_id
+                  WHERE de.department_id = ? ORDER BY de.created_at`,
+            args: [req.params.id]
+        });
+        res.json(eq.rows);
+    });
+
+    router.post('/:id/equipment', async (req, res) => {
+        const { name, description, qty, employee_id, receipt_date, purpose } = req.body;
+        if (!name || !name.trim()) return res.status(400).json({ error: 'Equipment name required' });
+        const result = await db.execute({
+            sql: 'INSERT INTO department_equipment (department_id, employee_id, name, description, qty, receipt_date, purpose) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            args: [req.params.id, employee_id || null, name.trim(), description || '', Math.max(1, parseInt(qty) || 1), receipt_date || '', purpose || '']
+        });
+        const eq = await db.execute({ sql: 'SELECT * FROM department_equipment WHERE id = ?', args: [Number(result.lastInsertRowid)] });
+        res.status(201).json(eq.rows[0]);
+    });
+
+    router.put('/equipment/:id', async (req, res) => {
+        const { name, description, qty, employee_id, receipt_date, purpose } = req.body;
+        if (name !== undefined) await db.execute({ sql: 'UPDATE department_equipment SET name = ? WHERE id = ?', args: [name.trim(), req.params.id] });
+        if (description !== undefined) await db.execute({ sql: 'UPDATE department_equipment SET description = ? WHERE id = ?', args: [description, req.params.id] });
+        if (qty !== undefined) await db.execute({ sql: 'UPDATE department_equipment SET qty = ? WHERE id = ?', args: [Math.max(1, parseInt(qty)), req.params.id] });
+        if (employee_id !== undefined) await db.execute({ sql: 'UPDATE department_equipment SET employee_id = ? WHERE id = ?', args: [employee_id, req.params.id] });
+        if (receipt_date !== undefined) await db.execute({ sql: 'UPDATE department_equipment SET receipt_date = ? WHERE id = ?', args: [receipt_date, req.params.id] });
+        if (purpose !== undefined) await db.execute({ sql: 'UPDATE department_equipment SET purpose = ? WHERE id = ?', args: [purpose, req.params.id] });
+        const updated = await db.execute({ sql: 'SELECT * FROM department_equipment WHERE id = ?', args: [req.params.id] });
+        res.json(updated.rows[0]);
+    });
+
+    router.delete('/equipment/:id', async (req, res) => {
+        await db.execute({ sql: "DELETE FROM covenant_history WHERE entity_type = 'equipment' AND item_id = ?", args: [req.params.id] });
+        await db.execute({ sql: 'DELETE FROM department_equipment WHERE id = ?', args: [req.params.id] });
+        res.json({ success: true });
+    });
+
+    router.post('/equipment/:id/image', upload.single('image'), async (req, res) => {
+        if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
+        const cloudResult = await uploadToCloudinary(req.file.buffer, 'departments/equipment');
+        await db.execute({ sql: 'UPDATE department_equipment SET image = ? WHERE id = ?', args: [cloudResult.secure_url, req.params.id] });
+        const updated = await db.execute({ sql: 'SELECT * FROM department_equipment WHERE id = ?', args: [req.params.id] });
+        res.json(updated.rows[0]);
+    });
+
+    // Equipment covenant
+    router.get('/equipment/:id/covenant', async (req, res) => {
+        const ch = await db.execute({
+            sql: `SELECT ch.*, fe.name AS from_employee_name, te.name AS to_employee_name,
+                         td.name AS to_department_name, fd.name AS from_department_name
+                  FROM covenant_history ch
+                  LEFT JOIN employees fe ON fe.id = ch.from_employee_id
+                  LEFT JOIN employees te ON te.id = ch.to_employee_id
+                  LEFT JOIN departments td ON td.id = ch.to_department_id
+                  LEFT JOIN departments fd ON fd.id = ch.from_department_id
+                  WHERE ch.item_id = ? AND ch.entity_type = 'equipment' ORDER BY ch.transfer_date DESC`,
+            args: [req.params.id]
+        });
+        res.json(ch.rows);
+    });
+
+    router.post('/equipment/:id/covenant', async (req, res) => {
+        const { from_employee_id, to_employee_id, to_department_id, transfer_date, status, notes, start_date, end_date, condition, condition_notes } = req.body;
+        if (!to_employee_id && !to_department_id) return res.status(400).json({ error: 'Target employee or department required' });
+        await db.execute({ sql: "UPDATE covenant_history SET status = 'transferred' WHERE entity_type = 'equipment' AND item_id = ? AND status = 'active'", args: [req.params.id] });
+        const td = transfer_date || start_date || new Date().toISOString().split('T')[0];
+        const result = await db.execute({
+            sql: `INSERT INTO covenant_history
+                  (entity_type, item_id, from_employee_id, to_employee_id, to_department_id, transfer_date, status, notes, start_date, end_date, condition, condition_notes)
+                  VALUES ('equipment', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            args: [req.params.id, from_employee_id || null, to_employee_id || null, to_department_id || null, td, status || 'active', notes || '', start_date || td, end_date || '', condition || '', condition_notes || '']
+        });
+        if (to_employee_id) {
+            await db.execute({ sql: 'UPDATE department_equipment SET employee_id = ? WHERE id = ?', args: [to_employee_id, req.params.id] });
+        } else {
+            await db.execute({ sql: 'UPDATE department_equipment SET employee_id = NULL WHERE id = ?', args: [req.params.id] });
+        }
+        const entry = await db.execute({ sql: 'SELECT * FROM covenant_history WHERE id = ?', args: [Number(result.lastInsertRowid)] });
+        res.status(201).json(entry.rows[0]);
+    });
+
+    router.post('/equipment/:id/return-custody', async (req, res) => {
+        const { return_date, return_notes, return_condition } = req.body;
+        const today = return_date || new Date().toISOString().split('T')[0];
+        const active = await db.execute({
+            sql: "SELECT id FROM covenant_history WHERE entity_type = 'equipment' AND item_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1",
+            args: [req.params.id]
+        });
+        if (active.rows.length > 0) {
+            const cid = active.rows[0].id;
+            await db.execute({
+                sql: "UPDATE covenant_history SET status = 'returned', end_date = ?, return_notes = ?, return_condition = ? WHERE id = ?",
+                args: [today, return_notes || '', return_condition || '', cid]
+            });
+        }
+        await db.execute({ sql: 'UPDATE department_equipment SET employee_id = NULL WHERE id = ?', args: [req.params.id] });
         res.json({ success: true });
     });
 

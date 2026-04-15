@@ -7626,3 +7626,163 @@ textarea.input {
     .equip-detail-grid { grid-template-columns: 1fr; }
     .equip-card-actions .equip-action span { display: none; }
 }
+
+/* ===== Transfer-mode toggle (Employee vs Department) ===== */
+.transfer-mode-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    padding: 4px;
+    background: rgba(127,127,127,0.08);
+    border-radius: 12px;
+}
+.transfer-mode-btn {
+    flex: 1;
+    padding: 9px 14px;
+    border: 1.5px solid transparent;
+    background: transparent;
+    color: var(--text-muted);
+    border-radius: 9px;
+    cursor: pointer;
+    font-size: 12.5px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.25s;
+}
+.transfer-mode-btn:hover {
+    color: var(--text);
+    background: rgba(127,127,127,0.06);
+}
+.transfer-mode-btn.active {
+    background: linear-gradient(135deg, rgba(20,184,166,0.18), rgba(20,184,166,0.06));
+    border-color: rgba(20,184,166,0.5);
+    color: #14b8a6;
+    box-shadow: 0 4px 14px rgba(20,184,166,0.18);
+}
+.transfer-mode-btn.active i { animation: equipGearSpin 2s linear infinite; }
+
+/* ===== Incoming Custody (target dept view) ===== */
+.dept-tab-badge {
+    background: #ff8c00;
+    color: #fff;
+    border-radius: 999px;
+    font-size: 10px;
+    padding: 2px 7px;
+    font-weight: 700;
+    margin-left: 4px;
+}
+
+.incoming-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+    margin-top: 8px;
+}
+.incoming-card {
+    position: relative;
+    background: linear-gradient(135deg, rgba(99,102,241,0.10), rgba(99,102,241,0.02));
+    border: 1.5px solid rgba(99,102,241,0.4);
+    border-radius: 16px;
+    padding: 14px 16px;
+    overflow: hidden;
+    animation: equipFadeUp 0.4s ease-out both;
+    transition: transform 0.25s, box-shadow 0.25s;
+}
+.incoming-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(99,102,241,0.22);
+}
+.incoming-card-banner {
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    color: #fff;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding: 5px 11px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+.incoming-card-body {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 12px;
+}
+.incoming-card-visual {
+    width: 70px; height: 70px;
+    border-radius: 12px;
+    background: rgba(99,102,241,0.15);
+    color: #6366f1;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+    flex-shrink: 0;
+    overflow: hidden;
+    transition: transform 0.3s;
+}
+.incoming-card:hover .incoming-card-visual { transform: scale(1.08) rotate(-3deg); }
+.incoming-card-visual img {
+    width: 100%; height: 100%; object-fit: cover;
+}
+.incoming-card-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.incoming-card-name {
+    font-size: 14px; font-weight: 700; color: var(--text);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.incoming-card-type {
+    font-size: 11px; color: #6366f1;
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px;
+    display: inline-flex; align-items: center; gap: 5px;
+}
+.incoming-card-source {
+    font-size: 12px; color: var(--text);
+    cursor: pointer; transition: color 0.2s;
+    display: inline-flex; align-items: center; gap: 5px;
+}
+.incoming-card-source:hover { color: #6366f1; }
+.incoming-card-period {
+    font-size: 11.5px; color: var(--text);
+    background: rgba(255,140,0,0.10);
+    border-left: 3px solid #ff8c00;
+    border-radius: 4px;
+    padding: 4px 8px;
+    display: inline-flex; align-items: center; gap: 5px;
+    width: fit-content;
+}
+[dir="rtl"] .incoming-card-period { border-left: none; border-right: 3px solid #ff8c00; }
+.incoming-card-meta {
+    font-size: 11.5px; color: var(--text-muted);
+    display: flex; align-items: center; gap: 5px;
+}
+.incoming-card-actions {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    padding-top: 10px; border-top: 1px dashed var(--border);
+}
+
+/* ===== Items vs Equipment subtle visual differentiation ===== */
+.dept-item-card-v2 {
+    background: linear-gradient(135deg, rgba(59,130,246,0.06), rgba(59,130,246,0.01));
+    border-color: rgba(59,130,246,0.25);
+}
+.dept-item-card-v2:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 12px 30px rgba(59,130,246,0.20);
+}
+
+/* Smooth modal fade+slide */
+.modal-overlay.active .modal-content {
+    animation: modalSlideUp 0.32s cubic-bezier(.2,.9,.3,1.2) both;
+}
+@keyframes modalSlideUp {
+    from { opacity: 0; transform: translateY(20px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 640px) {
+    .transfer-mode-btn span { font-size: 11px; }
+}

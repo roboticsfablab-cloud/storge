@@ -110,16 +110,36 @@ async function ensureTables() {
         )`,
         `CREATE TABLE IF NOT EXISTS covenant_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            entity_type TEXT NOT NULL DEFAULT 'item',
             item_id INTEGER NOT NULL,
             from_employee_id INTEGER DEFAULT NULL,
-            to_employee_id INTEGER NOT NULL,
+            from_department_id INTEGER DEFAULT NULL,
+            to_employee_id INTEGER DEFAULT NULL,
+            to_department_id INTEGER DEFAULT NULL,
             transfer_date TEXT NOT NULL,
+            start_date TEXT DEFAULT '',
+            end_date TEXT DEFAULT '',
             status TEXT NOT NULL DEFAULT 'active',
+            condition TEXT DEFAULT '',
+            condition_notes TEXT DEFAULT '',
+            return_condition TEXT DEFAULT '',
+            return_notes TEXT DEFAULT '',
             notes TEXT DEFAULT '',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`,
+        `CREATE TABLE IF NOT EXISTS department_equipment (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            department_id INTEGER NOT NULL,
+            employee_id INTEGER DEFAULT NULL,
+            name TEXT NOT NULL,
+            description TEXT DEFAULT '',
+            qty INTEGER NOT NULL DEFAULT 1,
+            image TEXT DEFAULT '',
+            receipt_date TEXT DEFAULT '',
+            purpose TEXT DEFAULT '',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (item_id) REFERENCES department_items(id) ON DELETE CASCADE,
-            FOREIGN KEY (from_employee_id) REFERENCES employees(id) ON DELETE SET NULL,
-            FOREIGN KEY (to_employee_id) REFERENCES employees(id) ON DELETE CASCADE
+            FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
+            FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL
         )`
     ], 'write');
 
@@ -143,10 +163,48 @@ async function ensureTables() {
         `ALTER TABLE covenant_history ADD COLUMN condition_notes TEXT DEFAULT ''`,
         `ALTER TABLE covenant_history ADD COLUMN return_condition TEXT DEFAULT ''`,
         `ALTER TABLE covenant_history ADD COLUMN return_notes TEXT DEFAULT ''`,
+        `ALTER TABLE covenant_history ADD COLUMN entity_type TEXT NOT NULL DEFAULT 'item'`,
+        `ALTER TABLE covenant_history ADD COLUMN to_department_id INTEGER DEFAULT NULL`,
+        `ALTER TABLE covenant_history ADD COLUMN from_department_id INTEGER DEFAULT NULL`,
     ];
     for (const sql of migrations) {
         try { await client.execute(sql); } catch (e) { /* column exists */ }
     }
+
+    // Migration: relax NOT NULL on covenant_history.to_employee_id (recreate table once)
+    try {
+        const info = await client.execute("PRAGMA table_info(covenant_history)");
+        const toEmpRow = info.rows.find(r => r.name === 'to_employee_id');
+        if (toEmpRow && Number(toEmpRow.notnull) === 1) {
+            await client.batch([
+                `CREATE TABLE covenant_history__new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    entity_type TEXT NOT NULL DEFAULT 'item',
+                    item_id INTEGER NOT NULL,
+                    from_employee_id INTEGER DEFAULT NULL,
+                    from_department_id INTEGER DEFAULT NULL,
+                    to_employee_id INTEGER DEFAULT NULL,
+                    to_department_id INTEGER DEFAULT NULL,
+                    transfer_date TEXT NOT NULL,
+                    start_date TEXT DEFAULT '',
+                    end_date TEXT DEFAULT '',
+                    status TEXT NOT NULL DEFAULT 'active',
+                    condition TEXT DEFAULT '',
+                    condition_notes TEXT DEFAULT '',
+                    return_condition TEXT DEFAULT '',
+                    return_notes TEXT DEFAULT '',
+                    notes TEXT DEFAULT '',
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )`,
+                `INSERT INTO covenant_history__new
+                    (id, entity_type, item_id, from_employee_id, from_department_id, to_employee_id, to_department_id, transfer_date, start_date, end_date, status, condition, condition_notes, return_condition, return_notes, notes, created_at)
+                 SELECT id, COALESCE(entity_type,'item'), item_id, from_employee_id, NULL, to_employee_id, NULL, transfer_date, COALESCE(start_date,''), COALESCE(end_date,''), status, COALESCE(condition,''), COALESCE(condition_notes,''), COALESCE(return_condition,''), COALESCE(return_notes,''), COALESCE(notes,''), created_at
+                 FROM covenant_history`,
+                `DROP TABLE covenant_history`,
+                `ALTER TABLE covenant_history__new RENAME TO covenant_history`
+            ], 'write');
+        }
+    } catch (e) { /* ignore */ }
 
     const result = await client.execute('SELECT COUNT(*) as c FROM lockers');
     if (Number(result.rows[0].c) === 0) {

@@ -31,7 +31,8 @@ module.exports = function (db) {
     router.get('/', async (req, res) => {
         const result = await db.execute(`
             SELECT e.*, d.name AS department_name,
-                   (SELECT COUNT(*) FROM department_items di WHERE di.employee_id = e.id) AS item_count
+                   ((SELECT COUNT(*) FROM department_items di WHERE di.employee_id = e.id) +
+                    (SELECT COUNT(*) FROM department_equipment de WHERE de.employee_id = e.id)) AS item_count
             FROM employees e
             LEFT JOIN departments d ON d.id = e.department_id
             ORDER BY e.name
@@ -44,12 +45,18 @@ module.exports = function (db) {
         const emp = await db.execute({ sql: 'SELECT e.*, d.name AS department_name FROM employees e LEFT JOIN departments d ON d.id = e.department_id WHERE e.id = ?', args: [req.params.id] });
         if (emp.rows.length === 0) return res.status(404).json({ error: 'Employee not found' });
         const items = await db.execute({
-            sql: `SELECT di.*, d.name AS department_name FROM department_items di
+            sql: `SELECT di.*, d.name AS department_name, 'item' AS entity_type FROM department_items di
                   LEFT JOIN departments d ON d.id = di.department_id
                   WHERE di.employee_id = ? ORDER BY di.created_at`,
             args: [req.params.id]
         });
-        // Get covenant history for each item
+        const equipment = await db.execute({
+            sql: `SELECT de.*, d.name AS department_name, 'equipment' AS entity_type FROM department_equipment de
+                  LEFT JOIN departments d ON d.id = de.department_id
+                  WHERE de.employee_id = ? ORDER BY de.created_at`,
+            args: [req.params.id]
+        });
+        // Get covenant history for each item / equipment
         const itemsWithCovenant = [];
         for (const item of items.rows) {
             const ch = await db.execute({
@@ -57,10 +64,21 @@ module.exports = function (db) {
                       FROM covenant_history ch
                       LEFT JOIN employees fe ON fe.id = ch.from_employee_id
                       LEFT JOIN employees te ON te.id = ch.to_employee_id
-                      WHERE ch.item_id = ? ORDER BY ch.transfer_date DESC`,
+                      WHERE ch.item_id = ? AND ch.entity_type = 'item' ORDER BY ch.transfer_date DESC`,
                 args: [item.id]
             });
             itemsWithCovenant.push({ ...item, covenant_history: ch.rows });
+        }
+        for (const eq of equipment.rows) {
+            const ch = await db.execute({
+                sql: `SELECT ch.*, fe.name AS from_employee_name, te.name AS to_employee_name
+                      FROM covenant_history ch
+                      LEFT JOIN employees fe ON fe.id = ch.from_employee_id
+                      LEFT JOIN employees te ON te.id = ch.to_employee_id
+                      WHERE ch.item_id = ? AND ch.entity_type = 'equipment' ORDER BY ch.transfer_date DESC`,
+                args: [eq.id]
+            });
+            itemsWithCovenant.push({ ...eq, covenant_history: ch.rows });
         }
         const history = await db.execute({
             sql: `SELECT rh.*, d.name AS department_name FROM responsibility_history rh
@@ -68,8 +86,8 @@ module.exports = function (db) {
                   WHERE rh.employee_id = ? ORDER BY rh.start_date DESC`,
             args: [req.params.id]
         });
-        // Custody history: any past (non-active) covenant records where this employee was the recipient
-        const custodyHistory = await db.execute({
+        // Custody history: past (non-active) records where this employee was the recipient — items + equipment
+        const itemHist = await db.execute({
             sql: `SELECT ch.*, di.name AS item_name, di.image AS item_image, di.qty AS item_qty,
                          di.department_id AS item_department_id, d.name AS item_department_name,
                          fe.name AS from_employee_name, te.name AS to_employee_name
@@ -78,10 +96,26 @@ module.exports = function (db) {
                   LEFT JOIN departments d ON d.id = di.department_id
                   LEFT JOIN employees fe ON fe.id = ch.from_employee_id
                   LEFT JOIN employees te ON te.id = ch.to_employee_id
-                  WHERE ch.to_employee_id = ? AND ch.status <> 'active'
-                  ORDER BY COALESCE(ch.end_date, ch.transfer_date) DESC, ch.id DESC`,
+                  WHERE ch.entity_type = 'item' AND ch.to_employee_id = ? AND ch.status <> 'active'`,
             args: [req.params.id]
         });
+        const eqHist = await db.execute({
+            sql: `SELECT ch.*, de.name AS item_name, de.image AS item_image, de.qty AS item_qty,
+                         de.department_id AS item_department_id, d.name AS item_department_name,
+                         fe.name AS from_employee_name, te.name AS to_employee_name
+                  FROM covenant_history ch
+                  LEFT JOIN department_equipment de ON de.id = ch.item_id
+                  LEFT JOIN departments d ON d.id = de.department_id
+                  LEFT JOIN employees fe ON fe.id = ch.from_employee_id
+                  LEFT JOIN employees te ON te.id = ch.to_employee_id
+                  WHERE ch.entity_type = 'equipment' AND ch.to_employee_id = ? AND ch.status <> 'active'`,
+            args: [req.params.id]
+        });
+        const allHist = [...itemHist.rows, ...eqHist.rows].sort((a, b) => {
+            const ad = a.end_date || a.transfer_date || ''; const bd = b.end_date || b.transfer_date || '';
+            return bd.localeCompare(ad);
+        });
+        const custodyHistory = { rows: allHist };
         res.json({ ...emp.rows[0], items: itemsWithCovenant, history: history.rows, custody_history: custodyHistory.rows });
     });
 
@@ -110,6 +144,7 @@ module.exports = function (db) {
     // Delete employee
     router.delete('/:id', async (req, res) => {
         await db.execute({ sql: 'UPDATE department_items SET employee_id = NULL WHERE employee_id = ?', args: [req.params.id] });
+        await db.execute({ sql: 'UPDATE department_equipment SET employee_id = NULL WHERE employee_id = ?', args: [req.params.id] });
         await db.execute({ sql: 'DELETE FROM responsibility_history WHERE employee_id = ?', args: [req.params.id] });
         await db.execute({ sql: 'DELETE FROM covenant_history WHERE to_employee_id = ? OR from_employee_id = ?', args: [req.params.id, req.params.id] });
         await db.execute({ sql: 'DELETE FROM employees WHERE id = ?', args: [req.params.id] });

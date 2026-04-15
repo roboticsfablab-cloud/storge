@@ -83,6 +83,16 @@ const API = {
     deleteCovenantHistory(id)           { return this.request('DELETE', '/departments/covenant/' + id); },
     returnCustody(itemId, data)         { return this.request('POST', '/departments/items/' + itemId + '/return-custody', data || {}); },
 
+    // Department Equipment (separate from Items)
+    getDeptEquipment(did)               { return this.request('GET', '/departments/' + did + '/equipment'); },
+    addDeptEquipment(did, data)         { return this.request('POST', '/departments/' + did + '/equipment', data); },
+    updateDeptEquipment(id, data)       { return this.request('PUT', '/departments/equipment/' + id, data); },
+    deleteDeptEquipment(id)             { return this.request('DELETE', '/departments/equipment/' + id); },
+    uploadDeptEquipmentImage(id, file)  { return this.upload('/departments/equipment/' + id + '/image', file); },
+    getEquipmentCovenant(id)            { return this.request('GET', '/departments/equipment/' + id + '/covenant'); },
+    addEquipmentCovenant(id, data)      { return this.request('POST', '/departments/equipment/' + id + '/covenant', data); },
+    returnEquipmentCustody(id, data)    { return this.request('POST', '/departments/equipment/' + id + '/return-custody', data || {}); },
+
     // Responsibility History
     getDeptHistory(did)           { return this.request('GET', '/departments/' + did + '/history'); },
     addDeptHistory(did, data)     { return this.request('POST', '/departments/' + did + '/history', data); },

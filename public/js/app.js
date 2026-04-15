@@ -81,6 +81,16 @@ const i18n = {
         addEquipment:'Add Equipment', searchEquipPh:'Search equipment...',
         inDept:'In Department', expand:'Expand', collapse:'Collapse',
         details:'Details',
+        transferToEmployee:'Transfer to Employee',
+        transferToDepartment:'Transfer to Department',
+        targetDepartment:'Target Department',
+        selectDepartment:'Select Department',
+        incomingCustody:'Incoming Custody',
+        incomingCustodyTitle:'Items Under Temporary Custody from Other Departments',
+        sourceDepartment:'Source Department',
+        returnToOriginalDept:'Return to Original Department',
+        noIncoming:'No items currently under temporary custody.',
+        underTempCustody:'Under Temporary Custody',
     },
     ar: {
         appTitle:'FABY Keeper', home:'الرئيسية', lockers:'الخزائن', warehouse:'المستودع',
@@ -163,6 +173,16 @@ const i18n = {
         addEquipment:'إضافة معدة', searchEquipPh:'البحث في المعدات...',
         inDept:'في القسم', expand:'توسيع', collapse:'طي',
         details:'التفاصيل',
+        transferToEmployee:'نقل إلى موظف',
+        transferToDepartment:'نقل إلى قسم',
+        targetDepartment:'القسم المستهدف',
+        selectDepartment:'اختر قسماً',
+        incomingCustody:'عهدة واردة',
+        incomingCustodyTitle:'عناصر تحت العهدة المؤقتة من أقسام أخرى',
+        sourceDepartment:'القسم المصدر',
+        returnToOriginalDept:'إرجاع إلى القسم الأصلي',
+        noIncoming:'لا توجد عناصر تحت عهدة مؤقتة حالياً.',
+        underTempCustody:'تحت عهدة مؤقتة',
     }
 };
 
@@ -179,6 +199,8 @@ let currentEmpId = null, currentEmpData = null;
 let currentDeptTab = 'depts'; // kept for legacy compat
 let searchTimeout = null;
 let currentCovenantItemId = null;
+let currentCovenantEntity = 'item'; // 'item' | 'equipment'
+let currentTransferMode = 'employee'; // 'employee' | 'department'
 
 // ============ Helpers ============
 function t(k) { return (i18n[currentLang] && i18n[currentLang][k]) || i18n.en[k] || k; }
@@ -1806,6 +1828,7 @@ async function renderDeptDetail() {
         await renderEquipmentTab();
         await renderHistoryTab();
         await renderItemsTab();
+        renderIncomingTab();
 
     } catch (e) {
         showToast(t('failedLoad'), 'error');
@@ -1817,15 +1840,84 @@ function switchDeptDetailTab(tabName) {
     document.getElementById('deptEquipmentTab').classList.toggle('active', tabName === 'equipment');
     document.getElementById('deptHistoryTab').classList.toggle('active', tabName === 'history');
     document.getElementById('deptItemsTab').classList.toggle('active', tabName === 'items');
+    var inc = document.getElementById('deptIncomingTab');
+    if (inc) inc.classList.toggle('active', tabName === 'incoming');
 
     if (tabName === 'equipment') document.getElementById('tabEquipment').classList.add('active');
     else if (tabName === 'history') document.getElementById('tabHistory').classList.add('active');
     else if (tabName === 'items') document.getElementById('tabItems').classList.add('active');
+    else if (tabName === 'incoming') { var t = document.getElementById('tabIncoming'); if (t) t.classList.add('active'); }
+}
+
+function renderIncomingTab() {
+    var dept = currentDeptData || {};
+    var incomingItems = (dept.incoming_items || []).map(function(x){ return Object.assign({}, x, { entity_type: 'item' }); });
+    var incomingEq = (dept.incoming_equipment || []).map(function(x){ return Object.assign({}, x, { entity_type: 'equipment' }); });
+    var all = incomingItems.concat(incomingEq);
+    var grid = document.getElementById('deptIncomingGrid');
+    var badge = document.getElementById('incomingBadge');
+    if (badge) {
+        if (all.length > 0) { badge.style.display = ''; badge.textContent = all.length; }
+        else badge.style.display = 'none';
+    }
+    if (!grid) return;
+    if (all.length === 0) {
+        grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;padding:30px"><i class="fas fa-inbox" style="font-size:32px;opacity:0.3"></i><p>' + t('noIncoming') + '</p></div>';
+        return;
+    }
+    grid.innerHTML = '';
+    all.forEach(function(it, idx) {
+        var period = (it.start_date || it.transfer_date || '') + (it.end_date ? ' → ' + it.end_date : '');
+        var typeLabel = it.entity_type === 'equipment' ? t('equipment') : t('items');
+        var typeIcon = it.entity_type === 'equipment' ? 'fa-cog' : 'fa-cube';
+        var card = document.createElement('div');
+        card.className = 'incoming-card';
+        card.style.animationDelay = (idx * 0.05) + 's';
+        var safeName = escapeHtml(it.name || '').replace(/'/g, "\\'");
+        card.innerHTML =
+            '<div class="incoming-card-banner"><i class="fas fa-inbox"></i> ' + t('underTempCustody') + '</div>' +
+            '<div class="incoming-card-body">' +
+                '<div class="incoming-card-visual">' +
+                    (it.image ? '<img src="' + escapeHtml(it.image) + '">' : '<i class="fas ' + typeIcon + '"></i>') +
+                '</div>' +
+                '<div class="incoming-card-info">' +
+                    '<div class="incoming-card-name">' + escapeHtml(it.name || '') + '</div>' +
+                    '<div class="incoming-card-type"><i class="fas ' + typeIcon + '"></i> ' + escapeHtml(typeLabel) + '</div>' +
+                    (it.source_dept_name ? '<div class="incoming-card-source" onclick="if(' + (it.source_dept_id || 0) + '){currentDeptId=' + (it.source_dept_id || 0) + ';navigateTo(\'dept-detail\')}"><i class="fas fa-building"></i> ' + t('sourceDepartment') + ': <strong>' + escapeHtml(it.source_dept_name) + '</strong></div>' : '') +
+                    '<div class="incoming-card-period"><i class="fas fa-calendar-alt"></i> ' + escapeHtml(period) + '</div>' +
+                    (it.condition ? '<div class="incoming-card-meta"><i class="fas fa-clipboard-check"></i> ' + (it.condition === 'good' ? t('conditionGood') : t('conditionNotGood')) + (it.condition_notes ? ' — ' + escapeHtml(it.condition_notes) : '') + '</div>' : '') +
+                    (it.notes ? '<div class="incoming-card-meta"><i class="fas fa-sticky-note"></i> ' + escapeHtml(it.notes) + '</div>' : '') +
+                '</div>' +
+            '</div>' +
+            '<div class="incoming-card-actions">' +
+                '<button class="equip-action equip-action-history" onclick="openCovenantModal({id:' + it.id + ',name:\'' + safeName + '\',entity_type:\'' + it.entity_type + '\'})"><i class="fas fa-clock-rotate-left"></i><span>' + t('history') + '</span></button>' +
+                '<button class="equip-action equip-action-return" onclick="returnIncomingCustody(' + it.id + ',\'' + it.entity_type + '\')"><i class="fas fa-undo"></i><span>' + t('returnToOriginalDept') + '</span></button>' +
+            '</div>';
+        grid.appendChild(card);
+    });
+}
+
+async function returnIncomingCustody(itemId, entityType) {
+    if (!confirm(t('returnConfirm'))) return;
+    try {
+        if (entityType === 'equipment') {
+            await API.returnEquipmentCustody(itemId, { return_date: new Date().toISOString().split('T')[0] });
+        } else {
+            await API.returnCustody(itemId, { return_date: new Date().toISOString().split('T')[0] });
+        }
+        if (currentDeptId && currentPage === 'dept-detail') {
+            currentDeptData = await API.getDepartment(currentDeptId);
+            renderIncomingTab();
+            await renderEquipmentTab();
+            await renderItemsTab();
+        }
+        showToast(t('returnedSuccessfully'));
+    } catch (e) { showToast(e.message, 'error'); }
 }
 
 async function renderEquipmentTab() {
     var dept = currentDeptData || {};
-    var items = (dept.items || []).slice();
+    var items = (dept.equipment || []).slice();
     var grid = document.getElementById('equipGrid');
     if (!grid) return;
 
@@ -1883,20 +1975,20 @@ async function renderEquipmentTab() {
             '</div>' +
             (period ? '<div class="equip-card-period"><i class="fas fa-calendar-alt"></i> ' + escapeHtml(period) + '</div>' : '') +
             '<div class="equip-card-actions">' +
-                '<button class="equip-action equip-action-transfer" onclick="event.stopPropagation();openCovenantModal({id:' + item.id + ',name:\'' + safeName + '\'})" title="' + t('transferCustody') + '">' +
+                '<button class="equip-action equip-action-transfer" onclick="event.stopPropagation();openCovenantModal({id:' + item.id + ',name:\'' + safeName + '\',entity_type:\'equipment\'})" title="' + t('transferCustody') + '">' +
                     '<i class="fas fa-exchange-alt"></i><span>' + t('transferBtn') + '</span>' +
                 '</button>' +
-                '<button class="equip-action equip-action-history" onclick="event.stopPropagation();openCovenantModal({id:' + item.id + ',name:\'' + safeName + '\'})" title="' + t('history') + '">' +
+                '<button class="equip-action equip-action-history" onclick="event.stopPropagation();openCovenantModal({id:' + item.id + ',name:\'' + safeName + '\',entity_type:\'equipment\'})" title="' + t('history') + '">' +
                     '<i class="fas fa-clock-rotate-left"></i><span>' + t('history') + '</span>' +
                 '</button>' +
                 (isOut ?
-                '<button class="equip-action equip-action-return" onclick="event.stopPropagation();returnCustody(' + item.id + ')" title="' + t('markReturned') + '">' +
+                '<button class="equip-action equip-action-return" onclick="event.stopPropagation();returnCustody(' + item.id + ',\'equipment\')" title="' + t('markReturned') + '">' +
                     '<i class="fas fa-undo"></i><span>' + t('markReturned') + '</span>' +
                 '</button>' : '') +
                 '<button class="equip-action equip-action-expand" onclick="event.stopPropagation();toggleEquipDetails(' + item.id + ')" title="' + t('details') + '">' +
                     '<i class="fas fa-sliders-h"></i><span>' + t('details') + '</span>' +
                 '</button>' +
-                '<button class="equip-action equip-action-delete" onclick="event.stopPropagation();deleteDeptItem(' + item.id + ')" title="' + t('delete') + '">' +
+                '<button class="equip-action equip-action-delete" onclick="event.stopPropagation();deleteEquipment(' + item.id + ')" title="' + t('delete') + '">' +
                     '<i class="fas fa-trash-alt"></i>' +
                 '</button>' +
             '</div>' +
@@ -1904,26 +1996,26 @@ async function renderEquipmentTab() {
                 '<div class="equip-detail-grid">' +
                     '<div class="equip-detail-field">' +
                         '<label><i class="fas fa-tag"></i> ' + t('itemName') + '</label>' +
-                        '<input type="text" value="' + escapeHtml(item.name || '') + '" onchange="updateDeptItemInline(' + item.id + ',{name:this.value})">' +
+                        '<input type="text" value="' + escapeHtml(item.name || '') + '" onchange="updateEquipmentInline(' + item.id + ',{name:this.value})">' +
                     '</div>' +
                     '<div class="equip-detail-field">' +
                         '<label><i class="fas fa-sort-numeric-up"></i> ' + t('count') + '</label>' +
-                        '<input type="number" min="1" value="' + Number(item.qty || 1) + '" onchange="updateDeptItemInline(' + item.id + ',{qty:parseInt(this.value)})">' +
+                        '<input type="number" min="1" value="' + Number(item.qty || 1) + '" onchange="updateEquipmentInline(' + item.id + ',{qty:parseInt(this.value)})">' +
                     '</div>' +
                     '<div class="equip-detail-field">' +
                         '<label><i class="fas fa-calendar-alt"></i> ' + t('receiptDate') + '</label>' +
-                        '<input type="date" value="' + escapeHtml(item.receipt_date || '') + '" onchange="updateDeptItemInline(' + item.id + ',{receipt_date:this.value})">' +
+                        '<input type="date" value="' + escapeHtml(item.receipt_date || '') + '" onchange="updateEquipmentInline(' + item.id + ',{receipt_date:this.value})">' +
                     '</div>' +
                     '<div class="equip-detail-field">' +
                         '<label><i class="fas fa-bullseye"></i> ' + t('purpose') + '</label>' +
-                        '<input type="text" value="' + escapeHtml(item.purpose || '') + '" onchange="updateDeptItemInline(' + item.id + ',{purpose:this.value})">' +
+                        '<input type="text" value="' + escapeHtml(item.purpose || '') + '" onchange="updateEquipmentInline(' + item.id + ',{purpose:this.value})">' +
                     '</div>' +
                     '<div class="equip-detail-field equip-detail-field-full">' +
                         '<label><i class="fas fa-align-left"></i> ' + t('description') + '</label>' +
-                        '<input type="text" value="' + escapeHtml(item.description || '') + '" onchange="updateDeptItemInline(' + item.id + ',{description:this.value})">' +
+                        '<input type="text" value="' + escapeHtml(item.description || '') + '" onchange="updateEquipmentInline(' + item.id + ',{description:this.value})">' +
                     '</div>' +
                     '<div class="equip-detail-field equip-detail-field-full">' +
-                        '<label class="equip-upload-label"><i class="fas fa-camera"></i> ' + (item.image ? t('changeImage') : t('chooseImage')) + '<input type="file" accept="image/*" style="display:none" onchange="uploadDeptItemImg(' + item.id + ',this.files[0])"></label>' +
+                        '<label class="equip-upload-label"><i class="fas fa-camera"></i> ' + (item.image ? t('changeImage') : t('chooseImage')) + '<input type="file" accept="image/*" style="display:none" onchange="uploadEquipmentImg(' + item.id + ',this.files[0])"></label>' +
                     '</div>' +
                 '</div>' +
             '</div>';
@@ -1931,7 +2023,7 @@ async function renderEquipmentTab() {
         // Click anywhere on card (except inputs/buttons) opens details modal (covenant modal)
         card.addEventListener('click', function(ev) {
             if (ev.target.closest('button,label,input,select,a')) return;
-            openCovenantModal({ id: item.id, name: item.name || '' });
+            openCovenantModal({ id: item.id, name: item.name || '', entity_type: 'equipment' });
         });
 
         grid.appendChild(card);
@@ -2043,23 +2135,58 @@ async function addEquipment() {
     var name = document.getElementById('newEquipName').value.trim();
     if (!name) return;
     try {
-        var newItem = await API.addDeptItem(currentDeptId, {
+        var newItem = await API.addDeptEquipment(currentDeptId, {
             name: name,
             qty: parseInt(document.getElementById('newEquipQty').value) || 1,
             description: document.getElementById('newEquipDesc').value.trim(),
             purpose: document.getElementById('newEquipPurpose').value.trim()
         });
         var fileInput = document.getElementById('newEquipFile');
-        if (fileInput.files[0]) await API.uploadDeptItemImage(newItem.id, fileInput.files[0]);
+        if (fileInput.files[0]) await API.uploadDeptEquipmentImage(newItem.id, fileInput.files[0]);
         currentDeptData = await API.getDepartment(currentDeptId);
         await renderEquipmentTab();
-        await renderItemsTab();
         showToast(t('added'));
         document.getElementById('newEquipName').value = '';
         document.getElementById('newEquipQty').value = '1';
         document.getElementById('newEquipDesc').value = '';
         document.getElementById('newEquipPurpose').value = '';
         fileInput.value = '';
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function updateEquipmentInline(id, data) {
+    try {
+        await API.updateDeptEquipment(id, data);
+        currentDeptData = await API.getDepartment(currentDeptId);
+        await renderEquipmentTab();
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function deleteEquipment(id) {
+    try {
+        await API.deleteDeptEquipment(id);
+        if (currentDeptId && currentPage === 'dept-detail') {
+            currentDeptData = await API.getDepartment(currentDeptId);
+            await renderEquipmentTab();
+            renderIncomingTab();
+        }
+        if (currentEmpId && currentPage === 'emp-detail') {
+            currentEmpData = await API.getEmployee(currentEmpId);
+            await renderEmpItems();
+        }
+        showToast(t('itemRemoved'));
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function uploadEquipmentImg(id, file) {
+    if (!file) return;
+    try {
+        await API.uploadDeptEquipmentImage(id, file);
+        if (currentDeptId) {
+            currentDeptData = await API.getDepartment(currentDeptId);
+            await renderEquipmentTab();
+        }
+        showToast(t('imageUploaded'));
     } catch (e) { showToast(e.message, 'error'); }
 }
 
@@ -2169,8 +2296,21 @@ async function updateDeptHistory(id, data) {
 }
 
 // ============ Covenant History Modal ============
+function setTransferMode(mode) {
+    currentTransferMode = mode === 'department' ? 'department' : 'employee';
+    document.querySelectorAll('.transfer-mode-btn').forEach(function(b){
+        b.classList.toggle('active', b.dataset.mode === currentTransferMode);
+    });
+    var empF = document.getElementById('covenantEmployeeField');
+    var depF = document.getElementById('covenantDepartmentField');
+    if (empF) empF.style.display = currentTransferMode === 'employee' ? '' : 'none';
+    if (depF) depF.style.display = currentTransferMode === 'department' ? '' : 'none';
+}
+
 async function openCovenantModal(item) {
     currentCovenantItemId = item.id;
+    currentCovenantEntity = item.entity_type === 'equipment' ? 'equipment' : 'item';
+    setTransferMode('employee');
     document.getElementById('covenantItemName').textContent = ' - ' + (item.name || '');
 
     var timeline = document.getElementById('covenantTimeline');
@@ -2189,9 +2329,24 @@ async function openCovenantModal(item) {
         });
     } catch (e) { /* ignore */ }
 
-    // Load covenant history
+    // Populate department dropdown (exclude current department for items, or just exclude no dept)
+    var deptSelect = document.getElementById('covenantTransferToDept');
+    if (deptSelect) {
+        deptSelect.innerHTML = '<option value="">' + t('selectDepartment') + '</option>';
+        try {
+            var allDepts = await API.getDepartments();
+            allDepts.forEach(function(d) {
+                if (d.id === currentDeptId) return;
+                deptSelect.innerHTML += '<option value="' + d.id + '">' + escapeHtml(d.name) + '</option>';
+            });
+        } catch (e) { /* ignore */ }
+    }
+
+    // Load covenant history (entity-aware)
     try {
-        var history = await API.getCovenantHistory(item.id);
+        var history = currentCovenantEntity === 'equipment'
+            ? await API.getEquipmentCovenant(item.id)
+            : await API.getCovenantHistory(item.id);
         timeline.innerHTML = '';
         var active = null;
         if (history && history.length) {
@@ -2201,13 +2356,21 @@ async function openCovenantModal(item) {
         }
         if (active && currentPanel) {
             currentPanel.style.display = 'block';
+            var heldByLabel, heldByValue;
+            if (active.to_department_id) {
+                heldByLabel = t('targetDepartment');
+                heldByValue = active.to_department_name || '';
+            } else {
+                heldByLabel = t('currentlyWith');
+                heldByValue = active.to_employee_name || '';
+            }
             currentPanel.innerHTML =
-                '<div class="cur-cust-header"><i class="fas fa-user-clock"></i> ' + t('outOfDeptCustody') + '</div>' +
-                '<div class="cur-cust-row"><span class="cur-cust-label">' + t('currentlyWith') + ':</span> <strong>' + escapeHtml(active.to_employee_name || '') + '</strong></div>' +
+                '<div class="cur-cust-header"><i class="fas ' + (active.to_department_id ? 'fa-building' : 'fa-user-clock') + '"></i> ' + t('outOfDeptCustody') + '</div>' +
+                '<div class="cur-cust-row"><span class="cur-cust-label">' + heldByLabel + ':</span> <strong>' + escapeHtml(heldByValue) + '</strong></div>' +
                 '<div class="cur-cust-row"><span class="cur-cust-label">' + t('custodyPeriod') + ':</span> ' + escapeHtml(active.start_date || active.transfer_date || '') + (active.end_date ? ' → ' + escapeHtml(active.end_date) : '') + '</div>' +
                 (active.condition ? '<div class="cur-cust-row"><span class="cur-cust-label">' + t('deviceCondition') + ':</span> ' + escapeHtml(active.condition === 'good' ? t('conditionGood') : t('conditionNotGood')) + (active.condition_notes ? ' — ' + escapeHtml(active.condition_notes) : '') + '</div>' : '') +
                 (active.notes ? '<div class="cur-cust-row"><span class="cur-cust-label">' + t('additionalNotes') + ':</span> ' + escapeHtml(active.notes) + '</div>' : '') +
-                '<div class="cur-cust-actions"><button class="btn-add btn-return-cust" onclick="returnCustody(' + item.id + ')"><i class="fas fa-undo"></i> <span>' + t('markReturned') + '</span></button></div>';
+                '<div class="cur-cust-actions"><button class="btn-add btn-return-cust" onclick="returnCustody(' + item.id + ',\'' + currentCovenantEntity + '\')"><i class="fas fa-undo"></i> <span>' + t('markReturned') + '</span></button></div>';
         }
         if (!history || history.length === 0) {
             timeline.innerHTML = '<div class="empty-state" style="padding:14px"><p>' + t('noItems') + '</p></div>';
@@ -2217,13 +2380,15 @@ async function openCovenantModal(item) {
                 entry.className = 'history-entry status-' + (h.status || 'active');
                 var condText = '';
                 if (h.condition) condText = ' • ' + (h.condition === 'good' ? t('conditionGood') : t('conditionNotGood'));
+                var recipientName = h.to_department_id ? (h.to_department_name || '') : (h.to_employee_name || h.employee_name || 'Unknown');
+                var recipientIcon = h.to_department_id ? 'fa-building' : 'fa-user';
                 entry.innerHTML = '<div class="history-entry-actions">' +
                     '<button class="btn-icon" onclick="deleteCovenantEntry(' + h.id + ')"><i class="fas fa-trash-alt" style="font-size:11px;color:var(--danger)"></i></button>' +
                     '</div>' +
                     '<div style="display:flex;align-items:center;gap:10px">' +
-                    (h.employee_photo ? '<img src="' + escapeHtml(h.employee_photo) + '" style="width:32px;height:32px;border-radius:8px;object-fit:cover">' : '') +
+                    (h.employee_photo ? '<img src="' + escapeHtml(h.employee_photo) + '" style="width:32px;height:32px;border-radius:8px;object-fit:cover">' : '<i class="fas ' + recipientIcon + '" style="font-size:18px;color:var(--text-muted);width:32px;text-align:center"></i>') +
                     '<div>' +
-                    '<div class="history-entry-name">' + escapeHtml(h.to_employee_name || h.employee_name || 'Unknown') + '</div>' +
+                    '<div class="history-entry-name">' + escapeHtml(recipientName) + '</div>' +
                     '<div class="history-entry-title">' + escapeHtml(h.job_title || '') + condText + '</div>' +
                     '</div></div>' +
                     '<div class="history-entry-dates">' +
@@ -2252,12 +2417,24 @@ async function openCovenantModal(item) {
 }
 
 async function transferCovenant() {
-    var empId = document.getElementById('covenantTransferTo').value;
     var startDate = document.getElementById('covenantTransferDate').value;
     var endDateEl = document.getElementById('covenantTransferEndDate');
     var endDate = endDateEl ? endDateEl.value : '';
-    if (!empId) { showToast(t('selectEmployee'), 'error'); return; }
     if (!startDate) { showToast(t('startDate'), 'error'); return; }
+
+    var payload = {
+        transfer_date: startDate, start_date: startDate, end_date: endDate,
+        status: 'active'
+    };
+    if (currentTransferMode === 'department') {
+        var deptId = document.getElementById('covenantTransferToDept').value;
+        if (!deptId) { showToast(t('selectDepartment'), 'error'); return; }
+        payload.to_department_id = parseInt(deptId);
+    } else {
+        var empId = document.getElementById('covenantTransferTo').value;
+        if (!empId) { showToast(t('selectEmployee'), 'error'); return; }
+        payload.to_employee_id = parseInt(empId);
+    }
     var conditionEl = document.querySelector('input[name="covenantCondition"]:checked');
     var condition = conditionEl ? conditionEl.value : 'good';
     var conditionNotesEl = document.getElementById('covenantConditionNotes');
@@ -2266,24 +2443,23 @@ async function transferCovenant() {
         showToast(t('conditionNotes'), 'error');
         return;
     }
+    payload.condition = condition;
+    payload.condition_notes = conditionNotes;
+    payload.notes = document.getElementById('covenantTransferNotes').value.trim();
+
     try {
-        await API.addCovenantHistory(currentCovenantItemId, {
-            to_employee_id: parseInt(empId),
-            transfer_date: startDate,
-            start_date: startDate,
-            end_date: endDate,
-            status: 'active',
-            condition: condition,
-            condition_notes: conditionNotes,
-            notes: document.getElementById('covenantTransferNotes').value.trim()
-        });
+        if (currentCovenantEntity === 'equipment') {
+            await API.addEquipmentCovenant(currentCovenantItemId, payload);
+        } else {
+            await API.addCovenantHistory(currentCovenantItemId, payload);
+        }
         var itemName = document.getElementById('covenantItemName').textContent.replace(' - ', '');
-        await openCovenantModal({ id: currentCovenantItemId, name: itemName });
-        // Refresh underlying views
+        await openCovenantModal({ id: currentCovenantItemId, name: itemName, entity_type: currentCovenantEntity });
         if (currentDeptId && currentPage === 'dept-detail') {
             currentDeptData = await API.getDepartment(currentDeptId);
             await renderEquipmentTab();
             await renderItemsTab();
+            renderIncomingTab();
         }
         if (currentEmpId && currentPage === 'emp-detail') {
             currentEmpData = await API.getEmployee(currentEmpId);
@@ -2293,14 +2469,20 @@ async function transferCovenant() {
     } catch (e) { showToast(e.message, 'error'); }
 }
 
-async function returnCustody(itemId) {
+async function returnCustody(itemId, entityType) {
     if (!confirm(t('returnConfirm'))) return;
+    var ent = entityType === 'equipment' ? 'equipment' : 'item';
     try {
-        await API.returnCustody(itemId, { return_date: new Date().toISOString().split('T')[0] });
+        if (ent === 'equipment') {
+            await API.returnEquipmentCustody(itemId, { return_date: new Date().toISOString().split('T')[0] });
+        } else {
+            await API.returnCustody(itemId, { return_date: new Date().toISOString().split('T')[0] });
+        }
         if (currentDeptId && currentPage === 'dept-detail') {
             currentDeptData = await API.getDepartment(currentDeptId);
             await renderEquipmentTab();
             await renderItemsTab();
+            renderIncomingTab();
         }
         if (currentEmpId && currentPage === 'emp-detail') {
             currentEmpData = await API.getEmployee(currentEmpId);
@@ -2308,7 +2490,7 @@ async function returnCustody(itemId) {
         }
         if (currentCovenantItemId === itemId) {
             var itemName = document.getElementById('covenantItemName').textContent.replace(' - ', '');
-            await openCovenantModal({ id: itemId, name: itemName });
+            await openCovenantModal({ id: itemId, name: itemName, entity_type: ent });
         }
         showToast(t('returnedSuccessfully'));
     } catch (e) { showToast(e.message, 'error'); }
@@ -2330,9 +2512,11 @@ async function deleteCovenantEntry(id) {
 
 // ============ Employee Custody Details Modal ============
 let currentEmpCustodyItemId = null;
+let currentEmpCustodyEntity = 'item';
 
-async function openEmpCustodyDetails(itemId, itemName) {
+async function openEmpCustodyDetails(itemId, itemName, entityType) {
     currentEmpCustodyItemId = itemId;
+    currentEmpCustodyEntity = entityType === 'equipment' ? 'equipment' : 'item';
     document.getElementById('empCustodyItemName').textContent = ' - ' + (itemName || '');
     document.getElementById('empCustodyConditionView').textContent = t('loading');
     document.getElementById('empCustodyPeriodView').textContent = t('loading');
@@ -2344,7 +2528,9 @@ async function openEmpCustodyDetails(itemId, itemName) {
     document.getElementById('empCustodyDetailsModal').classList.add('active');
 
     try {
-        var history = await API.getCovenantHistory(itemId);
+        var history = currentEmpCustodyEntity === 'equipment'
+            ? await API.getEquipmentCovenant(itemId)
+            : await API.getCovenantHistory(itemId);
         var active = null;
         if (history && history.length) {
             for (var i = 0; i < history.length; i++) {
@@ -2392,11 +2578,16 @@ async function submitReturnCustody() {
     var condition = conditionEl ? conditionEl.value : 'good';
     var notes = document.getElementById('empReturnNotes').value.trim();
     try {
-        await API.returnCustody(currentEmpCustodyItemId, {
+        var payload = {
             return_date: new Date().toISOString().split('T')[0],
             return_condition: condition,
             return_notes: notes
-        });
+        };
+        if (currentEmpCustodyEntity === 'equipment') {
+            await API.returnEquipmentCustody(currentEmpCustodyItemId, payload);
+        } else {
+            await API.returnCustody(currentEmpCustodyItemId, payload);
+        }
         closeModal('empCustodyDetailsModal');
         currentEmpCustodyItemId = null;
         if (currentEmpId && currentPage === 'emp-detail') {
@@ -2587,7 +2778,7 @@ async function renderEmpItems() {
             (function(it){
                 card.onclick = function(ev){
                     if (ev.target.closest('button,label,input,select,a')) return;
-                    openEmpCustodyDetails(it.id, it.name || '');
+                    openEmpCustodyDetails(it.id, it.name || '', it.entity_type || 'item');
                 };
             })(item);
             card.innerHTML =
@@ -2602,8 +2793,8 @@ async function renderEmpItems() {
                         '<div class="custody-v2-status"><span class="history-status-badge ' + statusCls + '">' + escapeHtml(statusLabel) + '</span></div>' +
                     '</div>' +
                     '<div class="custody-v2-tools">' +
-                        '<label class="custody-v2-tool-btn" title="Upload"><i class="fas fa-camera"></i><input type="file" accept="image/*" style="display:none" onchange="uploadDeptItemImg(' + item.id + ',this.files[0])"></label>' +
-                        '<button class="custody-v2-tool-btn custody-v2-tool-del" onclick="deleteEmpItem(' + item.id + ')"><i class="fas fa-trash-alt"></i></button>' +
+                        '<label class="custody-v2-tool-btn" title="Upload"><i class="fas fa-camera"></i><input type="file" accept="image/*" style="display:none" onchange="uploadEmpItemImg(' + item.id + ',\'' + (item.entity_type || 'item') + '\',this.files[0])"></label>' +
+                        '<button class="custody-v2-tool-btn custody-v2-tool-del" onclick="deleteEmpItem(' + item.id + ',\'' + (item.entity_type || 'item') + '\')"><i class="fas fa-trash-alt"></i></button>' +
                     '</div>' +
                 '</div>' +
                 (durationText ?
@@ -2653,12 +2844,24 @@ async function addEmpItem() {
     } catch (e) { showToast(e.message, 'error'); }
 }
 
-async function deleteEmpItem(id) {
+async function deleteEmpItem(id, entityType) {
     try {
-        await API.deleteDeptItem(id);
+        if (entityType === 'equipment') await API.deleteDeptEquipment(id);
+        else await API.deleteDeptItem(id);
         currentEmpData = await API.getEmployee(currentEmpId);
         await renderEmpItems();
         showToast(t('itemRemoved'));
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function uploadEmpItemImg(id, entityType, file) {
+    if (!file) return;
+    try {
+        if (entityType === 'equipment') await API.uploadDeptEquipmentImage(id, file);
+        else await API.uploadDeptItemImage(id, file);
+        currentEmpData = await API.getEmployee(currentEmpId);
+        await renderEmpItems();
+        showToast(t('imageUploaded'));
     } catch (e) { showToast(e.message, 'error'); }
 }
 

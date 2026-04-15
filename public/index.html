@@ -944,22 +944,53 @@
             </button>
         </div>
         <div class="modal-body">
+            <div id="covenantCurrentPanel" class="covenant-current-panel" style="display:none"></div>
             <div class="covenant-timeline" id="covenantTimeline">
                 <div class="no-results" data-i18n="noItems">No history</div>
             </div>
             <div class="covenant-transfer-form">
-                <h3 data-i18n="transferTo">Transfer To</h3>
-                <div class="form-row">
-                    <select id="covenantTransferTo">
-                        <option value="" data-i18n="selectEmployee">Select Employee</option>
-                    </select>
-                    <input type="date" id="covenantTransferDate">
-                    <input type="text" id="covenantTransferNotes" data-i18n-placeholder="notes" placeholder="Notes">
-                    <button class="btn-add" onclick="transferCovenant()">
-                        <i class="fas fa-exchange-alt"></i>
-                        <span data-i18n="transfer">Transfer</span>
-                    </button>
+                <h3 data-i18n="transferCustody">Transfer Custody</h3>
+                <div class="transfer-form-grid">
+                    <div class="form-field">
+                        <label data-i18n="employeeName">Employee Name</label>
+                        <select id="covenantTransferTo">
+                            <option value="" data-i18n="selectEmployee">Select Employee</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label data-i18n="startDate">Start Date</label>
+                        <input type="date" id="covenantTransferDate">
+                    </div>
+                    <div class="form-field">
+                        <label data-i18n="endDate">End Date</label>
+                        <input type="date" id="covenantTransferEndDate">
+                    </div>
+                    <div class="form-field">
+                        <label data-i18n="deviceCondition">Device Condition Before Handover</label>
+                        <div class="condition-radio-group">
+                            <label class="condition-radio">
+                                <input type="radio" name="covenantCondition" value="good" checked onchange="document.getElementById('covenantConditionNotesWrap').style.display='none'">
+                                <span data-i18n="conditionGood">Good</span>
+                            </label>
+                            <label class="condition-radio condition-radio-bad">
+                                <input type="radio" name="covenantCondition" value="not_good" onchange="document.getElementById('covenantConditionNotesWrap').style.display='block'">
+                                <span data-i18n="conditionNotGood">Not Good</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-field full" id="covenantConditionNotesWrap" style="display:none">
+                        <label data-i18n="conditionNotes">Condition Notes</label>
+                        <input type="text" id="covenantConditionNotes" data-i18n-placeholder="conditionNotesPh" placeholder="Describe the condition...">
+                    </div>
+                    <div class="form-field full">
+                        <label data-i18n="additionalNotes">Additional Notes</label>
+                        <input type="text" id="covenantTransferNotes" data-i18n-placeholder="notes" placeholder="Notes">
+                    </div>
                 </div>
+                <button class="btn-add transfer-submit-btn" onclick="transferCovenant()">
+                    <i class="fas fa-exchange-alt"></i>
+                    <span data-i18n="transferBtn">Transfer</span>
+                </button>
             </div>
         </div>
     </div>
@@ -997,8 +1028,8 @@
 </div>
 
 <!-- Scripts -->
-<script src="/js/api.js?v=12"></script>
-<script src="/js/app.js?v=12"></script>
+<script src="/js/api.js?v=13"></script>
+<script src="/js/app.js?v=13"></script>
 
 </body>
 </html>

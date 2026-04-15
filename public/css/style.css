@@ -6761,3 +6761,160 @@ textarea.input {
   }
 }
 
+
+/* ===== Out-of-Department Custody (Transfer Custody Feature) ===== */
+.dept-item-card-v2.dept-item-out-custody {
+    background: linear-gradient(135deg, rgba(255,140,0,0.18), rgba(255,165,0,0.08));
+    border: 2px solid #ff8c00;
+    box-shadow: 0 6px 22px rgba(255,140,0,0.22);
+    position: relative;
+    overflow: hidden;
+}
+.dept-item-card-v2.dept-item-out-custody::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(45deg, rgba(255,140,0,0.05) 0 14px, transparent 14px 28px);
+    pointer-events: none;
+}
+.out-custody-banner {
+    background: linear-gradient(90deg, #ff8c00, #ffa733);
+    color: #fff;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: -14px -14px 10px;
+}
+.dept-item-v2-tag.tag-custodian {
+    background: rgba(255,140,0,0.18);
+    color: #ff8c00;
+    border: 1px solid rgba(255,140,0,0.35);
+    font-weight: 600;
+}
+.dept-item-v2-tag.tag-period {
+    background: rgba(255,140,0,0.10);
+    color: #d97706;
+}
+.status-tag.out-custody, .history-status-badge.out-custody {
+    background: #ff8c00;
+    color: #fff;
+}
+.history-status-badge.returned { background: #16a34a; color:#fff; }
+.btn-transfer-custody { color: #ff8c00; }
+.btn-transfer-custody:hover { background: rgba(255,140,0,0.15); }
+.btn-return-custody { color: #16a34a; }
+.btn-return-custody:hover { background: rgba(22,163,74,0.15); }
+
+/* Current custody panel inside covenant modal */
+.covenant-current-panel {
+    background: linear-gradient(135deg, rgba(255,140,0,0.15), rgba(255,165,0,0.05));
+    border: 1.5px solid #ff8c00;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+}
+.covenant-current-panel .cur-cust-header {
+    color: #ff8c00;
+    font-weight: 700;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.covenant-current-panel .cur-cust-row {
+    font-size: 13px;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+.covenant-current-panel .cur-cust-label {
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-right: 4px;
+}
+.covenant-current-panel .cur-cust-actions {
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-end;
+}
+.covenant-current-panel .btn-return-cust {
+    background: #16a34a;
+    color: #fff;
+}
+.covenant-current-panel .btn-return-cust:hover {
+    background: #15803d;
+}
+
+/* Transfer form layout */
+.transfer-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px 14px;
+    margin-bottom: 12px;
+}
+.transfer-form-grid .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.transfer-form-grid .form-field.full {
+    grid-column: 1 / -1;
+}
+.transfer-form-grid .form-field label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+.transfer-form-grid .form-field input,
+.transfer-form-grid .form-field select {
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary, var(--bg));
+    color: var(--text);
+    border-radius: 8px;
+    font-size: 13px;
+}
+.condition-radio-group {
+    display: flex;
+    gap: 10px;
+}
+.condition-radio {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.15s;
+}
+.condition-radio:has(input:checked) {
+    border-color: #16a34a;
+    background: rgba(22,163,74,0.10);
+    color: #16a34a;
+}
+.condition-radio.condition-radio-bad:has(input:checked) {
+    border-color: #ef4444;
+    background: rgba(239,68,68,0.10);
+    color: #ef4444;
+}
+.transfer-submit-btn {
+    width: 100%;
+    justify-content: center;
+}
+@media (max-width: 640px) {
+    .transfer-form-grid { grid-template-columns: 1fr; }
+}

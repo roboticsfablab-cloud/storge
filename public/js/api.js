@@ -81,6 +81,7 @@ const API = {
     addCovenantHistory(itemId, data)    { return this.request('POST', '/departments/items/' + itemId + '/covenant', data); },
     updateCovenantHistory(id, data)     { return this.request('PUT', '/departments/covenant/' + id, data); },
     deleteCovenantHistory(id)           { return this.request('DELETE', '/departments/covenant/' + id); },
+    returnCustody(itemId, data)         { return this.request('POST', '/departments/items/' + itemId + '/return-custody', data || {}); },
 
     // Responsibility History
     getDeptHistory(did)           { return this.request('GET', '/departments/' + did + '/history'); },

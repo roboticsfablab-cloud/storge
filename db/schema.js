@@ -137,6 +137,10 @@ async function ensureTables() {
         `ALTER TABLE department_items ADD COLUMN purpose TEXT DEFAULT ''`,
         `ALTER TABLE lockers ADD COLUMN description TEXT DEFAULT ''`,
         `ALTER TABLE lockers ADD COLUMN image TEXT DEFAULT ''`,
+        `ALTER TABLE covenant_history ADD COLUMN start_date TEXT DEFAULT ''`,
+        `ALTER TABLE covenant_history ADD COLUMN end_date TEXT DEFAULT ''`,
+        `ALTER TABLE covenant_history ADD COLUMN condition TEXT DEFAULT ''`,
+        `ALTER TABLE covenant_history ADD COLUMN condition_notes TEXT DEFAULT ''`,
     ];
     for (const sql of migrations) {
         try { await client.execute(sql); } catch (e) { /* column exists */ }

@@ -53,6 +53,17 @@ const i18n = {
         custodyItems:'Custody Items', selectManager:'Select Manager', allEquipment:'All Equipment',
         searchEmployees:'Search employees...',
         custodyDuration:'Custody Duration', days:'days',
+        transferCustody:'Transfer Custody', transferBtn:'Transfer',
+        deviceCondition:'Device Condition Before Handover',
+        conditionGood:'Good', conditionNotGood:'Not Good',
+        conditionNotes:'Condition Notes', conditionNotesPh:'Describe the condition...',
+        additionalNotes:'Additional Notes', selectEmployee:'Select Employee',
+        outOfDeptCustody:'Out of Department Custody',
+        currentlyWith:'Currently with', custodyPeriod:'Custody Period',
+        markReturned:'Mark Returned', returnConfirm:'Mark this item as returned?',
+        returnedSuccessfully:'Item marked as returned',
+        custodyTransferred:'Custody transferred',
+        viewCustodyDetails:'View Custody Details',
     },
     ar: {
         appTitle:'FABY Keeper', home:'الرئيسية', lockers:'الخزائن', warehouse:'المستودع',
@@ -107,6 +118,17 @@ const i18n = {
         custodyItems:'عناصر العهدة', selectManager:'اختر المدير', allEquipment:'جميع المعدات',
         searchEmployees:'البحث عن موظفين...',
         custodyDuration:'مدة العهدة', days:'يوم',
+        transferCustody:'نقل العهدة', transferBtn:'نقل',
+        deviceCondition:'حالة الجهاز قبل التسليم',
+        conditionGood:'جيد', conditionNotGood:'غير جيد',
+        conditionNotes:'ملاحظات الحالة', conditionNotesPh:'صف حالة الجهاز...',
+        additionalNotes:'ملاحظات إضافية', selectEmployee:'اختر موظفاً',
+        outOfDeptCustody:'خارج عهدة القسم',
+        currentlyWith:'حالياً مع', custodyPeriod:'فترة العهدة',
+        markReturned:'إرجاع الجهاز', returnConfirm:'هل تم إرجاع هذا العنصر؟',
+        returnedSuccessfully:'تم تسجيل إرجاع العنصر',
+        custodyTransferred:'تم نقل العهدة',
+        viewCustodyDetails:'عرض تفاصيل العهدة',
     }
 };
 
@@ -141,6 +163,14 @@ function showToast(msg, type) {
     setTimeout(function() {
         if (el.parentElement) { el.classList.add('removing'); setTimeout(function() { el.remove(); }, 300); }
     }, 3500);
+}
+
+function getActiveCustody(item) {
+    if (!item || !item.covenant_history || !item.covenant_history.length) return null;
+    for (var i = 0; i < item.covenant_history.length; i++) {
+        if (item.covenant_history[i].status === 'active') return item.covenant_history[i];
+    }
+    return null;
 }
 
 function getStatus(qty, minStock) {
@@ -1851,17 +1881,24 @@ async function renderItemsTab() {
     }
 
     items.forEach(function(item, idx) {
-        var statusLabel = item.covenant_status || t('active');
-        var statusCls = 'active';
-        if (statusLabel === 'returned') statusCls = 'returned';
-        else if (statusLabel === 'transferred') statusCls = 'transferred';
-        else if (statusLabel === 'ended') statusCls = 'ended';
+        var active = getActiveCustody(item);
+        var isOut = !!active;
+        var statusLabel = isOut ? t('outOfDeptCustody') : (item.covenant_status || t('active'));
+        var statusCls = isOut ? 'out-custody' : 'active';
 
         var card = document.createElement('div');
-        card.className = 'dept-item-card-v2';
+        card.className = 'dept-item-card-v2' + (isOut ? ' dept-item-out-custody' : '');
         card.style.animationDelay = (idx * 0.05) + 's';
+        card.style.cursor = 'pointer';
+        card.onclick = function(ev) {
+            if (ev.target.closest('button,label,input,select,a')) return;
+            openCovenantModal({ id: item.id, name: item.name || '' });
+        };
+        var custodianName = isOut ? (active.to_employee_name || item.employee_name || '') : '';
+        var custodyDates = isOut ? ((active.start_date || active.transfer_date || '') + (active.end_date ? ' → ' + active.end_date : '')) : '';
         card.innerHTML =
-            '<div class="dept-item-v2-visual"' + (item.image ? ' onclick="openImageViewer(\'' + escapeHtml(item.image) + '\')" style="cursor:pointer"' : '') + '>' +
+            (isOut ? '<div class="out-custody-banner"><i class="fas fa-user-clock"></i> ' + t('outOfDeptCustody') + '</div>' : '') +
+            '<div class="dept-item-v2-visual"' + (item.image ? ' onclick="event.stopPropagation();openImageViewer(\'' + escapeHtml(item.image) + '\')" style="cursor:pointer"' : '') + '>' +
                 (item.image ? '<img src="' + escapeHtml(item.image) + '" onerror="this.parentElement.innerHTML=\'<i class=\\\'fas fa-cube\\\'></i>\'">' : '<i class="fas fa-cube"></i>') +
                 '<div class="dept-item-v2-qty"><span>x' + Number(item.qty) + '</span></div>' +
             '</div>' +
@@ -1869,15 +1906,18 @@ async function renderItemsTab() {
                 '<div class="dept-item-v2-name">' + escapeHtml(item.name) + '</div>' +
                 (item.description ? '<div class="dept-item-v2-desc">' + escapeHtml(item.description) + '</div>' : '') +
                 '<div class="dept-item-v2-meta">' +
-                    (item.employee_name ? '<span class="dept-item-v2-tag" onclick="if(' + (item.employee_id || 0) + '){currentEmpId=' + (item.employee_id || 0) + ';navigateTo(\'emp-detail\')}" style="cursor:pointer"><i class="fas fa-user"></i> ' + escapeHtml(item.employee_name) + '</span>' : '') +
-                    (item.receipt_date ? '<span class="dept-item-v2-tag"><i class="fas fa-calendar-alt"></i> ' + escapeHtml(item.receipt_date) + '</span>' : '') +
+                    (custodianName ? '<span class="dept-item-v2-tag tag-custodian" onclick="event.stopPropagation();if(' + (active.to_employee_id || 0) + '){currentEmpId=' + (active.to_employee_id || 0) + ';navigateTo(\'emp-detail\')}" style="cursor:pointer"><i class="fas fa-user"></i> ' + escapeHtml(custodianName) + '</span>' :
+                     (item.employee_name ? '<span class="dept-item-v2-tag" onclick="event.stopPropagation();if(' + (item.employee_id || 0) + '){currentEmpId=' + (item.employee_id || 0) + ';navigateTo(\'emp-detail\')}" style="cursor:pointer"><i class="fas fa-user"></i> ' + escapeHtml(item.employee_name) + '</span>' : '')) +
+                    (custodyDates ? '<span class="dept-item-v2-tag tag-period"><i class="fas fa-calendar-alt"></i> ' + escapeHtml(custodyDates) + '</span>' :
+                     (item.receipt_date ? '<span class="dept-item-v2-tag"><i class="fas fa-calendar-alt"></i> ' + escapeHtml(item.receipt_date) + '</span>' : '')) +
                     (item.purpose ? '<span class="dept-item-v2-tag"><i class="fas fa-bullseye"></i> ' + escapeHtml(item.purpose) + '</span>' : '') +
                     '<span class="dept-item-v2-tag status-tag ' + statusCls + '">' + escapeHtml(statusLabel) + '</span>' +
                 '</div>' +
             '</div>' +
             '<div class="dept-item-v2-actions">' +
-                '<button class="btn-icon" onclick="event.stopPropagation();openCovenantModal({id:' + item.id + ',name:\'' + escapeHtml(item.name || '').replace(/'/g, "\\'") + '\'})" title="' + t('covenantHistory') + '"><i class="fas fa-exchange-alt"></i></button>' +
-                '<button class="btn-icon delete" onclick="deleteDeptItem(' + item.id + ')"><i class="fas fa-trash-alt"></i></button>' +
+                '<button class="btn-icon btn-transfer-custody" onclick="event.stopPropagation();openCovenantModal({id:' + item.id + ',name:\'' + escapeHtml(item.name || '').replace(/'/g, "\\'") + '\'})" title="' + t('transferCustody') + '"><i class="fas fa-exchange-alt"></i></button>' +
+                (isOut ? '<button class="btn-icon btn-return-custody" onclick="event.stopPropagation();returnCustody(' + item.id + ')" title="' + t('markReturned') + '"><i class="fas fa-undo"></i></button>' : '') +
+                '<button class="btn-icon delete" onclick="event.stopPropagation();deleteDeptItem(' + item.id + ')"><i class="fas fa-trash-alt"></i></button>' +
             '</div>';
         container.appendChild(card);
     });
@@ -2018,12 +2058,14 @@ async function openCovenantModal(item) {
     document.getElementById('covenantItemName').textContent = ' - ' + (item.name || '');
 
     var timeline = document.getElementById('covenantTimeline');
+    var currentPanel = document.getElementById('covenantCurrentPanel');
     timeline.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i></div>';
+    if (currentPanel) currentPanel.style.display = 'none';
     document.getElementById('covenantModal').classList.add('active');
 
     // Populate employee dropdown
     var transferSelect = document.getElementById('covenantTransferTo');
-    transferSelect.innerHTML = '<option value="">' + t('responsibleEmployee') + '</option>';
+    transferSelect.innerHTML = '<option value="">' + t('selectEmployee') + '</option>';
     try {
         var allEmps = await API.getEmployees();
         allEmps.forEach(function(e) {
@@ -2035,25 +2077,44 @@ async function openCovenantModal(item) {
     try {
         var history = await API.getCovenantHistory(item.id);
         timeline.innerHTML = '';
+        var active = null;
+        if (history && history.length) {
+            for (var i = 0; i < history.length; i++) {
+                if (history[i].status === 'active') { active = history[i]; break; }
+            }
+        }
+        if (active && currentPanel) {
+            currentPanel.style.display = 'block';
+            currentPanel.innerHTML =
+                '<div class="cur-cust-header"><i class="fas fa-user-clock"></i> ' + t('outOfDeptCustody') + '</div>' +
+                '<div class="cur-cust-row"><span class="cur-cust-label">' + t('currentlyWith') + ':</span> <strong>' + escapeHtml(active.to_employee_name || '') + '</strong></div>' +
+                '<div class="cur-cust-row"><span class="cur-cust-label">' + t('custodyPeriod') + ':</span> ' + escapeHtml(active.start_date || active.transfer_date || '') + (active.end_date ? ' → ' + escapeHtml(active.end_date) : '') + '</div>' +
+                (active.condition ? '<div class="cur-cust-row"><span class="cur-cust-label">' + t('deviceCondition') + ':</span> ' + escapeHtml(active.condition === 'good' ? t('conditionGood') : t('conditionNotGood')) + (active.condition_notes ? ' — ' + escapeHtml(active.condition_notes) : '') + '</div>' : '') +
+                (active.notes ? '<div class="cur-cust-row"><span class="cur-cust-label">' + t('additionalNotes') + ':</span> ' + escapeHtml(active.notes) + '</div>' : '') +
+                '<div class="cur-cust-actions"><button class="btn-add btn-return-cust" onclick="returnCustody(' + item.id + ')"><i class="fas fa-undo"></i> <span>' + t('markReturned') + '</span></button></div>';
+        }
         if (!history || history.length === 0) {
             timeline.innerHTML = '<div class="empty-state" style="padding:14px"><p>' + t('noItems') + '</p></div>';
         } else {
             history.forEach(function(h) {
                 var entry = document.createElement('div');
                 entry.className = 'history-entry status-' + (h.status || 'active');
+                var condText = '';
+                if (h.condition) condText = ' • ' + (h.condition === 'good' ? t('conditionGood') : t('conditionNotGood'));
                 entry.innerHTML = '<div class="history-entry-actions">' +
                     '<button class="btn-icon" onclick="deleteCovenantEntry(' + h.id + ')"><i class="fas fa-trash-alt" style="font-size:11px;color:var(--danger)"></i></button>' +
                     '</div>' +
                     '<div style="display:flex;align-items:center;gap:10px">' +
                     (h.employee_photo ? '<img src="' + escapeHtml(h.employee_photo) + '" style="width:32px;height:32px;border-radius:8px;object-fit:cover">' : '') +
                     '<div>' +
-                    '<div class="history-entry-name">' + escapeHtml(h.employee_name || 'Unknown') + '</div>' +
-                    '<div class="history-entry-title">' + escapeHtml(h.job_title || '') + '</div>' +
+                    '<div class="history-entry-name">' + escapeHtml(h.to_employee_name || h.employee_name || 'Unknown') + '</div>' +
+                    '<div class="history-entry-title">' + escapeHtml(h.job_title || '') + condText + '</div>' +
                     '</div></div>' +
                     '<div class="history-entry-dates">' +
                     '<i class="fas fa-calendar" style="font-size:11px"></i> ' + (h.start_date || h.transfer_date || '') + (h.end_date ? ' &rarr; ' + h.end_date : '') +
                     ' <span class="history-status-badge ' + (h.status || 'active') + '">' + (h.status || 'active') + '</span>' +
                     '</div>' +
+                    (h.condition_notes ? '<div style="font-size:11px;color:var(--text-muted);margin-top:4px"><i class="fas fa-info-circle"></i> ' + escapeHtml(h.condition_notes) + '</div>' : '') +
                     (h.notes ? '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">' + escapeHtml(h.notes) + '</div>' : '');
                 timeline.appendChild(entry);
             });
@@ -2062,26 +2123,76 @@ async function openCovenantModal(item) {
         timeline.innerHTML = '<div class="empty-state"><p>' + t('failedLoad') + '</p></div>';
     }
 
-    // Set default transfer date
+    // Reset form defaults
     document.getElementById('covenantTransferDate').value = new Date().toISOString().split('T')[0];
+    var endEl = document.getElementById('covenantTransferEndDate'); if (endEl) endEl.value = '';
     document.getElementById('covenantTransferNotes').value = '';
+    var condNotesEl = document.getElementById('covenantConditionNotes'); if (condNotesEl) condNotesEl.value = '';
+    var condNotesWrap = document.getElementById('covenantConditionNotesWrap'); if (condNotesWrap) condNotesWrap.style.display = 'none';
+    var goodRadio = document.querySelector('input[name="covenantCondition"][value="good"]');
+    if (goodRadio) goodRadio.checked = true;
 }
 
 async function transferCovenant() {
     var empId = document.getElementById('covenantTransferTo').value;
-    var date = document.getElementById('covenantTransferDate').value;
-    if (!empId) { showToast(t('responsibleEmployee'), 'error'); return; }
+    var startDate = document.getElementById('covenantTransferDate').value;
+    var endDateEl = document.getElementById('covenantTransferEndDate');
+    var endDate = endDateEl ? endDateEl.value : '';
+    if (!empId) { showToast(t('selectEmployee'), 'error'); return; }
+    if (!startDate) { showToast(t('startDate'), 'error'); return; }
+    var conditionEl = document.querySelector('input[name="covenantCondition"]:checked');
+    var condition = conditionEl ? conditionEl.value : 'good';
+    var conditionNotesEl = document.getElementById('covenantConditionNotes');
+    var conditionNotes = conditionNotesEl ? conditionNotesEl.value.trim() : '';
+    if (condition === 'not_good' && !conditionNotes) {
+        showToast(t('conditionNotes'), 'error');
+        return;
+    }
     try {
         await API.addCovenantHistory(currentCovenantItemId, {
-            employee_id: parseInt(empId),
-            transfer_date: date,
-            status: 'transferred',
+            to_employee_id: parseInt(empId),
+            transfer_date: startDate,
+            start_date: startDate,
+            end_date: endDate,
+            status: 'active',
+            condition: condition,
+            condition_notes: conditionNotes,
             notes: document.getElementById('covenantTransferNotes').value.trim()
         });
-        // Refresh modal
         var itemName = document.getElementById('covenantItemName').textContent.replace(' - ', '');
         await openCovenantModal({ id: currentCovenantItemId, name: itemName });
-        showToast(t('added'));
+        // Refresh underlying views
+        if (currentDeptId && currentPage === 'dept-detail') {
+            currentDeptData = await API.getDepartment(currentDeptId);
+            await renderEquipmentTab();
+            await renderItemsTab();
+        }
+        if (currentEmpId && currentPage === 'emp-detail') {
+            currentEmpData = await API.getEmployee(currentEmpId);
+            await renderEmpItems();
+        }
+        showToast(t('custodyTransferred'));
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function returnCustody(itemId) {
+    if (!confirm(t('returnConfirm'))) return;
+    try {
+        await API.returnCustody(itemId, { return_date: new Date().toISOString().split('T')[0] });
+        if (currentDeptId && currentPage === 'dept-detail') {
+            currentDeptData = await API.getDepartment(currentDeptId);
+            await renderEquipmentTab();
+            await renderItemsTab();
+        }
+        if (currentEmpId && currentPage === 'emp-detail') {
+            currentEmpData = await API.getEmployee(currentEmpId);
+            await renderEmpItems();
+        }
+        if (currentCovenantItemId === itemId) {
+            var itemName = document.getElementById('covenantItemName').textContent.replace(' - ', '');
+            await openCovenantModal({ id: itemId, name: itemName });
+        }
+        showToast(t('returnedSuccessfully'));
     } catch (e) { showToast(e.message, 'error'); }
 }
 

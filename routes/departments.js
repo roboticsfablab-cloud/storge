@@ -182,11 +182,14 @@ module.exports = function (db) {
     });
 
     router.post('/items/:id/covenant', async (req, res) => {
-        const { from_employee_id, to_employee_id, transfer_date, status, notes } = req.body;
+        const { from_employee_id, to_employee_id, transfer_date, status, notes, start_date, end_date, condition, condition_notes } = req.body;
         if (!to_employee_id) return res.status(400).json({ error: 'Target employee required' });
+        // Close any existing active custody for this item
+        await db.execute({ sql: "UPDATE covenant_history SET status = 'transferred' WHERE item_id = ? AND status = 'active'", args: [req.params.id] });
+        const td = transfer_date || start_date || new Date().toISOString().split('T')[0];
         const result = await db.execute({
-            sql: 'INSERT INTO covenant_history (item_id, from_employee_id, to_employee_id, transfer_date, status, notes) VALUES (?, ?, ?, ?, ?, ?)',
-            args: [req.params.id, from_employee_id || null, to_employee_id, transfer_date || new Date().toISOString().split('T')[0], status || 'active', notes || '']
+            sql: 'INSERT INTO covenant_history (item_id, from_employee_id, to_employee_id, transfer_date, status, notes, start_date, end_date, condition, condition_notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            args: [req.params.id, from_employee_id || null, to_employee_id, td, status || 'active', notes || '', start_date || td, end_date || '', condition || '', condition_notes || '']
         });
         // Update the item's current employee
         await db.execute({ sql: 'UPDATE department_items SET employee_id = ? WHERE id = ?', args: [to_employee_id, req.params.id] });
@@ -195,15 +198,40 @@ module.exports = function (db) {
     });
 
     router.put('/covenant/:id', async (req, res) => {
-        const { status, notes } = req.body;
+        const { status, notes, start_date, end_date, condition, condition_notes } = req.body;
         if (status !== undefined) await db.execute({ sql: 'UPDATE covenant_history SET status = ? WHERE id = ?', args: [status, req.params.id] });
         if (notes !== undefined) await db.execute({ sql: 'UPDATE covenant_history SET notes = ? WHERE id = ?', args: [notes, req.params.id] });
+        if (start_date !== undefined) await db.execute({ sql: 'UPDATE covenant_history SET start_date = ? WHERE id = ?', args: [start_date, req.params.id] });
+        if (end_date !== undefined) await db.execute({ sql: 'UPDATE covenant_history SET end_date = ? WHERE id = ?', args: [end_date, req.params.id] });
+        if (condition !== undefined) await db.execute({ sql: 'UPDATE covenant_history SET condition = ? WHERE id = ?', args: [condition, req.params.id] });
+        if (condition_notes !== undefined) await db.execute({ sql: 'UPDATE covenant_history SET condition_notes = ? WHERE id = ?', args: [condition_notes, req.params.id] });
         const updated = await db.execute({ sql: 'SELECT * FROM covenant_history WHERE id = ?', args: [req.params.id] });
         res.json(updated.rows[0]);
     });
 
     router.delete('/covenant/:id', async (req, res) => {
         await db.execute({ sql: 'DELETE FROM covenant_history WHERE id = ?', args: [req.params.id] });
+        res.json({ success: true });
+    });
+
+    // Mark item as returned (early return from custody)
+    router.post('/items/:id/return-custody', async (req, res) => {
+        const { return_date, notes } = req.body;
+        const today = return_date || new Date().toISOString().split('T')[0];
+        // Find active covenant for this item
+        const active = await db.execute({
+            sql: "SELECT id FROM covenant_history WHERE item_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1",
+            args: [req.params.id]
+        });
+        if (active.rows.length > 0) {
+            const cid = active.rows[0].id;
+            await db.execute({
+                sql: "UPDATE covenant_history SET status = 'returned', end_date = ?, notes = COALESCE(NULLIF(notes,''), '') || CASE WHEN ? <> '' THEN (CASE WHEN notes <> '' THEN ' | ' ELSE '' END) || ? ELSE '' END WHERE id = ?",
+                args: [today, notes || '', notes || '', cid]
+            });
+        }
+        // Clear employee assignment so it goes back to the department
+        await db.execute({ sql: 'UPDATE department_items SET employee_id = NULL WHERE id = ?', args: [req.params.id] });
         res.json({ success: true });
     });
 

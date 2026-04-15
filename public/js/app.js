@@ -91,6 +91,11 @@ const i18n = {
         returnToOriginalDept:'Return to Original Department',
         noIncoming:'No items currently under temporary custody.',
         underTempCustody:'Under Temporary Custody',
+        print:'Print', printIncoming:'Print Incoming', printCurrent:'Print Current',
+        printHistory:'Print History',
+        report:'Report', generatedOn:'Generated on', page:'Page', of:'of',
+        filteredResults:'Filtered results', allResults:'All results',
+        noData:'No data to print', category:'Category', location:'Location',
     },
     ar: {
         appTitle:'FABY Keeper', home:'الرئيسية', lockers:'الخزائن', warehouse:'المستودع',
@@ -183,6 +188,11 @@ const i18n = {
         returnToOriginalDept:'إرجاع إلى القسم الأصلي',
         noIncoming:'لا توجد عناصر تحت عهدة مؤقتة حالياً.',
         underTempCustody:'تحت عهدة مؤقتة',
+        print:'طباعة', printIncoming:'طباعة الواردة', printCurrent:'طباعة الحالية',
+        printHistory:'طباعة السجل',
+        report:'تقرير', generatedOn:'تم التوليد في', page:'صفحة', of:'من',
+        filteredResults:'النتائج المصفاة', allResults:'جميع النتائج',
+        noData:'لا توجد بيانات للطباعة', category:'الفئة', location:'الموقع',
     }
 };
 
@@ -2992,3 +3002,296 @@ applyLanguage();
     navigateTo(state.page);
     if (state.page === 'departments' && state.deptTab) switchDeptTab(state.deptTab);
 })();
+
+// ============ Print Helper ============
+function printTable(opts) {
+    var title = opts.title || t('report');
+    var subtitle = opts.subtitle || '';
+    var columns = opts.columns || [];
+    var rows = opts.rows || [];
+    var orientation = opts.orientation || 'portrait';
+    if (!rows.length) { showToast(t('noData'), 'warning'); return; }
+
+    var now = new Date();
+    var stamp = now.toLocaleString();
+
+    var esc = function(s) {
+        if (s === null || s === undefined) return '';
+        var d = document.createElement('div'); d.textContent = String(s); return d.innerHTML;
+    };
+
+    var thead = '<tr>' + columns.map(function(c){ return '<th>' + esc(c.label) + '</th>'; }).join('') + '</tr>';
+    var tbody = rows.map(function(r){
+        return '<tr>' + columns.map(function(c){
+            var v = typeof c.value === 'function' ? c.value(r) : r[c.key];
+            return '<td>' + esc(v == null ? '' : v) + '</td>';
+        }).join('') + '</tr>';
+    }).join('');
+
+    var html =
+'<!DOCTYPE html><html lang="' + (currentLang || 'en') + '" dir="' + (currentLang === 'ar' ? 'rtl' : 'ltr') + '">' +
+'<head><meta charset="utf-8"><title>' + esc(title) + '</title>' +
+'<style>' +
+'  @page { size: ' + orientation + '; margin: 14mm 12mm 18mm; }' +
+'  * { box-sizing: border-box; }' +
+'  body { font-family: "Helvetica Neue", Arial, sans-serif; color: #000; background: #fff; margin: 0; font-size: 11pt; }' +
+'  .print-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 14px; }' +
+'  .print-header h1 { margin: 0 0 2px; font-size: 16pt; letter-spacing: .2px; }' +
+'  .print-header .sub { font-size: 10pt; color: #333; }' +
+'  .print-header .meta { font-size: 9pt; color: #444; text-align: right; }' +
+'  [dir="rtl"] .print-header .meta { text-align: left; }' +
+'  table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }' +
+'  thead { display: table-header-group; }' +
+'  tr { page-break-inside: avoid; }' +
+'  th, td { border: 1px solid #444; padding: 5px 7px; text-align: left; vertical-align: top; font-size: 10pt; }' +
+'  [dir="rtl"] th, [dir="rtl"] td { text-align: right; }' +
+'  th { background: #eaeaea; font-weight: 700; text-transform: uppercase; font-size: 9pt; letter-spacing: .4px; }' +
+'  tbody tr:nth-child(even) td { background: #f6f6f6; }' +
+'  .print-footer { position: fixed; bottom: 6mm; left: 12mm; right: 12mm; font-size: 9pt; color: #555; display: flex; justify-content: space-between; border-top: 1px solid #888; padding-top: 4px; }' +
+'  .print-count { margin-top: 10px; font-size: 9pt; color: #333; }' +
+'  @media print { .no-print { display: none !important; } }' +
+'  .no-print { position: fixed; top: 10px; right: 10px; display: flex; gap: 8px; z-index: 100; }' +
+'  [dir="rtl"] .no-print { right: auto; left: 10px; }' +
+'  .no-print button { padding: 8px 16px; border: 1px solid #333; background: #fff; color: #000; font-size: 10pt; font-weight: 600; border-radius: 6px; cursor: pointer; }' +
+'  .no-print button.primary { background: #000; color: #fff; }' +
+'  .no-print select { padding: 8px 10px; border: 1px solid #333; border-radius: 6px; font-size: 10pt; }' +
+'</style></head>' +
+'<body>' +
+'<div class="no-print">' +
+'  <select id="orSel"><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select>' +
+'  <button onclick="window.print()" class="primary">🖨️ Print</button>' +
+'  <button onclick="window.close()">Close</button>' +
+'</div>' +
+'<div class="print-header">' +
+'  <div>' +
+'    <h1>' + esc(title) + '</h1>' +
+(subtitle ? '    <div class="sub">' + esc(subtitle) + '</div>' : '') +
+'  </div>' +
+'  <div class="meta">' + esc(t('generatedOn')) + ': ' + esc(stamp) + '</div>' +
+'</div>' +
+'<table><thead>' + thead + '</thead><tbody>' + tbody + '</tbody></table>' +
+'<div class="print-count">' + rows.length + ' ' + esc(t('items')) + '</div>' +
+'<div class="print-footer">' +
+'  <span>' + esc(title) + '</span>' +
+'  <span>' + esc(stamp) + '</span>' +
+'</div>' +
+'<script>' +
+'  var selectedOr = "' + orientation + '";' +
+'  var sel = document.getElementById("orSel"); if (sel) { sel.value = selectedOr; sel.addEventListener("change", function(){' +
+'    var styles = document.querySelectorAll("style"); styles.forEach(function(st){ st.textContent = st.textContent.replace(/@page\\s*{[^}]*}/, "@page { size: " + sel.value + "; margin: 14mm 12mm 18mm; }"); });' +
+'  }); }' +
+'  window.addEventListener("load", function(){ setTimeout(function(){ window.print(); }, 300); });' +
+'<\/script>' +
+'</body></html>';
+
+    var w = window.open('', '_blank');
+    if (!w) { showToast('Popup blocked', 'error'); return; }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+}
+
+function _statusLabel(qty, minStock) {
+    var q = Number(qty || 0), m = Number(minStock || 0);
+    if (q === 0) return t('outOfStock');
+    if (q <= m) return t('lowStock');
+    return t('inStock');
+}
+
+function _custodyStatusFor(item) {
+    var active = getActiveCustody(item);
+    if (!active) return t('inDept');
+    if (active.to_department_id) return t('underTempCustody') + ' (' + (active.to_department_name || '') + ')';
+    return t('outOfDeptCustody') + (active.to_employee_name ? ' (' + active.to_employee_name + ')' : '');
+}
+
+// ---- Lockers ----
+function printLockerItems() {
+    if (!currentLockerData) return;
+    var items = currentLockerData.items || [];
+    var title = t('allCabinetItems') + ' — ' + t('locker') + ' ' + (currentLockerData.name || currentLockerData.id || '');
+    printTable({
+        title: title,
+        subtitle: t('locker') + ' #' + (currentLockerData.id || ''),
+        columns: [
+            { label: t('itemName'), value: function(r){ return r.name || ''; } },
+            { label: t('description'), value: function(r){ return r.description || ''; } },
+            { label: t('qty'), value: function(r){ return r.qty; } },
+            { label: t('minStock'), value: function(r){ return r.min_stock; } },
+            { label: t('status'), value: function(r){ return _statusLabel(r.qty, r.min_stock); } },
+            { label: t('location'), value: function(){ return t('locker') + ' ' + (currentLockerData.id || ''); } }
+        ],
+        rows: items
+    });
+}
+
+// ---- Warehouse area items ----
+function printAreaItems() {
+    if (!currentAreaId || !currentZoneData) return;
+    var area = (currentZoneData.areas || []).find(function(a){ return a.id === currentAreaId; }) || {};
+    var items = (currentZoneData.items || []).filter(function(it){ return it.area_id === currentAreaId; });
+    printTable({
+        title: (area.name || t('areaItemsTitle')) + ' — ' + (currentZoneData.name || ''),
+        subtitle: t('zone') + ': ' + (currentZoneData.name || '') + (area.name ? '  •  ' + t('area') + ': ' + area.name : ''),
+        columns: [
+            { label: t('itemName'), value: function(r){ return r.name || ''; } },
+            { label: t('description'), value: function(r){ return r.description || ''; } },
+            { label: t('qty'), value: function(r){ return r.qty; } },
+            { label: t('minStock'), value: function(r){ return r.min_stock; } },
+            { label: t('status'), value: function(r){ return _statusLabel(r.qty, r.min_stock); } },
+            { label: t('location'), value: function(){ return (currentZoneData.name || '') + ' / ' + (area.name || ''); } }
+        ],
+        rows: items
+    });
+}
+
+// ---- Department Equipment (respects current filter/search) ----
+function printEquipment() {
+    var dept = currentDeptData || {};
+    var items = (dept.equipment || []).slice();
+    var qEl = document.getElementById('equipSearch');
+    var fEl = document.getElementById('equipFilter');
+    var q = qEl ? qEl.value.trim().toLowerCase() : '';
+    var f = fEl ? fEl.value : 'all';
+    var filtered = items.filter(function(it) {
+        var active = getActiveCustody(it);
+        var isOut = !!active;
+        if (f === 'in' && isOut) return false;
+        if (f === 'out' && !isOut) return false;
+        if (!q) return true;
+        var hay = [it.name, it.description, it.purpose, it.receipt_date, it.employee_name, active && active.to_employee_name, active && active.to_department_name].filter(Boolean).join(' ').toLowerCase();
+        return hay.indexOf(q) !== -1;
+    });
+    var subtitle = (dept.name || '') + '  •  ' + (q || f !== 'all' ? t('filteredResults') : t('allResults'));
+    printTable({
+        title: (dept.name || '') + ' — ' + t('equipment') + ' ' + t('report'),
+        subtitle: subtitle,
+        orientation: 'landscape',
+        columns: [
+            { label: t('itemName'), value: function(r){ return r.name || ''; } },
+            { label: t('category'), value: function(){ return t('equipment'); } },
+            { label: t('qty'), value: function(r){ return r.qty; } },
+            { label: t('receiptDate'), value: function(r){ return r.receipt_date || ''; } },
+            { label: t('purpose'), value: function(r){ return r.purpose || ''; } },
+            { label: t('description'), value: function(r){ return r.description || ''; } },
+            { label: t('status'), value: function(r){ var a=getActiveCustody(r); return a ? t('outOfDeptCustody') : t('inDept'); } },
+            { label: t('currentEmployee'), value: function(r){ var a=getActiveCustody(r); return a ? (a.to_department_id ? '— ' + t('department') + ': ' + (a.to_department_name||'') : (a.to_employee_name||'')) : (r.employee_name || ''); } },
+            { label: t('custodyPeriod'), value: function(r){ var a=getActiveCustody(r); return a ? ((a.start_date||a.transfer_date||'') + (a.end_date ? ' → '+a.end_date : '')) : ''; } },
+            { label: t('notes'), value: function(r){ var a=getActiveCustody(r); return a && a.notes ? a.notes : ''; } }
+        ],
+        rows: filtered
+    });
+}
+
+// ---- Department Items ----
+function printDeptItems() {
+    var dept = currentDeptData || {};
+    var items = dept.items || [];
+    printTable({
+        title: (dept.name || '') + ' — ' + t('items') + ' ' + t('report'),
+        subtitle: dept.name || '',
+        orientation: 'landscape',
+        columns: [
+            { label: t('itemName'), value: function(r){ return r.name || ''; } },
+            { label: t('category'), value: function(){ return t('items'); } },
+            { label: t('qty'), value: function(r){ return r.qty; } },
+            { label: t('receiptDate'), value: function(r){ return r.receipt_date || ''; } },
+            { label: t('purpose'), value: function(r){ return r.purpose || ''; } },
+            { label: t('description'), value: function(r){ return r.description || ''; } },
+            { label: t('status'), value: function(r){ var a=getActiveCustody(r); return a ? t('outOfDeptCustody') : t('inDept'); } },
+            { label: t('currentEmployee'), value: function(r){ var a=getActiveCustody(r); return a ? (a.to_department_id ? (t('department')+': '+(a.to_department_name||'')) : (a.to_employee_name||'')) : (r.employee_name || ''); } },
+            { label: t('custodyPeriod'), value: function(r){ var a=getActiveCustody(r); return a ? ((a.start_date||a.transfer_date||'') + (a.end_date ? ' → '+a.end_date : '')) : ''; } },
+            { label: t('notes'), value: function(r){ var a=getActiveCustody(r); return a && a.notes ? a.notes : ''; } }
+        ],
+        rows: items
+    });
+}
+
+// ---- Incoming custody (target department) ----
+function printIncoming() {
+    var dept = currentDeptData || {};
+    var all = (dept.incoming_items || []).map(function(x){ return Object.assign({}, x, { entity_type:'item' }); })
+        .concat((dept.incoming_equipment || []).map(function(x){ return Object.assign({}, x, { entity_type:'equipment' }); }));
+    printTable({
+        title: (dept.name || '') + ' — ' + t('incomingCustodyTitle'),
+        subtitle: dept.name || '',
+        orientation: 'landscape',
+        columns: [
+            { label: t('itemName'), value: function(r){ return r.name || ''; } },
+            { label: t('category'), value: function(r){ return r.entity_type === 'equipment' ? t('equipment') : t('items'); } },
+            { label: t('qty'), value: function(r){ return r.qty; } },
+            { label: t('sourceDepartment'), value: function(r){ return r.source_dept_name || ''; } },
+            { label: t('custodyPeriod'), value: function(r){ return (r.start_date || r.transfer_date || '') + (r.end_date ? ' → ' + r.end_date : ''); } },
+            { label: t('conditionOnReceipt'), value: function(r){ return r.condition === 'good' ? t('conditionGood') : r.condition === 'not_good' ? t('conditionNotGood') : ''; } },
+            { label: t('notes'), value: function(r){ return r.notes || ''; } }
+        ],
+        rows: all
+    });
+}
+
+// ---- Employee: current custody ----
+function printEmpCurrent() {
+    var emp = currentEmpData || {};
+    var items = emp.items || [];
+    printTable({
+        title: (emp.name || '') + ' — ' + t('currentCustody'),
+        subtitle: (emp.name || '') + (emp.department_name ? '  •  ' + emp.department_name : ''),
+        orientation: 'landscape',
+        columns: [
+            { label: t('itemName'), value: function(r){ return r.name || ''; } },
+            { label: t('category'), value: function(r){ return r.entity_type === 'equipment' ? t('equipment') : t('items'); } },
+            { label: t('qty'), value: function(r){ return r.qty; } },
+            { label: t('sourceDepartment'), value: function(r){ return r.department_name || ''; } },
+            { label: t('receiptDate'), value: function(r){ return r.receipt_date || ''; } },
+            { label: t('purpose'), value: function(r){ return r.purpose || ''; } },
+            { label: t('description'), value: function(r){ return r.description || ''; } },
+            { label: t('custodyPeriod'), value: function(r){
+                var a = getActiveCustody(r);
+                if (a) return (a.start_date||a.transfer_date||'') + (a.end_date ? ' → '+a.end_date : '');
+                return r.receipt_date || '';
+            } },
+            { label: t('conditionOnReceipt'), value: function(r){
+                var a = getActiveCustody(r);
+                if (a && a.condition) return a.condition === 'good' ? t('conditionGood') : t('conditionNotGood');
+                return '';
+            } }
+        ],
+        rows: items
+    });
+}
+
+// ---- Employee: custody history (respects filter/search) ----
+function printEmpHistory() {
+    var emp = currentEmpData || {};
+    var list = (emp.custody_history || []).slice();
+    var qEl = document.getElementById('empHistorySearch');
+    var fEl = document.getElementById('empHistoryFilter');
+    var q = qEl ? qEl.value.trim().toLowerCase() : '';
+    var f = fEl ? fEl.value : 'all';
+    var filtered = list.filter(function(h) {
+        if (f !== 'all' && (h.status || '') !== f) return false;
+        if (!q) return true;
+        var hay = [h.item_name, h.item_department_name, h.start_date, h.end_date, h.transfer_date, h.notes, h.return_notes, h.condition_notes].filter(Boolean).join(' ').toLowerCase();
+        return hay.indexOf(q) !== -1;
+    });
+    printTable({
+        title: (emp.name || '') + ' — ' + t('custodyHistory'),
+        subtitle: (emp.name || '') + '  •  ' + (q || f !== 'all' ? t('filteredResults') : t('allResults')),
+        orientation: 'landscape',
+        columns: [
+            { label: t('itemName'), value: function(r){ return r.item_name || ''; } },
+            { label: t('sourceDepartment'), value: function(r){ return r.item_department_name || ''; } },
+            { label: t('custodyPeriod'), value: function(r){ return (r.start_date || r.transfer_date || '') + (r.end_date ? ' → ' + r.end_date : ''); } },
+            { label: t('conditionOnReceipt'), value: function(r){ return r.condition === 'good' ? t('conditionGood') : r.condition === 'not_good' ? t('conditionNotGood') : ''; } },
+            { label: t('returnConditionLabel'), value: function(r){ return r.return_condition === 'good' ? t('conditionGood') : r.return_condition === 'not_good' ? t('conditionNotGood') : ''; } },
+            { label: t('returnNotes'), value: function(r){ return r.return_notes || ''; } },
+            { label: t('originalNotes'), value: function(r){ return r.notes || ''; } },
+            { label: t('status'), value: function(r){
+                if (r.status === 'returned') return t('returned');
+                if (r.status === 'transferred') return t('transferred');
+                return r.status || '';
+            } }
+        ],
+        rows: filtered
+    });
+}

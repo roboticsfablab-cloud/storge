@@ -56,30 +56,39 @@ module.exports = function (db) {
                   WHERE de.employee_id = ? ORDER BY de.created_at`,
             args: [req.params.id]
         });
-        // Get covenant history for each item / equipment
-        const itemsWithCovenant = [];
-        for (const item of items.rows) {
-            const ch = await db.execute({
+        // Single bulk covenant fetch (avoids N+1)
+        const itemIds = items.rows.map(r => r.id);
+        const eqIds = equipment.rows.map(r => r.id);
+        const covByKey = {};
+        if (itemIds.length || eqIds.length) {
+            const clauses = [];
+            const args = [];
+            if (itemIds.length) {
+                clauses.push(`(ch.entity_type = 'item' AND ch.item_id IN (${itemIds.map(() => '?').join(',')}))`);
+                args.push(...itemIds);
+            }
+            if (eqIds.length) {
+                clauses.push(`(ch.entity_type = 'equipment' AND ch.item_id IN (${eqIds.map(() => '?').join(',')}))`);
+                args.push(...eqIds);
+            }
+            const all = await db.execute({
                 sql: `SELECT ch.*, fe.name AS from_employee_name, te.name AS to_employee_name
                       FROM covenant_history ch
                       LEFT JOIN employees fe ON fe.id = ch.from_employee_id
                       LEFT JOIN employees te ON te.id = ch.to_employee_id
-                      WHERE ch.item_id = ? AND ch.entity_type = 'item' ORDER BY ch.transfer_date DESC`,
-                args: [item.id]
+                      WHERE ${clauses.join(' OR ')}
+                      ORDER BY ch.transfer_date DESC`,
+                args: args
             });
-            itemsWithCovenant.push({ ...item, covenant_history: ch.rows });
+            for (const row of all.rows) {
+                const key = row.entity_type + ':' + row.item_id;
+                (covByKey[key] = covByKey[key] || []).push(row);
+            }
         }
-        for (const eq of equipment.rows) {
-            const ch = await db.execute({
-                sql: `SELECT ch.*, fe.name AS from_employee_name, te.name AS to_employee_name
-                      FROM covenant_history ch
-                      LEFT JOIN employees fe ON fe.id = ch.from_employee_id
-                      LEFT JOIN employees te ON te.id = ch.to_employee_id
-                      WHERE ch.item_id = ? AND ch.entity_type = 'equipment' ORDER BY ch.transfer_date DESC`,
-                args: [eq.id]
-            });
-            itemsWithCovenant.push({ ...eq, covenant_history: ch.rows });
-        }
+        const itemsWithCovenant = [
+            ...items.rows.map(it => ({ ...it, covenant_history: covByKey['item:' + it.id] || [] })),
+            ...equipment.rows.map(eq => ({ ...eq, covenant_history: covByKey['equipment:' + eq.id] || [] }))
+        ];
         const history = await db.execute({
             sql: `SELECT rh.*, d.name AS department_name FROM responsibility_history rh
                   LEFT JOIN departments d ON d.id = rh.department_id

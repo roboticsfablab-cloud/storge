@@ -784,11 +784,13 @@ function renderItems() {
 
 // ============ Item CRUD ============
 async function updateItem(id, data) {
-    try {
-        await API.updateItem(id, data);
-        currentLockerData = await API.getLocker(currentLockerId);
-        renderItems();
-    } catch (e) { showToast(e.message, 'error'); }
+    // Optimistic local patch — input DOM already reflects the value
+    if (currentLockerData && Array.isArray(currentLockerData.items)) {
+        var it = currentLockerData.items.find(function(x){ return x.id === id; });
+        if (it) Object.assign(it, data);
+    }
+    try { await API.updateItem(id, data); }
+    catch (e) { showToast(e.message, 'error'); currentLockerData = await API.getLocker(currentLockerId); renderItems(); }
 }
 
 async function addItem() {
@@ -802,8 +804,14 @@ async function addItem() {
             description: document.getElementById('newItemDesc').value.trim()
         });
         var fileInput = document.getElementById('newItemFile');
-        if (fileInput.files[0]) await API.uploadImage(newItem.id, fileInput.files[0]);
-        currentLockerData = await API.getLocker(currentLockerId);
+        if (fileInput.files[0]) {
+            var updated = await API.uploadImage(newItem.id, fileInput.files[0]);
+            if (updated) Object.assign(newItem, updated);
+        }
+        // Push to local state, no refetch
+        if (currentLockerData) {
+            currentLockerData.items = (currentLockerData.items || []).concat([newItem]);
+        }
         renderItems();
         showToast(t('added') + ' "' + name + '"');
         document.getElementById('newItemName').value = '';
@@ -815,20 +823,28 @@ async function addItem() {
 }
 
 async function removeItem(id) {
-    try {
-        await API.deleteItem(id);
-        currentLockerData = await API.getLocker(currentLockerId);
+    // Optimistic delete
+    var prev = currentLockerData && currentLockerData.items ? currentLockerData.items.slice() : null;
+    if (currentLockerData && currentLockerData.items) {
+        currentLockerData.items = currentLockerData.items.filter(function(x){ return x.id !== id; });
         renderItems();
-        showToast(t('itemRemoved'));
-    } catch (e) { showToast(e.message, 'error'); }
+    }
+    try { await API.deleteItem(id); showToast(t('itemRemoved')); }
+    catch (e) { showToast(e.message, 'error'); if (prev) { currentLockerData.items = prev; renderItems(); } }
 }
 
 async function changeQty(id, delta) {
-    try {
-        await API.changeQty(id, delta);
-        currentLockerData = await API.getLocker(currentLockerId);
-        renderItems();
-    } catch (e) { showToast(e.message, 'error'); }
+    // Optimistic qty bump
+    var target = null;
+    if (currentLockerData && currentLockerData.items) {
+        target = currentLockerData.items.find(function(x){ return x.id === id; });
+        if (target) { target.qty = Math.max(0, Number(target.qty || 0) + delta); renderItems(); }
+    }
+    try { await API.changeQty(id, delta); }
+    catch (e) {
+        showToast(e.message, 'error');
+        if (target) { target.qty = Math.max(0, Number(target.qty || 0) - delta); renderItems(); }
+    }
 }
 
 async function uploadItemImage(id, file) {
@@ -1496,16 +1512,21 @@ async function addAreaItem() {
 }
 
 async function updateZoneItem(id, data) {
-    try {
-        await API.updateZoneItem(id, data);
+    // Optimistic: patch local state, skip the heavy refetch + re-render
+    if (currentZoneData && Array.isArray(currentZoneData.items)) {
+        var it = currentZoneData.items.find(function(x){ return x.id === id; });
+        if (it) Object.assign(it, data);
+    }
+    try { await API.updateZoneItem(id, data); }
+    catch (e) {
+        showToast(e.message, 'error');
         currentZoneData = await API.getZone(currentZoneId);
-        // Refresh area modal if open
         if (currentAreaId) {
             var area = currentZoneData.areas.find(function(a) { return a.id === currentAreaId; });
             if (area) openAreaItems(currentAreaId, area.name);
         }
         await renderZoneDetail();
-    } catch (e) { showToast(e.message, 'error'); }
+    }
 }
 
 async function deleteZoneItem(id) {
@@ -2207,8 +2228,12 @@ async function addEquipment() {
             purpose: document.getElementById('newEquipPurpose').value.trim()
         });
         var fileInput = document.getElementById('newEquipFile');
-        if (fileInput.files[0]) await API.uploadDeptEquipmentImage(newItem.id, fileInput.files[0]);
-        currentDeptData = await API.getDepartment(currentDeptId);
+        if (fileInput.files[0]) {
+            var updated = await API.uploadDeptEquipmentImage(newItem.id, fileInput.files[0]);
+            if (updated) Object.assign(newItem, updated);
+        }
+        newItem.covenant_history = [];
+        if (currentDeptData) currentDeptData.equipment = (currentDeptData.equipment || []).concat([newItem]);
         await renderEquipmentTab();
         showToast(t('added'));
         document.getElementById('newEquipName').value = '';
@@ -2220,27 +2245,31 @@ async function addEquipment() {
 }
 
 async function updateEquipmentInline(id, data) {
-    try {
-        await API.updateDeptEquipment(id, data);
-        currentDeptData = await API.getDepartment(currentDeptId);
-        await renderEquipmentTab();
-    } catch (e) { showToast(e.message, 'error'); }
+    if (currentDeptData && Array.isArray(currentDeptData.equipment)) {
+        var it = currentDeptData.equipment.find(function(x){ return x.id === id; });
+        if (it) Object.assign(it, data);
+    }
+    try { await API.updateDeptEquipment(id, data); }
+    catch (e) { showToast(e.message, 'error'); currentDeptData = await API.getDepartment(currentDeptId); await renderEquipmentTab(); }
 }
 
 async function deleteEquipment(id) {
+    var prev = currentDeptData && currentDeptData.equipment ? currentDeptData.equipment.slice() : null;
+    if (currentDeptData && Array.isArray(currentDeptData.equipment)) {
+        currentDeptData.equipment = currentDeptData.equipment.filter(function(x){ return x.id !== id; });
+        if (currentPage === 'dept-detail') await renderEquipmentTab();
+    }
     try {
         await API.deleteDeptEquipment(id);
-        if (currentDeptId && currentPage === 'dept-detail') {
-            currentDeptData = await API.getDepartment(currentDeptId);
-            await renderEquipmentTab();
-            renderIncomingTab();
-        }
         if (currentEmpId && currentPage === 'emp-detail') {
             currentEmpData = await API.getEmployee(currentEmpId);
             await renderEmpItems();
         }
         showToast(t('itemRemoved'));
-    } catch (e) { showToast(e.message, 'error'); }
+    } catch (e) {
+        showToast(e.message, 'error');
+        if (prev && currentDeptData) { currentDeptData.equipment = prev; await renderEquipmentTab(); }
+    }
 }
 
 async function uploadEquipmentImg(id, file) {
@@ -2256,11 +2285,13 @@ async function uploadEquipmentImg(id, file) {
 }
 
 async function updateDeptItemInline(id, data) {
-    try {
-        await API.updateDeptItem(id, data);
-        currentDeptData = await API.getDepartment(currentDeptId);
-        await renderEquipmentTab();
-    } catch (e) { showToast(e.message, 'error'); }
+    // Optimistic: mutate local state first, fire API in background
+    if (currentDeptData && Array.isArray(currentDeptData.items)) {
+        var it = currentDeptData.items.find(function(x){ return x.id === id; });
+        if (it) Object.assign(it, data);
+    }
+    try { await API.updateDeptItem(id, data); }
+    catch (e) { showToast(e.message, 'error'); currentDeptData = await API.getDepartment(currentDeptId); await renderEquipmentTab(); await renderItemsTab(); }
 }
 
 async function addDeptItem() {
@@ -2273,9 +2304,12 @@ async function addDeptItem() {
             qty: parseInt(document.getElementById('newDeptItemQty').value) || 1
         });
         var fileInput = document.getElementById('newDeptItemFile');
-        if (fileInput.files[0]) await API.uploadDeptItemImage(newItem.id, fileInput.files[0]);
-        currentDeptData = await API.getDepartment(currentDeptId);
-        await renderEquipmentTab();
+        if (fileInput.files[0]) {
+            var updated = await API.uploadDeptItemImage(newItem.id, fileInput.files[0]);
+            if (updated) Object.assign(newItem, updated);
+        }
+        newItem.covenant_history = [];
+        if (currentDeptData) currentDeptData.items = (currentDeptData.items || []).concat([newItem]);
         await renderItemsTab();
         showToast(t('added'));
         document.getElementById('newDeptItemName').value = '';
@@ -2286,18 +2320,22 @@ async function addDeptItem() {
 }
 
 async function deleteDeptItem(id) {
+    var prev = currentDeptData && currentDeptData.items ? currentDeptData.items.slice() : null;
+    if (currentDeptData && Array.isArray(currentDeptData.items)) {
+        currentDeptData.items = currentDeptData.items.filter(function(x){ return x.id !== id; });
+        if (currentPage === 'dept-detail') await renderItemsTab();
+    }
     try {
         await API.deleteDeptItem(id);
-        if (currentDeptId && currentPage === 'dept-detail') {
-            currentDeptData = await API.getDepartment(currentDeptId);
-            await renderEquipmentTab();
-            await renderItemsTab();
-        }
         if (currentEmpId && currentPage === 'emp-detail') {
-            await renderEmpDetail();
+            currentEmpData = await API.getEmployee(currentEmpId);
+            await renderEmpItems();
         }
         showToast(t('itemRemoved'));
-    } catch (e) { showToast(e.message, 'error'); }
+    } catch (e) {
+        showToast(e.message, 'error');
+        if (prev && currentDeptData) { currentDeptData.items = prev; await renderItemsTab(); }
+    }
 }
 
 async function uploadDeptItemImg(id, file) {

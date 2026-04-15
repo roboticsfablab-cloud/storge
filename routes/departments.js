@@ -66,37 +66,27 @@ module.exports = function (db) {
                   WHERE rh.department_id = ? ORDER BY rh.start_date DESC`,
             args: [req.params.id]
         });
-        // Get covenant history for each item
-        const itemsWithCovenant = [];
-        for (const item of items.rows) {
-            const ch = await db.execute({
-                sql: `SELECT ch.*, fe.name AS from_employee_name, te.name AS to_employee_name,
-                             td.name AS to_department_name, fd.name AS from_department_name
-                      FROM covenant_history ch
-                      LEFT JOIN employees fe ON fe.id = ch.from_employee_id
-                      LEFT JOIN employees te ON te.id = ch.to_employee_id
-                      LEFT JOIN departments td ON td.id = ch.to_department_id
-                      LEFT JOIN departments fd ON fd.id = ch.from_department_id
-                      WHERE ch.item_id = ? AND ch.entity_type = 'item' ORDER BY ch.transfer_date DESC`,
-                args: [item.id]
-            });
-            itemsWithCovenant.push({ ...item, covenant_history: ch.rows });
+        // Single bulk query for covenant history (avoids N+1)
+        const allCov = await db.execute({
+            sql: `SELECT ch.*, fe.name AS from_employee_name, te.name AS to_employee_name,
+                         td.name AS to_department_name, fd.name AS from_department_name
+                  FROM covenant_history ch
+                  LEFT JOIN employees fe ON fe.id = ch.from_employee_id
+                  LEFT JOIN employees te ON te.id = ch.to_employee_id
+                  LEFT JOIN departments td ON td.id = ch.to_department_id
+                  LEFT JOIN departments fd ON fd.id = ch.from_department_id
+                  WHERE ((ch.entity_type = 'item'      AND ch.item_id IN (SELECT id FROM department_items     WHERE department_id = ?))
+                      OR (ch.entity_type = 'equipment' AND ch.item_id IN (SELECT id FROM department_equipment WHERE department_id = ?)))
+                  ORDER BY ch.transfer_date DESC`,
+            args: [req.params.id, req.params.id]
+        });
+        const covByKey = {};
+        for (const row of allCov.rows) {
+            const key = row.entity_type + ':' + row.item_id;
+            (covByKey[key] = covByKey[key] || []).push(row);
         }
-        const equipmentWithCovenant = [];
-        for (const eq of equipment.rows) {
-            const ch = await db.execute({
-                sql: `SELECT ch.*, fe.name AS from_employee_name, te.name AS to_employee_name,
-                             td.name AS to_department_name, fd.name AS from_department_name
-                      FROM covenant_history ch
-                      LEFT JOIN employees fe ON fe.id = ch.from_employee_id
-                      LEFT JOIN employees te ON te.id = ch.to_employee_id
-                      LEFT JOIN departments td ON td.id = ch.to_department_id
-                      LEFT JOIN departments fd ON fd.id = ch.from_department_id
-                      WHERE ch.item_id = ? AND ch.entity_type = 'equipment' ORDER BY ch.transfer_date DESC`,
-                args: [eq.id]
-            });
-            equipmentWithCovenant.push({ ...eq, covenant_history: ch.rows });
-        }
+        const itemsWithCovenant = items.rows.map(it => ({ ...it, covenant_history: covByKey['item:' + it.id] || [] }));
+        const equipmentWithCovenant = equipment.rows.map(eq => ({ ...eq, covenant_history: covByKey['equipment:' + eq.id] || [] }));
         // Incoming items (from other departments under this dept's temporary custody)
         const incomingItems = await db.execute({
             sql: `SELECT di.*, ch.id AS transfer_id, ch.start_date, ch.end_date, ch.transfer_date,

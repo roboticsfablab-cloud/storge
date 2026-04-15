@@ -337,32 +337,52 @@
 
             <!-- Equipment Tab -->
             <div class="dept-dtab-content active" id="deptEquipmentTab">
-                <div class="table-responsive">
-                    <table class="items-table" id="equipmentTable">
-                        <thead>
-                            <tr>
-                                <th data-i18n="status">الحالة / Status</th>
-                                <th data-i18n="count">العدد / Count</th>
-                                <th data-i18n="picture">صورة / Picture</th>
-                                <th data-i18n="description">الوصف / Description</th>
-                                <th data-i18n="receiptDate">تاريخ الاستلام / Receipt Date</th>
-                                <th data-i18n="purpose">الغرض / Purpose</th>
-                                <th data-i18n="actions">الإجراءات / Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
+                <div class="equip-toolbar">
+                    <div class="equip-search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="equipSearch" data-i18n-placeholder="searchEquipPh" placeholder="Search equipment..." oninput="renderEquipmentTab()">
+                    </div>
+                    <div class="equip-filter">
+                        <select id="equipFilter" onchange="renderEquipmentTab()">
+                            <option value="all" data-i18n="allRecords">All</option>
+                            <option value="in" data-i18n="inDept">In Department</option>
+                            <option value="out" data-i18n="outOfDeptCustody">Out of Department Custody</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="add-item-bar">
-                    <input type="text" id="newEquipName" data-i18n-placeholder="itemName" placeholder="Item name">
-                    <input type="number" id="newEquipQty" placeholder="1" min="1" value="1">
-                    <input type="text" id="newEquipDesc" data-i18n-placeholder="description" placeholder="Description">
-                    <input type="text" id="newEquipPurpose" data-i18n-placeholder="purpose" placeholder="Purpose">
-                    <input type="file" id="newEquipFile" accept="image/*">
-                    <button class="btn-add" onclick="addEquipment()">
-                        <i class="fas fa-plus"></i>
-                        <span data-i18n="add">Add</span>
-                    </button>
+                <div class="equip-grid" id="equipGrid"></div>
+                <div class="equip-add-card">
+                    <div class="equip-add-header">
+                        <span class="equip-add-icon"><i class="fas fa-cogs"></i></span>
+                        <span data-i18n="addEquipment">Add Equipment</span>
+                    </div>
+                    <div class="equip-add-fields">
+                        <div class="equip-add-field">
+                            <i class="fas fa-tag"></i>
+                            <input type="text" id="newEquipName" data-i18n-placeholder="itemName" placeholder="Item name">
+                        </div>
+                        <div class="equip-add-field equip-add-field-sm">
+                            <i class="fas fa-sort-numeric-up"></i>
+                            <input type="number" id="newEquipQty" placeholder="1" min="1" value="1">
+                        </div>
+                        <div class="equip-add-field">
+                            <i class="fas fa-align-left"></i>
+                            <input type="text" id="newEquipDesc" data-i18n-placeholder="description" placeholder="Description">
+                        </div>
+                        <div class="equip-add-field">
+                            <i class="fas fa-bullseye"></i>
+                            <input type="text" id="newEquipPurpose" data-i18n-placeholder="purpose" placeholder="Purpose">
+                        </div>
+                        <label class="equip-add-file-btn">
+                            <i class="fas fa-camera"></i>
+                            <span data-i18n="chooseImage">Choose image</span>
+                            <input type="file" id="newEquipFile" accept="image/*" style="display:none">
+                        </label>
+                        <button class="btn-add equip-add-submit" onclick="addEquipment()">
+                            <i class="fas fa-plus-circle"></i>
+                            <span data-i18n="add">Add</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -1137,8 +1157,8 @@
 </div>
 
 <!-- Scripts -->
-<script src="/js/api.js?v=15"></script>
-<script src="/js/app.js?v=15"></script>
+<script src="/js/api.js?v=16"></script>
+<script src="/js/app.js?v=16"></script>
 
 </body>
 </html>

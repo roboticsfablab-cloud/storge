@@ -78,6 +78,9 @@ const i18n = {
         allRecords:'All records', noHistory:'No custody history yet.',
         returnedOn:'Returned on', transferredOn:'Transferred on',
         receivedFrom:'Received from', returnConditionLabel:'Return condition',
+        addEquipment:'Add Equipment', searchEquipPh:'Search equipment...',
+        inDept:'In Department', expand:'Expand', collapse:'Collapse',
+        details:'Details',
     },
     ar: {
         appTitle:'FABY Keeper', home:'الرئيسية', lockers:'الخزائن', warehouse:'المستودع',
@@ -157,6 +160,9 @@ const i18n = {
         allRecords:'جميع السجلات', noHistory:'لا يوجد سجل عهدة بعد.',
         returnedOn:'تم الإرجاع في', transferredOn:'تم النقل في',
         receivedFrom:'تم الاستلام من', returnConditionLabel:'حالة الإرجاع',
+        addEquipment:'إضافة معدة', searchEquipPh:'البحث في المعدات...',
+        inDept:'في القسم', expand:'توسيع', collapse:'طي',
+        details:'التفاصيل',
     }
 };
 
@@ -1818,42 +1824,124 @@ function switchDeptDetailTab(tabName) {
 }
 
 async function renderEquipmentTab() {
-    var dept = currentDeptData;
-    var items = dept.items || [];
-    var tbody = document.querySelector('#equipmentTable tbody');
-    tbody.innerHTML = '';
+    var dept = currentDeptData || {};
+    var items = (dept.items || []).slice();
+    var grid = document.getElementById('equipGrid');
+    if (!grid) return;
 
-    if (items.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="empty-state" style="padding:14px">' + t('noItems') + '</td></tr>';
-    } else {
-        for (var i = 0; i < items.length; i++) {
-            var item = items[i];
-            var statusLabel = item.covenant_status || t('active');
-            var statusCls = 'active';
-            if (statusLabel === 'returned' || statusLabel === t('returned')) statusCls = 'returned';
-            else if (statusLabel === 'transferred' || statusLabel === t('transferred')) statusCls = 'transferred';
-            else if (statusLabel === 'ended' || statusLabel === t('ended')) statusCls = 'ended';
+    var qEl = document.getElementById('equipSearch');
+    var fEl = document.getElementById('equipFilter');
+    var q = qEl ? qEl.value.trim().toLowerCase() : '';
+    var f = fEl ? fEl.value : 'all';
 
-            tbody.innerHTML += '<tr>' +
-                '<td><span class="history-status-badge ' + statusCls + '">' + escapeHtml(statusLabel) + '</span></td>' +
-                '<td><input type="number" class="stock-input" min="1" value="' + Number(item.qty) + '" style="width:60px" onchange="updateDeptItemInline(' + item.id + ',{qty:parseInt(this.value)})"></td>' +
-                '<td><div class="item-name-cell">' +
-                (item.image ? '<img src="' + escapeHtml(item.image) + '" class="item-thumb" onclick="openImageViewer(\'' + escapeHtml(item.image) + '\')" style="cursor:pointer" onerror="this.style.display=\'none\'">' : '<i class="fas fa-image" style="color:var(--text-muted)"></i>') +
-                '<label class="btn-icon" style="cursor:pointer"><i class="fas fa-upload" style="font-size:10px"></i><input type="file" accept="image/*" style="display:none" onchange="uploadDeptItemImg(' + item.id + ',this.files[0])"></label>' +
-                '</div></td>' +
-                '<td><input type="text" class="stock-input" value="' + escapeHtml(item.name || '') + '" onchange="updateDeptItemInline(' + item.id + ',{name:this.value})">' +
-                (item.description ? '<div style="font-size:11px;color:var(--text-muted)">' + escapeHtml(item.description) + '</div>' : '') + '</td>' +
-                '<td><input type="date" class="stock-input" value="' + escapeHtml(item.receipt_date || '') + '" onchange="updateDeptItemInline(' + item.id + ',{receipt_date:this.value})"></td>' +
-                '<td><input type="text" class="stock-input" value="' + escapeHtml(item.purpose || '') + '" onchange="updateDeptItemInline(' + item.id + ',{purpose:this.value})"></td>' +
-                '<td class="item-actions">' +
-                '<button class="btn-icon" onclick="openCovenantModal({id:' + item.id + ',name:\'' + escapeHtml(item.name || '').replace(/'/g, "\\'") + '\'})" title="' + t('covenantHistory') + '"><i class="fas fa-exchange-alt"></i></button>' +
-                '<button class="btn-icon delete" onclick="deleteDeptItem(' + item.id + ')"><i class="fas fa-trash-alt"></i></button>' +
-                '</td></tr>';
-        }
+    var filtered = items.filter(function(it) {
+        var active = getActiveCustody(it);
+        var isOut = !!active;
+        if (f === 'in' && isOut) return false;
+        if (f === 'out' && !isOut) return false;
+        if (!q) return true;
+        var hay = [it.name, it.description, it.purpose, it.receipt_date, it.employee_name, active && active.to_employee_name].filter(Boolean).join(' ').toLowerCase();
+        return hay.indexOf(q) !== -1;
+    });
+
+    grid.innerHTML = '';
+    if (filtered.length === 0) {
+        grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;padding:28px"><i class="fas fa-cogs" style="font-size:32px;opacity:0.3"></i><p>' + t('noItems') + '</p></div>';
+        return;
     }
 
-    // Populate employee dropdown in equipment add bar
-    // (we leave it as-is since the HTML already has the inputs)
+    filtered.forEach(function(item, idx) {
+        var active = getActiveCustody(item);
+        var isOut = !!active;
+        var statusLabel = isOut ? t('outOfDeptCustody') : t('inDept');
+        var statusCls = isOut ? 'out-custody' : 'in-dept';
+        var custodian = isOut ? (active.to_employee_name || '') : (item.employee_name || '');
+        var period = isOut ? ((active.start_date || active.transfer_date || '') + (active.end_date ? ' → ' + active.end_date : '')) : '';
+
+        var card = document.createElement('div');
+        card.className = 'equip-card' + (isOut ? ' equip-card-out' : '');
+        card.style.animationDelay = (idx * 0.05) + 's';
+        card.dataset.id = item.id;
+
+        var safeName = escapeHtml(item.name || '').replace(/'/g, "\\'");
+
+        card.innerHTML =
+            (isOut ? '<div class="equip-out-banner"><i class="fas fa-user-clock"></i> ' + t('outOfDeptCustody') + '</div>' : '') +
+            '<div class="equip-card-top">' +
+                '<div class="equip-card-visual"' + (item.image ? ' onclick="event.stopPropagation();openImageViewer(\'' + escapeHtml(item.image) + '\')" style="cursor:pointer"' : '') + '>' +
+                    (item.image ? '<img src="' + escapeHtml(item.image) + '" onerror="this.parentElement.innerHTML=\'<i class=\\\'fas fa-cog equip-spin-icon\\\'></i>\'">' : '<i class="fas fa-cog equip-spin-icon"></i>') +
+                    '<span class="equip-card-qty">x' + Number(item.qty || 0) + '</span>' +
+                '</div>' +
+                '<div class="equip-card-head">' +
+                    '<div class="equip-card-name" title="' + escapeHtml(item.name || '') + '">' + escapeHtml(item.name || '') + '</div>' +
+                    (item.description ? '<div class="equip-card-desc">' + escapeHtml(item.description) + '</div>' : '') +
+                    '<div class="equip-card-status-wrap">' +
+                        '<span class="equip-status-pill ' + statusCls + '"><i class="fas ' + (isOut ? 'fa-user-clock' : 'fa-check-circle') + '"></i> ' + escapeHtml(statusLabel) + '</span>' +
+                        (custodian ? '<span class="equip-custodian-pill" onclick="event.stopPropagation();if(' + ((active && active.to_employee_id) || item.employee_id || 0) + '){currentEmpId=' + ((active && active.to_employee_id) || item.employee_id || 0) + ';navigateTo(\'emp-detail\')}"><i class="fas fa-user"></i> ' + escapeHtml(custodian) + '</span>' : '') +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+            (period ? '<div class="equip-card-period"><i class="fas fa-calendar-alt"></i> ' + escapeHtml(period) + '</div>' : '') +
+            '<div class="equip-card-actions">' +
+                '<button class="equip-action equip-action-transfer" onclick="event.stopPropagation();openCovenantModal({id:' + item.id + ',name:\'' + safeName + '\'})" title="' + t('transferCustody') + '">' +
+                    '<i class="fas fa-exchange-alt"></i><span>' + t('transferBtn') + '</span>' +
+                '</button>' +
+                '<button class="equip-action equip-action-history" onclick="event.stopPropagation();openCovenantModal({id:' + item.id + ',name:\'' + safeName + '\'})" title="' + t('history') + '">' +
+                    '<i class="fas fa-clock-rotate-left"></i><span>' + t('history') + '</span>' +
+                '</button>' +
+                (isOut ?
+                '<button class="equip-action equip-action-return" onclick="event.stopPropagation();returnCustody(' + item.id + ')" title="' + t('markReturned') + '">' +
+                    '<i class="fas fa-undo"></i><span>' + t('markReturned') + '</span>' +
+                '</button>' : '') +
+                '<button class="equip-action equip-action-expand" onclick="event.stopPropagation();toggleEquipDetails(' + item.id + ')" title="' + t('details') + '">' +
+                    '<i class="fas fa-sliders-h"></i><span>' + t('details') + '</span>' +
+                '</button>' +
+                '<button class="equip-action equip-action-delete" onclick="event.stopPropagation();deleteDeptItem(' + item.id + ')" title="' + t('delete') + '">' +
+                    '<i class="fas fa-trash-alt"></i>' +
+                '</button>' +
+            '</div>' +
+            '<div class="equip-card-details" id="equipDetails-' + item.id + '">' +
+                '<div class="equip-detail-grid">' +
+                    '<div class="equip-detail-field">' +
+                        '<label><i class="fas fa-tag"></i> ' + t('itemName') + '</label>' +
+                        '<input type="text" value="' + escapeHtml(item.name || '') + '" onchange="updateDeptItemInline(' + item.id + ',{name:this.value})">' +
+                    '</div>' +
+                    '<div class="equip-detail-field">' +
+                        '<label><i class="fas fa-sort-numeric-up"></i> ' + t('count') + '</label>' +
+                        '<input type="number" min="1" value="' + Number(item.qty || 1) + '" onchange="updateDeptItemInline(' + item.id + ',{qty:parseInt(this.value)})">' +
+                    '</div>' +
+                    '<div class="equip-detail-field">' +
+                        '<label><i class="fas fa-calendar-alt"></i> ' + t('receiptDate') + '</label>' +
+                        '<input type="date" value="' + escapeHtml(item.receipt_date || '') + '" onchange="updateDeptItemInline(' + item.id + ',{receipt_date:this.value})">' +
+                    '</div>' +
+                    '<div class="equip-detail-field">' +
+                        '<label><i class="fas fa-bullseye"></i> ' + t('purpose') + '</label>' +
+                        '<input type="text" value="' + escapeHtml(item.purpose || '') + '" onchange="updateDeptItemInline(' + item.id + ',{purpose:this.value})">' +
+                    '</div>' +
+                    '<div class="equip-detail-field equip-detail-field-full">' +
+                        '<label><i class="fas fa-align-left"></i> ' + t('description') + '</label>' +
+                        '<input type="text" value="' + escapeHtml(item.description || '') + '" onchange="updateDeptItemInline(' + item.id + ',{description:this.value})">' +
+                    '</div>' +
+                    '<div class="equip-detail-field equip-detail-field-full">' +
+                        '<label class="equip-upload-label"><i class="fas fa-camera"></i> ' + (item.image ? t('changeImage') : t('chooseImage')) + '<input type="file" accept="image/*" style="display:none" onchange="uploadDeptItemImg(' + item.id + ',this.files[0])"></label>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+
+        // Click anywhere on card (except inputs/buttons) opens details modal (covenant modal)
+        card.addEventListener('click', function(ev) {
+            if (ev.target.closest('button,label,input,select,a')) return;
+            openCovenantModal({ id: item.id, name: item.name || '' });
+        });
+
+        grid.appendChild(card);
+    });
+}
+
+function toggleEquipDetails(id) {
+    var el = document.getElementById('equipDetails-' + id);
+    if (!el) return;
+    el.classList.toggle('open');
 }
 
 async function renderHistoryTab() {

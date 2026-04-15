@@ -7026,3 +7026,209 @@ textarea.input {
 .custody-return-btn:hover {
     background: #15803d !important;
 }
+
+/* ===== Employee Tabs (Current Custody / Custody History) ===== */
+.emp-tabs-bar {
+    display: flex;
+    gap: 8px;
+    padding: 0 0 14px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 18px;
+}
+.emp-tab-btn {
+    background: transparent;
+    border: 1.5px solid transparent;
+    color: var(--text-muted);
+    padding: 10px 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+.emp-tab-btn:hover {
+    background: rgba(127,127,127,0.08);
+    color: var(--text);
+}
+.emp-tab-btn.active {
+    background: linear-gradient(135deg, rgba(123,47,247,0.18), rgba(123,47,247,0.06));
+    border-color: rgba(123,47,247,0.4);
+    color: var(--accent, #7b2ff7);
+    box-shadow: 0 4px 14px rgba(123,47,247,0.18);
+}
+.emp-tab-badge {
+    background: var(--accent, #7b2ff7);
+    color: #fff;
+    border-radius: 999px;
+    font-size: 10px;
+    padding: 2px 8px;
+    font-weight: 700;
+    min-width: 20px;
+    text-align: center;
+}
+
+@keyframes empFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.emp-fade-in { animation: empFadeIn 0.3s ease-out; }
+
+/* History toolbar */
+.emp-history-toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+.emp-history-search {
+    flex: 1;
+    min-width: 220px;
+    position: relative;
+}
+.emp-history-search i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 12px;
+}
+.emp-history-search input {
+    width: 100%;
+    padding: 10px 12px 10px 34px;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    border-radius: 10px;
+    font-size: 13px;
+}
+[dir="rtl"] .emp-history-search i { left: auto; right: 12px; }
+[dir="rtl"] .emp-history-search input { padding: 10px 34px 10px 12px; }
+.emp-history-filter select {
+    padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    border-radius: 10px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+/* History timeline */
+.emp-history-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.emp-history-card {
+    position: relative;
+    background: var(--bg-secondary, rgba(255,255,255,0.04));
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px 14px 22px;
+    overflow: hidden;
+    animation: empFadeIn 0.35s ease-out both;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.emp-history-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+}
+.emp-history-card-strip {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 5px;
+    background: var(--text-muted);
+}
+.emp-history-card-strip.returned    { background: linear-gradient(180deg, #16a34a, #22c55e); }
+.emp-history-card-strip.transferred { background: linear-gradient(180deg, #ff8c00, #fbbf24); }
+.emp-history-card-strip.ended       { background: linear-gradient(180deg, #6b7280, #9ca3af); }
+[dir="rtl"] .emp-history-card { padding: 14px 22px 14px 16px; }
+[dir="rtl"] .emp-history-card-strip { left: auto; right: 0; }
+
+.emp-history-card-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+.emp-history-card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: rgba(123,47,247,0.15);
+    color: var(--accent, #7b2ff7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+.emp-history-card-titles { flex: 1; min-width: 0; }
+.emp-history-card-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 2px;
+}
+.emp-history-card-dept {
+    font-size: 11px;
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+.emp-history-card-dept:hover { color: var(--accent, #7b2ff7); }
+.emp-history-card-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding-left: 56px;
+}
+[dir="rtl"] .emp-history-card-meta { padding-left: 0; padding-right: 56px; }
+.emp-history-meta-row {
+    font-size: 12px;
+    color: var(--text);
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+}
+.emp-history-meta-row i {
+    color: var(--text-muted);
+    margin-top: 3px;
+    font-size: 11px;
+    width: 12px;
+    flex-shrink: 0;
+}
+.emp-history-meta-label {
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-right: 3px;
+}
+.emp-history-return-row {
+    background: rgba(22,163,74,0.08);
+    border-left: 2px solid #16a34a;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+[dir="rtl"] .emp-history-return-row { border-left: none; border-right: 2px solid #16a34a; }
+
+/* Covenant timeline return lines (department side) */
+.cov-return-line {
+    background: rgba(22,163,74,0.10);
+    border-left: 2px solid #16a34a;
+    padding: 4px 8px;
+    margin-top: 5px;
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--text);
+}
+[dir="rtl"] .cov-return-line { border-left: none; border-right: 2px solid #16a34a; }
+
+@media (max-width: 640px) {
+    .emp-history-card-meta { padding-left: 0; }
+    [dir="rtl"] .emp-history-card-meta { padding-right: 0; }
+}

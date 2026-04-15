@@ -68,7 +68,21 @@ module.exports = function (db) {
                   WHERE rh.employee_id = ? ORDER BY rh.start_date DESC`,
             args: [req.params.id]
         });
-        res.json({ ...emp.rows[0], items: itemsWithCovenant, history: history.rows });
+        // Custody history: any past (non-active) covenant records where this employee was the recipient
+        const custodyHistory = await db.execute({
+            sql: `SELECT ch.*, di.name AS item_name, di.image AS item_image, di.qty AS item_qty,
+                         di.department_id AS item_department_id, d.name AS item_department_name,
+                         fe.name AS from_employee_name, te.name AS to_employee_name
+                  FROM covenant_history ch
+                  LEFT JOIN department_items di ON di.id = ch.item_id
+                  LEFT JOIN departments d ON d.id = di.department_id
+                  LEFT JOIN employees fe ON fe.id = ch.from_employee_id
+                  LEFT JOIN employees te ON te.id = ch.to_employee_id
+                  WHERE ch.to_employee_id = ? AND ch.status <> 'active'
+                  ORDER BY COALESCE(ch.end_date, ch.transfer_date) DESC, ch.id DESC`,
+            args: [req.params.id]
+        });
+        res.json({ ...emp.rows[0], items: itemsWithCovenant, history: history.rows, custody_history: custodyHistory.rows });
     });
 
     // Create employee

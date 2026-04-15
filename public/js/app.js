@@ -73,6 +73,11 @@ const i18n = {
         returnCondition:'Item Condition Upon Return',
         returnNotes:'Return Notes', returnNotesPh:'Notes about the return...',
         notRecorded:'Not recorded',
+        custodyHistory:'Custody History', currentCustody:'Current Custody',
+        searchHistoryPh:'Search by item, dates, notes...',
+        allRecords:'All records', noHistory:'No custody history yet.',
+        returnedOn:'Returned on', transferredOn:'Transferred on',
+        receivedFrom:'Received from', returnConditionLabel:'Return condition',
     },
     ar: {
         appTitle:'FABY Keeper', home:'الرئيسية', lockers:'الخزائن', warehouse:'المستودع',
@@ -147,6 +152,11 @@ const i18n = {
         returnCondition:'حالة الجهاز عند الإرجاع',
         returnNotes:'ملاحظات الإرجاع', returnNotesPh:'ملاحظات حول الإرجاع...',
         notRecorded:'غير مسجل',
+        custodyHistory:'سجل العهدة', currentCustody:'العهدة الحالية',
+        searchHistoryPh:'البحث بالعنصر أو التواريخ أو الملاحظات...',
+        allRecords:'جميع السجلات', noHistory:'لا يوجد سجل عهدة بعد.',
+        returnedOn:'تم الإرجاع في', transferredOn:'تم النقل في',
+        receivedFrom:'تم الاستلام من', returnConditionLabel:'حالة الإرجاع',
     }
 };
 
@@ -2133,7 +2143,9 @@ async function openCovenantModal(item) {
                     ' <span class="history-status-badge ' + (h.status || 'active') + '">' + (h.status || 'active') + '</span>' +
                     '</div>' +
                     (h.condition_notes ? '<div style="font-size:11px;color:var(--text-muted);margin-top:4px"><i class="fas fa-info-circle"></i> ' + escapeHtml(h.condition_notes) + '</div>' : '') +
-                    (h.notes ? '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">' + escapeHtml(h.notes) + '</div>' : '');
+                    (h.notes ? '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">' + escapeHtml(h.notes) + '</div>' : '') +
+                    (h.return_condition ? '<div class="cov-return-line"><i class="fas fa-undo"></i> ' + t('returnConditionLabel') + ': <strong>' + escapeHtml(h.return_condition === 'good' ? t('conditionGood') : t('conditionNotGood')) + '</strong></div>' : '') +
+                    (h.return_notes ? '<div class="cov-return-line"><i class="fas fa-sticky-note"></i> ' + t('returnNotes') + ': ' + escapeHtml(h.return_notes) + '</div>' : '');
                 timeline.appendChild(entry);
             });
         }
@@ -2346,8 +2358,108 @@ async function renderEmpDetail() {
 
         // Items - custody cards
         await renderEmpItems();
+        renderEmpHistoryList();
+        // Reset to current tab
+        var tabHistory = document.getElementById('empTabHistory');
+        var tabCurrent = document.getElementById('empTabCurrent');
+        if (tabHistory && tabHistory.classList.contains('active')) {
+            // keep history view
+        } else {
+            switchEmpTab('current');
+        }
 
     } catch (e) { showToast(t('failedLoad'), 'error'); }
+}
+
+function switchEmpTab(tab) {
+    var current = document.getElementById('empCurrentSection');
+    var history = document.getElementById('empHistorySection');
+    var btnCur = document.getElementById('empTabCurrent');
+    var btnHis = document.getElementById('empTabHistory');
+    if (!current || !history) return;
+    if (tab === 'history') {
+        current.style.display = 'none';
+        history.style.display = '';
+        history.classList.remove('emp-fade-in');
+        void history.offsetWidth;
+        history.classList.add('emp-fade-in');
+        if (btnCur) btnCur.classList.remove('active');
+        if (btnHis) btnHis.classList.add('active');
+    } else {
+        current.style.display = '';
+        history.style.display = 'none';
+        current.classList.remove('emp-fade-in');
+        void current.offsetWidth;
+        current.classList.add('emp-fade-in');
+        if (btnCur) btnCur.classList.add('active');
+        if (btnHis) btnHis.classList.remove('active');
+    }
+}
+
+function renderEmpHistoryList() {
+    var emp = currentEmpData || {};
+    var list = (emp.custody_history || []).slice();
+    var timeline = document.getElementById('empHistoryTimeline');
+    var badge = document.getElementById('empHistoryBadge');
+    if (!timeline) return;
+    if (badge) {
+        if (list.length > 0) { badge.style.display = ''; badge.textContent = list.length; }
+        else badge.style.display = 'none';
+    }
+
+    var qEl = document.getElementById('empHistorySearch');
+    var fEl = document.getElementById('empHistoryFilter');
+    var q = qEl ? qEl.value.trim().toLowerCase() : '';
+    var f = fEl ? fEl.value : 'all';
+
+    var filtered = list.filter(function(h) {
+        if (f !== 'all' && (h.status || '') !== f) return false;
+        if (!q) return true;
+        var hay = [
+            h.item_name, h.item_department_name, h.start_date, h.end_date, h.transfer_date,
+            h.notes, h.return_notes, h.condition_notes, h.from_employee_name
+        ].filter(Boolean).join(' ').toLowerCase();
+        return hay.indexOf(q) !== -1;
+    });
+
+    timeline.innerHTML = '';
+    if (filtered.length === 0) {
+        timeline.innerHTML = '<div class="empty-state" style="padding:30px"><i class="fas fa-scroll" style="font-size:32px;opacity:0.3"></i><p>' + t('noHistory') + '</p></div>';
+        return;
+    }
+
+    filtered.forEach(function(h, idx) {
+        var statusLabel = h.status === 'returned' ? t('returned')
+                         : h.status === 'transferred' ? t('transferred')
+                         : (h.status || '');
+        var statusCls = h.status || 'ended';
+        var period = (h.start_date || h.transfer_date || '') + (h.end_date ? ' → ' + h.end_date : '');
+        var card = document.createElement('div');
+        card.className = 'emp-history-card status-' + statusCls;
+        card.style.animationDelay = (idx * 0.05) + 's';
+        var origCondLabel = h.condition ? (h.condition === 'good' ? t('conditionGood') : t('conditionNotGood')) : '';
+        var retCondLabel = h.return_condition ? (h.return_condition === 'good' ? t('conditionGood') : t('conditionNotGood')) : '';
+        card.innerHTML =
+            '<div class="emp-history-card-strip ' + statusCls + '"></div>' +
+            '<div class="emp-history-card-head">' +
+                '<div class="emp-history-card-icon"' + (h.item_image ? ' style="background-image:url(\'' + escapeHtml(h.item_image) + '\');background-size:cover;background-position:center"' : '') + '>' +
+                    (h.item_image ? '' : '<i class="fas fa-box"></i>') +
+                '</div>' +
+                '<div class="emp-history-card-titles">' +
+                    '<div class="emp-history-card-name">' + escapeHtml(h.item_name || '--') + '</div>' +
+                    (h.item_department_name ? '<div class="emp-history-card-dept" onclick="if(' + (h.item_department_id || 0) + '){currentDeptId=' + (h.item_department_id || 0) + ';navigateTo(\'dept-detail\')}" style="cursor:pointer"><i class="fas fa-building"></i> ' + escapeHtml(h.item_department_name) + '</div>' : '') +
+                '</div>' +
+                '<span class="history-status-badge ' + statusCls + '">' + escapeHtml(statusLabel) + '</span>' +
+            '</div>' +
+            '<div class="emp-history-card-meta">' +
+                '<div class="emp-history-meta-row"><i class="fas fa-calendar-alt"></i> <span class="emp-history-meta-label">' + t('custodyPeriod') + ':</span> ' + escapeHtml(period || t('notRecorded')) + '</div>' +
+                (origCondLabel ? '<div class="emp-history-meta-row"><i class="fas fa-clipboard-check"></i> <span class="emp-history-meta-label">' + t('conditionOnReceipt') + ':</span> ' + escapeHtml(origCondLabel) + (h.condition_notes ? ' — ' + escapeHtml(h.condition_notes) : '') + '</div>' : '') +
+                (retCondLabel ? '<div class="emp-history-meta-row emp-history-return-row"><i class="fas fa-undo"></i> <span class="emp-history-meta-label">' + t('returnConditionLabel') + ':</span> ' + escapeHtml(retCondLabel) + '</div>' : '') +
+                (h.return_notes ? '<div class="emp-history-meta-row emp-history-return-row"><i class="fas fa-sticky-note"></i> <span class="emp-history-meta-label">' + t('returnNotes') + ':</span> ' + escapeHtml(h.return_notes) + '</div>' : '') +
+                (h.notes ? '<div class="emp-history-meta-row"><i class="fas fa-comment"></i> <span class="emp-history-meta-label">' + t('originalNotes') + ':</span> ' + escapeHtml(h.notes) + '</div>' : '') +
+            '</div>';
+        timeline.appendChild(card);
+    });
 }
 
 async function renderEmpItems() {

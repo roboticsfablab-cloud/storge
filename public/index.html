@@ -997,6 +997,86 @@
 </div>
 
 
+<!-- Employee Custody Details Modal -->
+<div class="modal-overlay" id="empCustodyDetailsModal">
+    <div class="modal-content modal-md">
+        <div class="modal-header">
+            <h2>
+                <i class="fas fa-hand-holding-box"></i>
+                <span data-i18n="custodyDetails">Custody Details</span>
+                <span class="covenant-item-name" id="empCustodyItemName"></span>
+            </h2>
+            <button class="modal-close" onclick="closeModal('empCustodyDetailsModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div id="empCustodyDetailsBody">
+                <!-- Read-only block: condition on receipt + period -->
+                <div class="custody-readonly-block">
+                    <div class="custody-readonly-row">
+                        <label>
+                            <i class="fas fa-lock"></i>
+                            <span data-i18n="conditionOnReceipt">Item Condition Upon Receipt</span>
+                        </label>
+                        <div class="custody-readonly-value" id="empCustodyConditionView">--</div>
+                    </div>
+                    <div class="custody-readonly-row">
+                        <label>
+                            <i class="fas fa-lock"></i>
+                            <span data-i18n="custodyPeriod">Custody Period</span>
+                        </label>
+                        <div class="custody-readonly-value" id="empCustodyPeriodView">--</div>
+                    </div>
+                    <div class="custody-readonly-row" id="empCustodyOriginalNotesRow" style="display:none">
+                        <label>
+                            <i class="fas fa-lock"></i>
+                            <span data-i18n="originalNotes">Original Transfer Notes</span>
+                        </label>
+                        <div class="custody-readonly-value" id="empCustodyOriginalNotesView">--</div>
+                    </div>
+                    <div class="custody-readonly-row" id="empCustodyFromDeptRow" style="display:none">
+                        <label>
+                            <i class="fas fa-lock"></i>
+                            <span data-i18n="originalDepartment">Original Department</span>
+                        </label>
+                        <div class="custody-readonly-value" id="empCustodyFromDeptView">--</div>
+                    </div>
+                </div>
+
+                <!-- Editable: return controls -->
+                <div class="custody-return-block">
+                    <h3 class="custody-return-title">
+                        <i class="fas fa-undo"></i>
+                        <span data-i18n="returnToDepartment">Return to Department</span>
+                    </h3>
+                    <div class="form-field">
+                        <label data-i18n="returnCondition">Item Condition Upon Return</label>
+                        <div class="condition-radio-group">
+                            <label class="condition-radio">
+                                <input type="radio" name="empReturnCondition" value="good" checked>
+                                <span data-i18n="conditionGood">Good</span>
+                            </label>
+                            <label class="condition-radio condition-radio-bad">
+                                <input type="radio" name="empReturnCondition" value="not_good">
+                                <span data-i18n="conditionNotGood">Not Good</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-field">
+                        <label data-i18n="returnNotes">Return Notes</label>
+                        <textarea id="empReturnNotes" rows="3" data-i18n-placeholder="returnNotesPh" placeholder="Notes about the return..."></textarea>
+                    </div>
+                    <button class="btn-add custody-return-btn" onclick="submitReturnCustody()">
+                        <i class="fas fa-undo"></i>
+                        <span data-i18n="returnToDepartmentBtn">Return to Department</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- All Department Equipment Panel -->
 <div class="modal-overlay" id="allDeptEquipPanel">
     <div class="modal-content modal-lg">
@@ -1028,8 +1108,8 @@
 </div>
 
 <!-- Scripts -->
-<script src="/js/api.js?v=13"></script>
-<script src="/js/app.js?v=13"></script>
+<script src="/js/api.js?v=14"></script>
+<script src="/js/app.js?v=14"></script>
 
 </body>
 </html>

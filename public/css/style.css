@@ -6918,3 +6918,111 @@ textarea.input {
 @media (max-width: 640px) {
     .transfer-form-grid { grid-template-columns: 1fr; }
 }
+
+/* ===== Employee Custody Details Modal ===== */
+.custody-readonly-block {
+    background: var(--bg-secondary, rgba(255,255,255,0.04));
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    position: relative;
+}
+.custody-readonly-block::after {
+    content: "READ-ONLY";
+    position: absolute;
+    top: -10px;
+    right: 14px;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    background: var(--text-muted);
+    color: var(--bg);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-weight: 700;
+}
+.custody-readonly-row {
+    margin-bottom: 12px;
+}
+.custody-readonly-row:last-child { margin-bottom: 0; }
+.custody-readonly-row label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 5px;
+}
+.custody-readonly-row label i {
+    font-size: 10px;
+    opacity: 0.7;
+}
+.custody-readonly-value {
+    background: rgba(127,127,127,0.10);
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: var(--text);
+    cursor: not-allowed;
+    user-select: text;
+}
+
+.custody-return-block {
+    background: linear-gradient(135deg, rgba(22,163,74,0.08), rgba(22,163,74,0.02));
+    border: 1.5px solid rgba(22,163,74,0.35);
+    border-radius: 12px;
+    padding: 14px 16px;
+}
+.custody-return-title {
+    color: #16a34a;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin: 0 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.custody-return-block .form-field {
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.custody-return-block .form-field label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+.custody-return-block textarea {
+    padding: 10px 12px;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 70px;
+}
+.custody-return-block textarea:focus {
+    outline: none;
+    border-color: #16a34a;
+    box-shadow: 0 0 0 3px rgba(22,163,74,0.15);
+}
+.custody-return-btn {
+    width: 100%;
+    justify-content: center;
+    background: #16a34a !important;
+    color: #fff !important;
+}
+.custody-return-btn:hover {
+    background: #15803d !important;
+}

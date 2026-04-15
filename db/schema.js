@@ -141,6 +141,8 @@ async function ensureTables() {
         `ALTER TABLE covenant_history ADD COLUMN end_date TEXT DEFAULT ''`,
         `ALTER TABLE covenant_history ADD COLUMN condition TEXT DEFAULT ''`,
         `ALTER TABLE covenant_history ADD COLUMN condition_notes TEXT DEFAULT ''`,
+        `ALTER TABLE covenant_history ADD COLUMN return_condition TEXT DEFAULT ''`,
+        `ALTER TABLE covenant_history ADD COLUMN return_notes TEXT DEFAULT ''`,
     ];
     for (const sql of migrations) {
         try { await client.execute(sql); } catch (e) { /* column exists */ }

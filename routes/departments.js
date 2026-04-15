@@ -216,7 +216,7 @@ module.exports = function (db) {
 
     // Mark item as returned (early return from custody)
     router.post('/items/:id/return-custody', async (req, res) => {
-        const { return_date, notes } = req.body;
+        const { return_date, return_notes, return_condition } = req.body;
         const today = return_date || new Date().toISOString().split('T')[0];
         // Find active covenant for this item
         const active = await db.execute({
@@ -226,8 +226,8 @@ module.exports = function (db) {
         if (active.rows.length > 0) {
             const cid = active.rows[0].id;
             await db.execute({
-                sql: "UPDATE covenant_history SET status = 'returned', end_date = ?, notes = COALESCE(NULLIF(notes,''), '') || CASE WHEN ? <> '' THEN (CASE WHEN notes <> '' THEN ' | ' ELSE '' END) || ? ELSE '' END WHERE id = ?",
-                args: [today, notes || '', notes || '', cid]
+                sql: "UPDATE covenant_history SET status = 'returned', end_date = ?, return_notes = ?, return_condition = ? WHERE id = ?",
+                args: [today, return_notes || '', return_condition || '', cid]
             });
         }
         // Clear employee assignment so it goes back to the department

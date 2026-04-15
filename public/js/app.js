@@ -64,6 +64,15 @@ const i18n = {
         returnedSuccessfully:'Item marked as returned',
         custodyTransferred:'Custody transferred',
         viewCustodyDetails:'View Custody Details',
+        custodyDetails:'Custody Details',
+        conditionOnReceipt:'Item Condition Upon Receipt',
+        originalNotes:'Original Transfer Notes',
+        originalDepartment:'Original Department',
+        returnToDepartment:'Return to Department',
+        returnToDepartmentBtn:'Return to Department',
+        returnCondition:'Item Condition Upon Return',
+        returnNotes:'Return Notes', returnNotesPh:'Notes about the return...',
+        notRecorded:'Not recorded',
     },
     ar: {
         appTitle:'FABY Keeper', home:'الرئيسية', lockers:'الخزائن', warehouse:'المستودع',
@@ -129,6 +138,15 @@ const i18n = {
         returnedSuccessfully:'تم تسجيل إرجاع العنصر',
         custodyTransferred:'تم نقل العهدة',
         viewCustodyDetails:'عرض تفاصيل العهدة',
+        custodyDetails:'تفاصيل العهدة',
+        conditionOnReceipt:'حالة الجهاز عند الاستلام',
+        originalNotes:'ملاحظات النقل الأصلية',
+        originalDepartment:'القسم الأصلي',
+        returnToDepartment:'إرجاع إلى القسم',
+        returnToDepartmentBtn:'إرجاع إلى القسم',
+        returnCondition:'حالة الجهاز عند الإرجاع',
+        returnNotes:'ملاحظات الإرجاع', returnNotesPh:'ملاحظات حول الإرجاع...',
+        notRecorded:'غير مسجل',
     }
 };
 
@@ -2210,6 +2228,90 @@ async function deleteCovenantEntry(id) {
     } catch (e) { showToast(e.message, 'error'); }
 }
 
+// ============ Employee Custody Details Modal ============
+let currentEmpCustodyItemId = null;
+
+async function openEmpCustodyDetails(itemId, itemName) {
+    currentEmpCustodyItemId = itemId;
+    document.getElementById('empCustodyItemName').textContent = ' - ' + (itemName || '');
+    document.getElementById('empCustodyConditionView').textContent = t('loading');
+    document.getElementById('empCustodyPeriodView').textContent = t('loading');
+    document.getElementById('empCustodyOriginalNotesRow').style.display = 'none';
+    document.getElementById('empCustodyFromDeptRow').style.display = 'none';
+    document.getElementById('empReturnNotes').value = '';
+    var goodRadio = document.querySelector('input[name="empReturnCondition"][value="good"]');
+    if (goodRadio) goodRadio.checked = true;
+    document.getElementById('empCustodyDetailsModal').classList.add('active');
+
+    try {
+        var history = await API.getCovenantHistory(itemId);
+        var active = null;
+        if (history && history.length) {
+            for (var i = 0; i < history.length; i++) {
+                if (history[i].status === 'active') { active = history[i]; break; }
+            }
+        }
+        if (!active) {
+            document.getElementById('empCustodyConditionView').textContent = t('notRecorded');
+            document.getElementById('empCustodyPeriodView').textContent = t('notRecorded');
+            return;
+        }
+        var condText = active.condition
+            ? (active.condition === 'good' ? t('conditionGood') : t('conditionNotGood'))
+            : t('notRecorded');
+        if (active.condition_notes) condText += ' — ' + active.condition_notes;
+        document.getElementById('empCustodyConditionView').textContent = condText;
+
+        var period = (active.start_date || active.transfer_date || t('notRecorded'));
+        if (active.end_date) period += ' → ' + active.end_date;
+        document.getElementById('empCustodyPeriodView').textContent = period;
+
+        if (active.notes) {
+            document.getElementById('empCustodyOriginalNotesRow').style.display = '';
+            document.getElementById('empCustodyOriginalNotesView').textContent = active.notes;
+        }
+
+        // Show original department of the item
+        try {
+            var emp = currentEmpData;
+            var matched = (emp && emp.items || []).find(function(x){ return x.id === itemId; });
+            if (matched && matched.department_name) {
+                document.getElementById('empCustodyFromDeptRow').style.display = '';
+                document.getElementById('empCustodyFromDeptView').textContent = matched.department_name;
+            }
+        } catch(e) {}
+    } catch (e) {
+        document.getElementById('empCustodyConditionView').textContent = t('failedLoad');
+        document.getElementById('empCustodyPeriodView').textContent = t('failedLoad');
+    }
+}
+
+async function submitReturnCustody() {
+    if (!currentEmpCustodyItemId) return;
+    var conditionEl = document.querySelector('input[name="empReturnCondition"]:checked');
+    var condition = conditionEl ? conditionEl.value : 'good';
+    var notes = document.getElementById('empReturnNotes').value.trim();
+    try {
+        await API.returnCustody(currentEmpCustodyItemId, {
+            return_date: new Date().toISOString().split('T')[0],
+            return_condition: condition,
+            return_notes: notes
+        });
+        closeModal('empCustodyDetailsModal');
+        currentEmpCustodyItemId = null;
+        if (currentEmpId && currentPage === 'emp-detail') {
+            currentEmpData = await API.getEmployee(currentEmpId);
+            await renderEmpItems();
+        }
+        if (currentDeptId && currentPage === 'dept-detail') {
+            currentDeptData = await API.getDepartment(currentDeptId);
+            await renderEquipmentTab();
+            await renderItemsTab();
+        }
+        showToast(t('returnedSuccessfully'));
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
 // ============ Employee Detail Page ============
 async function renderEmpDetail() {
     if (!currentEmpId) return;
@@ -2281,6 +2383,13 @@ async function renderEmpItems() {
             var card = document.createElement('div');
             card.className = 'custody-card-v2';
             card.style.animationDelay = (idx * 0.06) + 's';
+            card.style.cursor = 'pointer';
+            (function(it){
+                card.onclick = function(ev){
+                    if (ev.target.closest('button,label,input,select,a')) return;
+                    openEmpCustodyDetails(it.id, it.name || '');
+                };
+            })(item);
             card.innerHTML =
                 '<div class="custody-v2-status-strip ' + statusCls + '"></div>' +
                 '<div class="custody-v2-top">' +

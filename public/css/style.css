@@ -3652,6 +3652,266 @@ textarea.input {
   }
 }
 
+/* ---------- Responsive: iPad 10.2" Landscape (~1080px with sidebar visible) ---------- */
+@media (min-width: 1025px) and (max-width: 1180px) {
+  /* Home grid: 3 columns instead of 4 when sidebar eats space */
+  .home-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+
+  .home-card {
+    min-height: 200px;
+    padding: 24px 16px;
+  }
+
+  .home-title {
+    font-size: 32px;
+  }
+
+  /* Stats bar: keep 2-row layout so cards don't get squeezed */
+  .stats-bar {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+
+  /* Topbar: tighten spacing to prevent overlap */
+  .topbar {
+    padding: 10px 18px;
+    gap: 10px;
+  }
+
+  .topbar-add-btn {
+    padding: 8px 14px;
+    font-size: 12px;
+    gap: 6px;
+  }
+
+  .topbar-alert-btn {
+    width: 38px;
+    height: 38px;
+    font-size: 16px;
+  }
+
+  /* Grids with large minmax: reduce minimum to prevent overflow */
+  .equip-grid,
+  .incoming-grid,
+  .emp-custody-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+
+  .all-equip-grid,
+  .all-custody-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  }
+
+  /* Dept / Emp grids: ensure 2 comfortable columns */
+  .dept-grid,
+  .emp-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  /* Zone grids */
+  .wh-zones-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  /* Modal: don't stretch to full width */
+  .modal-content {
+    max-width: 700px;
+  }
+}
+
+/* ---------- Responsive: iPad 10.2" Portrait (~810px, drawer mode) ---------- */
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* Topbar: prevent icon/button overlap */
+  .topbar {
+    padding: 10px 16px;
+    gap: 10px;
+  }
+
+  .topbar-add-btn {
+    padding: 8px 14px;
+    font-size: 12px;
+    gap: 6px;
+  }
+
+  .topbar-alert-btn {
+    width: 38px;
+    height: 38px;
+    font-size: 16px;
+  }
+
+  .topbar-hamburger,
+  .sidebar-toggle {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+
+  .topbar-title {
+    font-size: 16px;
+  }
+
+  /* Dept and Emp grids: force 2 columns to prevent awkward 3-column cramming */
+  .dept-grid,
+  .emp-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    padding: 14px 18px;
+  }
+
+  /* Equip, custody, incoming grids: lower minmax for clean 2-column */
+  .equip-grid,
+  .incoming-grid,
+  .emp-custody-grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
+
+  .all-equip-grid,
+  .all-custody-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+
+  /* Locker grid: slightly tighter */
+  .locker-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+    padding: 14px 18px;
+  }
+
+  /* Home grid (already 2-col from ≤1024 rule): adjust spacing */
+  .home-grid {
+    gap: 16px;
+    padding: 16px 18px;
+  }
+
+  .home-card {
+    min-height: 200px;
+    padding: 24px 16px;
+  }
+
+  .home-card-icon {
+    width: 56px;
+    height: 56px;
+    font-size: 24px;
+    margin-bottom: 14px;
+  }
+
+  /* Detail pages: comfortable spacing */
+  .dept-detail-header,
+  .emp-detail-header {
+    gap: 14px;
+    padding: 18px 20px;
+  }
+
+  .dept-detail-name,
+  .emp-detail-name {
+    font-size: 18px;
+  }
+
+  .dept-detail-img {
+    width: 54px;
+    height: 54px;
+  }
+
+  .emp-detail-avatar {
+    width: 56px;
+    height: 56px;
+  }
+
+  /* Tabs: prevent overflow */
+  .dept-detail-tabs {
+    gap: 2px;
+    padding: 0 18px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .dept-dtab {
+    padding: 9px 14px;
+    font-size: 12.5px;
+    white-space: nowrap;
+  }
+
+  /* Stats: already 2-col from ≤1024 rule, adjust padding */
+  .stats-bar {
+    padding: 14px 18px;
+    gap: 12px;
+  }
+
+  /* Zone area grid: ensure no overflow */
+  .zone-area-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+
+  /* Modal: use viewport-relative width for iPad */
+  .modal-content {
+    max-width: 90vw;
+  }
+
+  .modal-overlay {
+    padding: 16px;
+  }
+
+  /* Zone detail: comfortable width */
+  .zone-detail-view {
+    padding: 16px 18px;
+  }
+
+  .wh-zone-bar {
+    padding: 10px 18px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .zone-icon-btn {
+    min-width: 65px;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  /* Table scroll for iPad portrait */
+  .table-wrap {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .items-table,
+  .equipment-table,
+  .emp-items-table {
+    min-width: 500px;
+  }
+
+  /* Toast positioning */
+  .toast-container {
+    bottom: 16px;
+    right: 16px;
+  }
+
+  /* Add-item bar: prevent cramped inputs */
+  .add-item-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 16px;
+  }
+
+  /* Transfer form grid */
+  .transfer-form-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* Print buttons: prevent overlap with other actions */
+  .items-toolbar-bar {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+}
+
 /* ============================================================
    ENHANCED COMPONENTS (v7 update)
    ============================================================ */

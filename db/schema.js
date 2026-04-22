@@ -7,8 +7,17 @@ const client = createClient({
 
 let initialized = false;
 
+const SCHEMA_VERSION = 2;
+
 async function ensureTables() {
     if (initialized) return;
+
+    await client.execute(`CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY, applied_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+    const verRes = await client.execute(`SELECT COALESCE(MAX(version), 0) AS v FROM schema_version`);
+    if (Number(verRes.rows[0].v) >= SCHEMA_VERSION) {
+        initialized = true;
+        return;
+    }
 
     await client.batch([
         `CREATE TABLE IF NOT EXISTS lockers (
@@ -140,6 +149,18 @@ async function ensureTables() {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
             FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL
+        )`,
+        `CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL CHECK (role IN ('manager','admin','employee')),
+            employee_id INTEGER DEFAULT NULL,
+            department_id INTEGER DEFAULT NULL,
+            active INTEGER NOT NULL DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL,
+            FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL
         )`
     ], 'write');
 
@@ -216,6 +237,7 @@ async function ensureTables() {
         await client.batch(stmts, 'write');
     }
 
+    await client.execute({ sql: `INSERT OR IGNORE INTO schema_version (version) VALUES (?)`, args: [SCHEMA_VERSION] });
     initialized = true;
 }
 

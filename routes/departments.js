@@ -27,15 +27,18 @@ function uploadToCloudinary(buffer, folder) {
 
 module.exports = function (db) {
 
-    // List departments
+    // List departments (employees only see their own)
     router.get('/', async (req, res) => {
-        const result = await db.execute(`
-            SELECT d.*,
-                   (SELECT COUNT(*) FROM employees e WHERE e.department_id = d.id) AS employee_count,
-                   (SELECT COUNT(*) FROM department_items di WHERE di.department_id = d.id) AS item_count
-            FROM departments d
-            ORDER BY d.name
-        `);
+        const scopeToDept = req.user && req.user.role === 'employee' ? Number(req.user.department_id) : null;
+        const result = await db.execute({
+            sql: `SELECT d.*,
+                         (SELECT COUNT(*) FROM employees e WHERE e.department_id = d.id) AS employee_count,
+                         (SELECT COUNT(*) FROM department_items di WHERE di.department_id = d.id) AS item_count
+                  FROM departments d
+                  ${scopeToDept ? 'WHERE d.id = ?' : ''}
+                  ORDER BY d.name`,
+            args: scopeToDept ? [scopeToDept] : []
+        });
         res.json(result.rows);
     });
 

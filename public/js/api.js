@@ -1,8 +1,16 @@
+function _handleUnauthorized(res) {
+    if (res.status === 401 && location.pathname !== '/login' && !location.pathname.endsWith('/login.html')) {
+        location.href = '/login';
+        throw new Error('Not authenticated');
+    }
+}
+
 const API = {
     async request(method, url, body) {
-        const opts = { method, headers: { 'Content-Type': 'application/json' } };
+        const opts = { method, headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin' };
         if (body) opts.body = JSON.stringify(body);
         const res = await fetch('/api' + url, opts);
+        _handleUnauthorized(res);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Request failed');
         return data;
@@ -10,11 +18,24 @@ const API = {
     async upload(url, file) {
         const form = new FormData();
         form.append('image', file);
-        const res = await fetch('/api' + url, { method: 'POST', body: form });
+        const res = await fetch('/api' + url, { method: 'POST', body: form, credentials: 'same-origin' });
+        _handleUnauthorized(res);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Upload failed');
         return data;
     },
+
+    // Auth
+    me()                 { return this.request('GET', '/auth/me'); },
+    logout()             { return this.request('POST', '/auth/logout'); },
+    changeOwnPassword(current_password, new_password) { return this.request('PUT', '/auth/password', { current_password, new_password }); },
+
+    // Users (manager only)
+    getUsers()                          { return this.request('GET', '/users'); },
+    createUser(data)                    { return this.request('POST', '/users', data); },
+    updateUser(id, data)                { return this.request('PUT', '/users/' + id, data); },
+    resetUserPassword(id, password)     { return this.request('POST', '/users/' + id + '/password', { password }); },
+    deleteUser(id)                      { return this.request('DELETE', '/users/' + id); },
 
     // Lockers
     getLockers()           { return this.request('GET', '/lockers'); },

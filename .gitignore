@@ -3,6 +3,10 @@ node_modules/
 db/*.db
 db/*.db-shm
 db/*.db-wal
+local.db
+local.db-shm
+local.db-wal
 public/uploads/*
 !public/uploads/.gitkeep
 .vercel
+.claude/

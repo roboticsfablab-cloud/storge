@@ -356,10 +356,7 @@ function navigateTo(page) {
         if (empLink) empLink.classList.add('active');
     }
 
-    var addBtn = document.getElementById('addBtn');
-
-    // Add button is visible on all main section pages, hidden on home & detail pages
-    if (addBtn) addBtn.style.display = (page === 'home' || page === 'dept-detail' || page === 'emp-detail') ? 'none' : '';
+    updateAddBtnVisibility();
 
     // Update alert count globally on every navigation
     updateAlertBadge();
@@ -383,6 +380,8 @@ function navigateTo(page) {
         renderDeptDetail();
     } else if (page === 'emp-detail') {
         renderEmpDetail();
+    } else if (page === 'users') {
+        renderUsers();
     }
 
     // Update page title
@@ -393,7 +392,8 @@ function navigateTo(page) {
         departments: t('departments'),
         employees: t('employees'),
         'dept-detail': t('departments'),
-        'emp-detail': t('employees')
+        'emp-detail': t('employees'),
+        users: 'Users'
     };
     var pageTitleEl = document.getElementById('pageTitle');
     if (pageTitleEl) pageTitleEl.textContent = titles[page] || 'FABY Keeper';
@@ -3013,6 +3013,199 @@ if (newItemFile) {
     });
 }
 
+// ============ Auth ============
+window.CURRENT_USER = null;
+
+function renderUserBadge() {
+    var u = window.CURRENT_USER;
+    if (!u) return;
+    var nameEl = document.getElementById('userNameLabel');
+    var roleEl = document.getElementById('userRoleLabel');
+    if (nameEl) nameEl.textContent = u.username || '';
+    if (roleEl) roleEl.textContent = u.role || '';
+    var badge = document.getElementById('userBadge');
+    if (badge) badge.style.display = '';
+    var btn = document.getElementById('logoutBtn');
+    if (btn) btn.style.display = '';
+}
+
+async function logoutUser() {
+    try { await API.logout(); } catch (e) {}
+    try { localStorage.removeItem('navState'); } catch (e) {}
+    location.href = '/login';
+}
+
+function applyRoleClass() {
+    var u = window.CURRENT_USER;
+    if (!u) return;
+    document.body.classList.remove('role-manager', 'role-admin', 'role-employee');
+    document.body.classList.add('role-' + u.role);
+}
+
+function updateAddBtnVisibility() {
+    var addBtn = document.getElementById('addBtn');
+    if (!addBtn) return;
+    var page = currentPage;
+    var hiddenOnThisPage = (page === 'home' || page === 'dept-detail' || page === 'emp-detail' || page === 'users');
+    var role = (window.CURRENT_USER && window.CURRENT_USER.role) || null;
+    var roleAllowed = {
+        manager:  ['lockers', 'warehouse', 'departments', 'employees'],
+        admin:    ['departments', 'employees'],
+        employee: []
+    };
+    var allowed = (role && roleAllowed[role]) || [];
+    addBtn.style.display = (hiddenOnThisPage || allowed.indexOf(page) === -1) ? 'none' : '';
+}
+
+(async function bootAuth() {
+    try {
+        var res = await API.me();
+        window.CURRENT_USER = res.user || res;
+        applyRoleClass();
+        renderUserBadge();
+        updateAddBtnVisibility();
+    } catch (e) {
+        if (location.pathname !== '/login' && !location.pathname.endsWith('/login.html')) {
+            location.href = '/login';
+        }
+    }
+})();
+
+// ============ Users Management (Manager only) ============
+var _usersCache = [];
+
+async function renderUsers() {
+    try {
+        var rows = await API.getUsers();
+        _usersCache = rows;
+        var tbody = document.getElementById('usersTableBody');
+        if (!tbody) return;
+        if (!rows.length) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px; color:rgba(255,255,255,0.4);">No users yet.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = rows.map(function(u) {
+            var statusCls = Number(u.active) ? 'active' : 'inactive';
+            var statusLbl = Number(u.active) ? 'Active' : 'Inactive';
+            var empName = u.employee_name ? escapeHtml(u.employee_name) : '<span style="color:rgba(255,255,255,0.3);">—</span>';
+            var deptName = u.department_name ? escapeHtml(u.department_name) : '<span style="color:rgba(255,255,255,0.3);">—</span>';
+            var isSelf = window.CURRENT_USER && Number(window.CURRENT_USER.id) === Number(u.id);
+            return '<tr>'
+                + '<td><strong>' + escapeHtml(u.username) + '</strong>' + (isSelf ? ' <span style="color:rgba(255,255,255,0.4); font-size:12px;">(you)</span>' : '') + '</td>'
+                + '<td><span class="role-chip ' + u.role + '">' + u.role + '</span></td>'
+                + '<td><span class="status-chip ' + statusCls + '">' + statusLbl + '</span></td>'
+                + '<td>' + empName + '</td>'
+                + '<td>' + deptName + '</td>'
+                + '<td><div class="users-row-actions">'
+                +   '<button title="Edit" onclick="openUserModal(' + u.id + ')"><i class="fas fa-pen"></i></button>'
+                +   '<button title="Reset password" onclick="openResetPasswordModal(' + u.id + ', \'' + escapeHtml(u.username).replace(/'/g, "\\'") + '\')"><i class="fas fa-key"></i></button>'
+                +   (isSelf ? '' : '<button class="danger" title="Delete" onclick="deleteUser(' + u.id + ', \'' + escapeHtml(u.username).replace(/'/g, "\\'") + '\')"><i class="fas fa-trash"></i></button>')
+                + '</div></td>'
+                + '</tr>';
+        }).join('');
+    } catch (err) {
+        showToast(err.message || 'Failed to load users', 'error');
+    }
+}
+
+async function openUserModal(userId) {
+    var modal = document.getElementById('userModal');
+    document.getElementById('userModalId').value = userId || '';
+    document.getElementById('userModalTitle').textContent = userId ? 'Edit User' : 'Add User';
+    document.getElementById('userModalUsername').value = '';
+    document.getElementById('userModalPassword').value = '';
+    document.getElementById('userModalRole').value = 'employee';
+    document.getElementById('userModalActive').checked = true;
+
+    var pwWrap = document.getElementById('userModalPasswordWrap');
+    pwWrap.style.display = userId ? 'none' : '';
+
+    try {
+        var [emps, depts] = await Promise.all([API.getEmployees(), API.getDepartments()]);
+        var empSel = document.getElementById('userModalEmployee');
+        empSel.innerHTML = '<option value="">— none —</option>' +
+            emps.map(function(e){ return '<option value="'+e.id+'">'+escapeHtml(e.name)+(e.department_name?' ('+escapeHtml(e.department_name)+')':'')+'</option>'; }).join('');
+        var deptSel = document.getElementById('userModalDepartment');
+        deptSel.innerHTML = '<option value="">— none —</option>' +
+            depts.map(function(d){ return '<option value="'+d.id+'">'+escapeHtml(d.name)+'</option>'; }).join('');
+
+        if (userId) {
+            var u = _usersCache.find(function(x){ return Number(x.id) === Number(userId); });
+            if (u) {
+                document.getElementById('userModalUsername').value = u.username || '';
+                document.getElementById('userModalRole').value = u.role || 'employee';
+                document.getElementById('userModalActive').checked = !!Number(u.active);
+                if (u.employee_id) empSel.value = String(u.employee_id);
+                if (u.department_id) deptSel.value = String(u.department_id);
+            }
+        }
+    } catch (e) {
+        showToast('Failed to load form data: ' + e.message, 'error');
+    }
+
+    modal.classList.add('active');
+}
+
+function onUserRoleChange() { /* reserved for future role-specific field toggles */ }
+
+async function saveUser() {
+    var id = document.getElementById('userModalId').value;
+    var username = document.getElementById('userModalUsername').value.trim();
+    var password = document.getElementById('userModalPassword').value;
+    var role = document.getElementById('userModalRole').value;
+    var employee_id = document.getElementById('userModalEmployee').value || null;
+    var department_id = document.getElementById('userModalDepartment').value || null;
+    var active = document.getElementById('userModalActive').checked;
+
+    if (!username) return showToast('Username is required', 'error');
+    if (!id && (!password || password.length < 6)) return showToast('Password must be at least 6 characters', 'error');
+
+    try {
+        if (id) {
+            await API.updateUser(id, { username, role, active, employee_id, department_id });
+            showToast('User updated', 'success');
+        } else {
+            await API.createUser({ username, password, role, employee_id, department_id });
+            showToast('User created', 'success');
+        }
+        closeModal('userModal');
+        renderUsers();
+    } catch (err) {
+        showToast(err.message || 'Save failed', 'error');
+    }
+}
+
+function openResetPasswordModal(userId, username) {
+    document.getElementById('resetPwUserId').value = userId;
+    document.getElementById('resetPwUsername').textContent = username;
+    document.getElementById('resetPwValue').value = '';
+    document.getElementById('resetPwModal').classList.add('active');
+}
+
+async function confirmResetPassword() {
+    var id = document.getElementById('resetPwUserId').value;
+    var pw = document.getElementById('resetPwValue').value;
+    if (!pw || pw.length < 6) return showToast('Password must be at least 6 characters', 'error');
+    try {
+        await API.resetUserPassword(id, pw);
+        closeModal('resetPwModal');
+        showToast('Password reset', 'success');
+    } catch (err) {
+        showToast(err.message || 'Reset failed', 'error');
+    }
+}
+
+async function deleteUser(id, username) {
+    if (!confirm('Delete user "' + username + '"? This cannot be undone.')) return;
+    try {
+        await API.deleteUser(id);
+        showToast('User deleted', 'success');
+        renderUsers();
+    } catch (err) {
+        showToast(err.message || 'Delete failed', 'error');
+    }
+}
+
 // ============ Init ============
 applyTheme();
 applyLanguage();
@@ -3025,7 +3218,7 @@ applyLanguage();
     try { state = JSON.parse(raw); } catch (e) { loadHomeCounts(); return; }
     if (!state || !state.page || state.page === 'home') { loadHomeCounts(); return; }
 
-    var validPages = ['home','lockers','warehouse','departments','employees','dept-detail','emp-detail'];
+    var validPages = ['home','lockers','warehouse','departments','employees','dept-detail','emp-detail','users'];
     if (validPages.indexOf(state.page) === -1) { loadHomeCounts(); return; }
 
     if (state.page === 'dept-detail') {

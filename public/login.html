@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign in — FABY Keeper</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%237b2ff7'/%3E%3Cstop offset='100%25' stop-color='%2300d2ff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='22' fill='url(%23g)'/%3E%3Crect x='28' y='18' width='44' height='52' rx='6' fill='none' stroke='white' stroke-width='5'/%3E%3Ccircle cx='50' cy='42' r='8' fill='none' stroke='white' stroke-width='4'/%3E%3Crect x='47' y='48' width='6' height='12' rx='2' fill='white'/%3E%3Crect x='22' y='72' width='56' height='12' rx='4' fill='rgba(255,255,255,0.35)'/%3E%3C/svg%3E">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+:root {
+    --c-primary: #7b2ff7;
+    --c-accent:  #00d2ff;
+    --c-teal:    #14f1d9;
+    --c-pink:    #ff3cac;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #05050d;
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    overflow: hidden;
+    position: relative;
+}
+html[dir="rtl"] body { font-family: 'Tajawal', 'Inter', system-ui, sans-serif; }
+
+/* Animated mesh-gradient background */
+.mesh {
+    position: fixed; inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+.blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.55;
+    mix-blend-mode: screen;
+    animation: float 22s ease-in-out infinite;
+}
+.blob.b1 { width: 560px; height: 560px; top: -180px; left: -120px; background: var(--c-primary); animation-delay: 0s; }
+.blob.b2 { width: 480px; height: 480px; bottom: -160px; right: -120px; background: var(--c-accent); animation-delay: -7s; }
+.blob.b3 { width: 420px; height: 420px; top: 40%; left: 55%; background: var(--c-pink); animation-delay: -14s; opacity: 0.35; }
+.blob.b4 { width: 360px; height: 360px; bottom: 20%; left: 10%; background: var(--c-teal); animation-delay: -4s; opacity: 0.3; }
+@keyframes float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33%      { transform: translate(60px, -40px) scale(1.08); }
+    66%      { transform: translate(-40px, 50px) scale(0.95); }
+}
+
+/* Subtle grid */
+.grid {
+    position: fixed; inset: 0;
+    background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    z-index: 0;
+    pointer-events: none;
+    mask-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,0.8), transparent 70%);
+}
+
+/* Floating particles */
+.particle {
+    position: fixed;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.6);
+    box-shadow: 0 0 10px rgba(255,255,255,0.8);
+    animation: rise 18s linear infinite;
+    z-index: 0;
+    pointer-events: none;
+}
+@keyframes rise {
+    0%   { transform: translateY(110vh) scale(0); opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 1; }
+    100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+}
+
+/* Language toggle */
+.lang-toggle {
+    position: fixed; top: 20px; right: 20px;
+    z-index: 10;
+    display: inline-flex; align-items: center; gap: 0;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 999px;
+    padding: 4px;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+html[dir="rtl"] .lang-toggle { right: auto; left: 20px; }
+.lang-btn {
+    border: none; background: transparent;
+    padding: 7px 14px;
+    color: rgba(255,255,255,0.6);
+    font-family: inherit; font-weight: 600; font-size: 13px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.lang-btn.active {
+    color: #fff;
+    background: linear-gradient(135deg, var(--c-primary), var(--c-accent));
+    box-shadow: 0 4px 14px rgba(123, 47, 247, 0.35);
+}
+
+/* Card */
+.card {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    max-width: 440px;
+    background: rgba(15, 15, 25, 0.55);
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 28px;
+    padding: 44px 40px;
+    box-shadow: 0 40px 120px -20px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04) inset;
+    animation: cardEnter 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes cardEnter {
+    0%   { opacity: 0; transform: translateY(28px) scale(0.96); filter: blur(6px); }
+    100% { opacity: 1; transform: translateY(0)    scale(1);    filter: blur(0);   }
+}
+.card.shake { animation: shake 0.45s cubic-bezier(.36,.07,.19,.97); }
+@keyframes shake {
+    10%, 90% { transform: translateX(-2px); }
+    20%, 80% { transform: translateX(4px); }
+    30%, 50%, 70% { transform: translateX(-8px); }
+    40%, 60% { transform: translateX(8px); }
+}
+
+/* Brand */
+.brand {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 32px;
+    animation: fadeSlide 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+}
+.brand-icon {
+    width: 52px; height: 52px; border-radius: 16px;
+    background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-accent) 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 22px; color: #fff;
+    box-shadow: 0 12px 32px -4px rgba(123, 47, 247, 0.6);
+    letter-spacing: -0.02em;
+}
+.brand-name { font-size: 21px; font-weight: 800; letter-spacing: -0.03em; }
+.brand-sub  { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 3px; font-weight: 500; }
+
+/* Headings */
+h1 {
+    font-size: 32px; font-weight: 800; letter-spacing: -0.035em;
+    margin-bottom: 10px; line-height: 1.15;
+    background: linear-gradient(135deg, #fff 0%, #b8b8d4 100%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    animation: fadeSlide 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.18s both;
+}
+.subtitle {
+    color: rgba(255,255,255,0.55);
+    font-size: 14.5px;
+    margin-bottom: 30px;
+    animation: fadeSlide 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.24s both;
+}
+@keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0);   }
+}
+
+/* Form */
+.field {
+    margin-bottom: 18px;
+    animation: fadeSlide 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.field:nth-of-type(1) { animation-delay: 0.30s; }
+.field:nth-of-type(2) { animation-delay: 0.36s; }
+.field:nth-of-type(3) { animation-delay: 0.42s; }
+label {
+    display: block; font-size: 13px; font-weight: 500;
+    color: rgba(255,255,255,0.72); margin-bottom: 8px;
+}
+.input-wrap {
+    position: relative;
+    display: flex; align-items: center;
+}
+.input-wrap i.leading {
+    position: absolute; inset-inline-start: 16px;
+    color: rgba(255,255,255,0.35);
+    font-size: 14px;
+    transition: color 0.2s ease;
+    pointer-events: none;
+}
+input[type="text"], input[type="password"] {
+    width: 100%;
+    padding: 14px 16px 14px 44px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px;
+    color: #fff; font-size: 15px; font-family: inherit;
+    transition: all 0.2s ease;
+}
+html[dir="rtl"] input[type="text"], html[dir="rtl"] input[type="password"] {
+    padding: 14px 44px 14px 16px;
+}
+input[type="text"]:focus, input[type="password"]:focus {
+    outline: none;
+    border-color: rgba(123, 47, 247, 0.65);
+    background: rgba(255,255,255,0.06);
+    box-shadow: 0 0 0 4px rgba(123, 47, 247, 0.18);
+}
+input:focus + i.leading, .input-wrap:focus-within i.leading { color: var(--c-accent); }
+input::placeholder { color: rgba(255,255,255,0.3); }
+.pw-toggle {
+    position: absolute; inset-inline-end: 14px;
+    background: none; border: none;
+    color: rgba(255,255,255,0.45);
+    cursor: pointer; padding: 4px;
+    font-size: 15px;
+    transition: color 0.15s ease;
+}
+.pw-toggle:hover { color: #fff; }
+
+/* Remember me + forgot row */
+.row-extras {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px;
+    margin-top: -4px;
+    margin-bottom: 18px;
+    animation: fadeSlide 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.48s both;
+}
+.remember {
+    display: inline-flex; align-items: center; gap: 9px;
+    color: rgba(255,255,255,0.7);
+    cursor: pointer;
+    user-select: none;
+}
+.remember input {
+    appearance: none; -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border: 1.5px solid rgba(255,255,255,0.25);
+    border-radius: 5px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+    background: rgba(255,255,255,0.04);
+}
+.remember input:checked {
+    background: linear-gradient(135deg, var(--c-primary), var(--c-accent));
+    border-color: transparent;
+}
+.remember input:checked::after {
+    content: '\2714';
+    position: absolute;
+    inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 11px; font-weight: 900;
+}
+.forgot-link {
+    color: rgba(255,255,255,0.6);
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+.forgot-link:hover { color: var(--c-accent); }
+
+/* Submit */
+button[type="submit"] {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-accent) 100%);
+    color: #fff; font-weight: 700; font-size: 15px;
+    border: none; border-radius: 14px;
+    cursor: pointer;
+    font-family: inherit;
+    letter-spacing: 0.01em;
+    transition: transform 0.12s ease, box-shadow 0.25s ease, filter 0.2s ease;
+    box-shadow: 0 10px 28px -4px rgba(123, 47, 247, 0.45);
+    position: relative;
+    overflow: hidden;
+    animation: fadeSlide 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.54s both;
+}
+button[type="submit"]::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.25), transparent 50%);
+    opacity: 0; transition: opacity 0.2s ease;
+}
+button[type="submit"]:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 40px -6px rgba(123, 47, 247, 0.55);
+}
+button[type="submit"]:hover:not(:disabled)::before { opacity: 1; }
+button[type="submit"]:active:not(:disabled) { transform: translateY(0); filter: brightness(0.95); }
+button[type="submit"]:disabled { opacity: 0.75; cursor: not-allowed; }
+
+.spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    margin-inline-end: 10px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Error banner */
+.error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #ffb4b4;
+    padding: 12px 14px;
+    border-radius: 12px;
+    font-size: 13.5px;
+    margin-bottom: 18px;
+    display: none;
+    gap: 10px;
+    align-items: center;
+}
+.error.show { display: flex; }
+.error i { font-size: 16px; color: #ff8b8b; }
+
+/* Footer */
+.footer {
+    margin-top: 26px; text-align: center;
+    font-size: 12.5px; color: rgba(255,255,255,0.35);
+    animation: fadeSlide 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.62s both;
+}
+
+/* Light-mode override (kept minimal — default is dark) */
+@media (max-width: 480px) {
+    .card { padding: 36px 28px; border-radius: 22px; }
+    h1 { font-size: 26px; }
+    .lang-toggle { top: 14px; right: 14px; }
+    html[dir="rtl"] .lang-toggle { left: 14px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Background -->
+<div class="mesh" aria-hidden="true">
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+    <div class="blob b3"></div>
+    <div class="blob b4"></div>
+</div>
+<div class="grid" aria-hidden="true"></div>
+
+<!-- Language toggle -->
+<div class="lang-toggle" role="tablist" aria-label="Language">
+    <button type="button" class="lang-btn active" id="langEn" onclick="setLang('en')">EN</button>
+    <button type="button" class="lang-btn" id="langAr" onclick="setLang('ar')">العربية</button>
+</div>
+
+<!-- Card -->
+<form class="card" id="loginForm" autocomplete="on" novalidate>
+    <div class="brand">
+        <div class="brand-icon">F</div>
+        <div>
+            <div class="brand-name">FABY Keeper</div>
+            <div class="brand-sub" data-i18n="brandSub">Inventory &amp; Custody</div>
+        </div>
+    </div>
+
+    <h1 data-i18n="title">Welcome back</h1>
+    <p class="subtitle" data-i18n="subtitle">Sign in to continue.</p>
+
+    <div class="error" id="errorMsg" role="alert">
+        <i class="fas fa-triangle-exclamation"></i>
+        <span id="errorText"></span>
+    </div>
+
+    <div class="field">
+        <label for="username" data-i18n="usernameLabel">Username</label>
+        <div class="input-wrap">
+            <i class="fas fa-user leading"></i>
+            <input id="username" name="username" type="text" autocomplete="username" required autofocus />
+        </div>
+    </div>
+
+    <div class="field">
+        <label for="password" data-i18n="passwordLabel">Password</label>
+        <div class="input-wrap">
+            <i class="fas fa-lock leading"></i>
+            <input id="password" name="password" type="password" autocomplete="current-password" required />
+            <button type="button" class="pw-toggle" id="pwToggle" onclick="togglePassword()" aria-label="Show password" data-i18n-aria="showPassword">
+                <i class="fas fa-eye" id="pwIcon"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="row-extras">
+        <label class="remember">
+            <input type="checkbox" id="rememberMe" checked>
+            <span data-i18n="remember">Remember me</span>
+        </label>
+        <a class="forgot-link" onclick="onForgotPassword()" data-i18n="forgot">Forgot password?</a>
+    </div>
+
+    <button type="submit" id="submitBtn">
+        <span id="submitLabel" data-i18n="signIn">Sign in</span>
+    </button>
+
+    <div class="footer" data-i18n="protected">Protected area &middot; Authorized personnel only</div>
+</form>
+
+<!-- Particles -->
+<script>
+(function spawnParticles() {
+    var n = 14;
+    for (var i = 0; i < n; i++) {
+        var p = document.createElement('div');
+        p.className = 'particle';
+        p.style.left = (Math.random() * 100) + 'vw';
+        p.style.animationDelay = (-Math.random() * 18) + 's';
+        p.style.animationDuration = (12 + Math.random() * 14) + 's';
+        p.style.opacity = (0.3 + Math.random() * 0.5);
+        document.body.appendChild(p);
+    }
+})();
+</script>
+
+<script>
+const I18N = {
+    en: {
+        title: 'Welcome back',
+        subtitle: 'Sign in to continue.',
+        usernameLabel: 'Username',
+        passwordLabel: 'Password',
+        remember: 'Remember me',
+        forgot: 'Forgot password?',
+        signIn: 'Sign in',
+        signingIn: 'Signing in...',
+        showPassword: 'Show password',
+        hidePassword: 'Hide password',
+        requireBoth: 'Please enter your username and password',
+        invalid: 'Invalid credentials — please try again',
+        offline: 'Network problem — check your connection and try again',
+        protected: 'Protected area · Authorized personnel only',
+        brandSub: 'Inventory & Custody',
+        forgotMessage: 'Please contact your manager to reset your password.',
+    },
+    ar: {
+        title: 'مرحباً بعودتك',
+        subtitle: 'سجّل الدخول للمتابعة.',
+        usernameLabel: 'اسم المستخدم',
+        passwordLabel: 'كلمة المرور',
+        remember: 'تذكرني',
+        forgot: 'نسيت كلمة المرور؟',
+        signIn: 'تسجيل الدخول',
+        signingIn: 'جارٍ تسجيل الدخول...',
+        showPassword: 'إظهار كلمة المرور',
+        hidePassword: 'إخفاء كلمة المرور',
+        requireBoth: 'يرجى إدخال اسم المستخدم وكلمة المرور',
+        invalid: 'بيانات الدخول غير صحيحة — حاول مرة أخرى',
+        offline: 'تعذّر الاتصال — تحقّق من الإنترنت وحاول مجدداً',
+        protected: 'منطقة محمية · للموظفين المعتمدين فقط',
+        brandSub: 'المخزون والعهد',
+        forgotMessage: 'يرجى التواصل مع مديرك لإعادة تعيين كلمة المرور.',
+    }
+};
+
+let currentLang = localStorage.getItem('lang') === 'ar' ? 'ar' : 'en';
+let pwVisible = false;
+
+function applyLang() {
+    const html = document.documentElement;
+    html.lang = currentLang;
+    html.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (I18N[currentLang][key]) el.textContent = I18N[currentLang][key];
+    });
+    document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+        const key = el.getAttribute('data-i18n-aria');
+        if (I18N[currentLang][key]) el.setAttribute('aria-label', I18N[currentLang][key]);
+    });
+
+    document.getElementById('langEn').classList.toggle('active', currentLang === 'en');
+    document.getElementById('langAr').classList.toggle('active', currentLang === 'ar');
+}
+
+function setLang(lang) {
+    if (lang !== 'en' && lang !== 'ar') return;
+    currentLang = lang;
+    localStorage.setItem('lang', lang);
+    applyLang();
+}
+
+function togglePassword() {
+    pwVisible = !pwVisible;
+    const pw = document.getElementById('password');
+    const icon = document.getElementById('pwIcon');
+    const toggle = document.getElementById('pwToggle');
+    pw.type = pwVisible ? 'text' : 'password';
+    icon.className = pwVisible ? 'fas fa-eye-slash' : 'fas fa-eye';
+    toggle.setAttribute('aria-label', I18N[currentLang][pwVisible ? 'hidePassword' : 'showPassword']);
+}
+
+function showError(messageKey, fallback) {
+    const err = document.getElementById('errorMsg');
+    const text = document.getElementById('errorText');
+    text.textContent = (messageKey && I18N[currentLang][messageKey]) || fallback || messageKey || 'Error';
+    err.classList.add('show');
+    const card = document.getElementById('loginForm');
+    card.classList.remove('shake');
+    void card.offsetWidth;
+    card.classList.add('shake');
+}
+
+function onForgotPassword() {
+    showError('forgotMessage');
+}
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errorEl = document.getElementById('errorMsg');
+    errorEl.classList.remove('show');
+
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const rememberMe = document.getElementById('rememberMe').checked;
+
+    if (!username || !password) {
+        showError('requireBoth');
+        return;
+    }
+
+    const btn = document.getElementById('submitBtn');
+    const label = document.getElementById('submitLabel');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span><span>' + I18N[currentLang].signingIn + '</span>';
+
+    try {
+        const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password, remember_me: rememberMe }),
+        });
+        if (!res.ok) {
+            let msg = I18N[currentLang].invalid;
+            try { const data = await res.json(); if (data && data.error && res.status !== 401) msg = data.error; } catch (_) {}
+            throw new Error(msg);
+        }
+        window.location.href = '/';
+    } catch (err) {
+        if (err instanceof TypeError) {
+            showError('offline');
+        } else {
+            showError(null, err.message);
+        }
+        btn.disabled = false;
+        btn.innerHTML = '<span id="submitLabel">' + I18N[currentLang].signIn + '</span>';
+    }
+});
+
+// Initial language apply
+applyLang();
+</script>
+</body>
+</html>

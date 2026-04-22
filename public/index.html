@@ -9,6 +9,137 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .topbar-user {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 6px 12px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 500;
+            line-height: 1;
+        }
+        .topbar-user .user-name { color: #fff; }
+        .topbar-user .user-role {
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            background: linear-gradient(135deg, #7b2ff7 0%, #00d2ff 100%);
+            color: #fff;
+        }
+        .topbar-logout-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 38px; height: 38px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.04);
+            color: rgba(255,255,255,0.75);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .topbar-logout-btn:hover {
+            color: #ff7a7a;
+            border-color: rgba(255, 122, 122, 0.3);
+            background: rgba(255, 122, 122, 0.08);
+        }
+        [data-theme="light"] .topbar-user { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.08); }
+        [data-theme="light"] .topbar-user .user-name { color: #111; }
+        [data-theme="light"] .topbar-logout-btn { border-color: rgba(0,0,0,0.08); background: rgba(0,0,0,0.04); color: rgba(0,0,0,0.65); }
+
+        /* Role-based visibility — set on <body> at auth boot */
+        body:not(.role-manager) .manager-only { display: none !important; }
+
+        /* Users management page */
+        .users-page { padding: 24px; }
+        .users-toolbar {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px;
+        }
+        .users-toolbar h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+        .users-add-btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 10px 18px; border: none; border-radius: 10px;
+            background: linear-gradient(135deg, #7b2ff7 0%, #00d2ff 100%);
+            color: #fff; font-weight: 600; font-size: 14px; cursor: pointer;
+            box-shadow: 0 6px 20px rgba(123, 47, 247, 0.3);
+            transition: transform 0.15s ease;
+            font-family: inherit;
+        }
+        .users-add-btn:hover { transform: translateY(-1px); }
+        .users-table-wrap {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 14px;
+            overflow: auto;
+        }
+        [data-theme="light"] .users-table-wrap { background: #fff; border-color: rgba(0,0,0,0.08); }
+        .users-table { width: 100%; border-collapse: collapse; }
+        .users-table th, .users-table td { padding: 14px 18px; text-align: start; font-size: 14px; }
+        .users-table th {
+            background: rgba(255,255,255,0.04);
+            font-weight: 600; font-size: 12px;
+            text-transform: uppercase; letter-spacing: 0.05em;
+            color: rgba(255,255,255,0.55);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        [data-theme="light"] .users-table th { background: #f7f7fa; color: #555; border-color: rgba(0,0,0,0.06); }
+        .users-table tbody tr { border-top: 1px solid rgba(255,255,255,0.04); }
+        [data-theme="light"] .users-table tbody tr { border-color: rgba(0,0,0,0.05); }
+        .role-chip {
+            display: inline-block; padding: 3px 10px; border-radius: 999px;
+            font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .role-chip.manager  { background: linear-gradient(135deg, #7b2ff7, #00d2ff); color: #fff; }
+        .role-chip.admin    { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .role-chip.employee { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+        .status-chip {
+            display: inline-block; padding: 3px 10px; border-radius: 999px;
+            font-size: 11px; font-weight: 600;
+        }
+        .status-chip.active   { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+        .status-chip.inactive { background: rgba(239, 68, 68, 0.15); color: #ff7a7a; }
+        .users-row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+        .users-row-actions button {
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.04);
+            color: rgba(255,255,255,0.8);
+            width: 34px; height: 34px; border-radius: 8px; cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center;
+            transition: all 0.15s ease;
+            font-family: inherit;
+        }
+        [data-theme="light"] .users-row-actions button { border-color: rgba(0,0,0,0.08); background: #f7f7fa; color: #444; }
+        .users-row-actions button:hover { background: rgba(123, 47, 247, 0.15); border-color: rgba(123, 47, 247, 0.4); color: #c5a3ff; }
+        .users-row-actions button.danger:hover { background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.4); color: #ff7a7a; }
+
+        /* User modal form fields */
+        .user-form-field { display: block; margin-bottom: 14px; }
+        .user-form-field label { display: block; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.75); margin-bottom: 6px; }
+        [data-theme="light"] .user-form-field label { color: #444; }
+        .user-form-field input[type="text"],
+        .user-form-field input[type="password"],
+        .user-form-field select {
+            width: 100%; padding: 11px 14px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            color: #fff; font-size: 14px; font-family: inherit;
+        }
+        [data-theme="light"] .user-form-field input,
+        [data-theme="light"] .user-form-field select {
+            background: #fff; border-color: rgba(0,0,0,0.12); color: #111;
+        }
+        .user-form-field input:focus, .user-form-field select:focus {
+            outline: none; border-color: rgba(123, 47, 247, 0.6);
+            box-shadow: 0 0 0 4px rgba(123, 47, 247, 0.12);
+        }
+        .user-form-checkbox { display: flex; align-items: center; gap: 8px; font-size: 14px; color: rgba(255,255,255,0.8); }
+        [data-theme="light"] .user-form-checkbox { color: #333; }
+    </style>
 </head>
 <body>
 
@@ -70,6 +201,10 @@
                 <i class="fas fa-id-badge"></i>
                 <span data-i18n="employees">Employees</span>
             </a>
+            <a class="sidebar-link manager-only" data-page="users" onclick="navigateTo('users')">
+                <i class="fas fa-user-shield"></i>
+                <span>Users</span>
+            </a>
         </nav>
 
         <div class="sidebar-footer">
@@ -92,6 +227,10 @@
             </button>
             <h1 id="pageTitle" data-i18n="home">Home</h1>
             <div class="topbar-right">
+                <div class="topbar-user" id="userBadge" style="display:none;">
+                    <span class="user-name" id="userNameLabel"></span>
+                    <span class="user-role" id="userRoleLabel"></span>
+                </div>
                 <button class="topbar-alert-btn" onclick="openAlertsPanel()" title="Alerts">
                     <i class="fas fa-bell"></i>
                     <span class="topbar-alert-count" id="alertBadge"><span id="alertCount">0</span></span>
@@ -99,6 +238,9 @@
                 <button class="topbar-add-btn" id="addBtn" onclick="handleAddBtn()" style="display:none;">
                     <i class="fas fa-plus-circle"></i>
                     <span id="addBtnText" data-i18n="add">Add</span>
+                </button>
+                <button class="topbar-logout-btn" id="logoutBtn" onclick="logoutUser()" style="display:none;" title="Sign out">
+                    <i class="fas fa-sign-out-alt"></i>
                 </button>
             </div>
         </div>
@@ -540,6 +682,34 @@
                             <span data-i18n="add">Add</span>
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Management (Manager only) -->
+        <div class="page" id="page-users">
+            <div class="users-page">
+                <div class="users-toolbar">
+                    <h2>Users</h2>
+                    <button class="users-add-btn" onclick="openUserModal()">
+                        <i class="fas fa-plus"></i>
+                        <span>Add User</span>
+                    </button>
+                </div>
+                <div class="users-table-wrap">
+                    <table class="users-table">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Linked Employee</th>
+                                <th>Department</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -1291,9 +1461,84 @@
     </div>
 </div>
 
+<!-- User Create/Edit Modal (Manager only) -->
+<div class="modal-overlay" id="userModal">
+    <div class="modal" style="max-width: 460px;">
+        <div class="modal-header">
+            <h2 id="userModalTitle">Add User</h2>
+            <button class="modal-close" onclick="closeModal('userModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="userModalId" value="">
+            <div class="user-form-field">
+                <label>Username</label>
+                <input type="text" id="userModalUsername" placeholder="e.g. alice" autocomplete="off">
+            </div>
+            <div class="user-form-field" id="userModalPasswordWrap">
+                <label>Password <span style="color:rgba(255,255,255,0.4); font-weight:400;">(min 6 characters)</span></label>
+                <input type="password" id="userModalPassword" placeholder="" autocomplete="new-password">
+            </div>
+            <div class="user-form-field">
+                <label>Role</label>
+                <select id="userModalRole" onchange="onUserRoleChange()">
+                    <option value="employee">Employee — CRUD within own department</option>
+                    <option value="admin">Admin — view everywhere, add in Departments</option>
+                    <option value="manager">Manager — full access</option>
+                </select>
+            </div>
+            <div class="user-form-field">
+                <label>Linked Employee <span style="color:rgba(255,255,255,0.4); font-weight:400;">(optional)</span></label>
+                <select id="userModalEmployee"><option value="">— none —</option></select>
+            </div>
+            <div class="user-form-field" id="userModalDeptWrap">
+                <label>Department Scope <span style="color:rgba(255,255,255,0.4); font-weight:400;">(used if no employee linked)</span></label>
+                <select id="userModalDepartment"><option value="">— none —</option></select>
+            </div>
+            <div class="user-form-field">
+                <label class="user-form-checkbox">
+                    <input type="checkbox" id="userModalActive" checked>
+                    <span>Active</span>
+                </label>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-secondary" onclick="closeModal('userModal')">Cancel</button>
+            <button class="btn-primary" onclick="saveUser()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div class="modal-overlay" id="resetPwModal">
+    <div class="modal" style="max-width: 420px;">
+        <div class="modal-header">
+            <h2>Reset Password</h2>
+            <button class="modal-close" onclick="closeModal('resetPwModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="resetPwUserId" value="">
+            <p style="margin-bottom: 14px; color: rgba(255,255,255,0.65); font-size: 13.5px;">
+                Setting a new password for <strong id="resetPwUsername"></strong>.
+            </p>
+            <div class="user-form-field">
+                <label>New Password <span style="color:rgba(255,255,255,0.4); font-weight:400;">(min 6 characters)</span></label>
+                <input type="password" id="resetPwValue" autocomplete="new-password">
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-secondary" onclick="closeModal('resetPwModal')">Cancel</button>
+            <button class="btn-primary" onclick="confirmResetPassword()">Reset</button>
+        </div>
+    </div>
+</div>
+
 <!-- Scripts -->
-<script src="/js/api.js?v=21"></script>
-<script src="/js/app.js?v=21"></script>
+<script src="/js/api.js?v=22"></script>
+<script src="/js/app.js?v=22"></script>
 
 </body>
 </html>

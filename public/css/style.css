@@ -8134,3 +8134,237 @@ textarea.input {
     transform: rotate(-6deg) scale(1.08);
 }
 [dir="rtl"] .zone-card-print { right: auto; left: 46px; }
+
+/* ============================================================
+   VISUAL REFRESH — polish layer (additive only)
+   ============================================================ */
+
+/* Extended tokens */
+:root,
+[data-theme="dark"] {
+  --ring: 0 0 0 3px rgba(139, 92, 246, 0.35);
+  --lift-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.55), 0 6px 16px -6px rgba(139, 92, 246, 0.25);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+[data-theme="light"] {
+  --ring: 0 0 0 3px rgba(124, 58, 237, 0.18);
+  --lift-shadow: 0 16px 36px -14px rgba(0, 0, 0, 0.18), 0 4px 12px -4px rgba(124, 58, 237, 0.12);
+}
+
+/* Focus ring — keyboard accessibility + a premium feel on inputs/buttons */
+*:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+  border-radius: inherit;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+
+/* Subtle press animation on every button (respects elements that define their own transform) */
+button:not(:disabled):active {
+  transform: translateY(1px) scale(0.985);
+  transition: transform 80ms ease-out;
+}
+
+/* Page cross-fade when switching between .page elements in the SPA */
+.page { animation: pageEnter 0.35s var(--spring) both; }
+@keyframes pageEnter {
+  0%   { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Gentle stagger entrance for the common grid containers */
+.locker-grid > *,
+.zone-grid > *,
+.dept-grid > *,
+.emp-grid > *,
+.home-stats-grid > *,
+.emp-custody-grid > *,
+.all-custody-grid > * {
+  animation: cardEnter 0.5s var(--spring) both;
+}
+.locker-grid > *:nth-child(1),  .zone-grid > *:nth-child(1),
+.dept-grid > *:nth-child(1),    .emp-grid > *:nth-child(1),
+.home-stats-grid > *:nth-child(1), .emp-custody-grid > *:nth-child(1),
+.all-custody-grid > *:nth-child(1) { animation-delay: 0ms; }
+.locker-grid > *:nth-child(2),  .zone-grid > *:nth-child(2),
+.dept-grid > *:nth-child(2),    .emp-grid > *:nth-child(2),
+.home-stats-grid > *:nth-child(2), .emp-custody-grid > *:nth-child(2),
+.all-custody-grid > *:nth-child(2) { animation-delay: 40ms; }
+.locker-grid > *:nth-child(3),  .zone-grid > *:nth-child(3),
+.dept-grid > *:nth-child(3),    .emp-grid > *:nth-child(3),
+.home-stats-grid > *:nth-child(3), .emp-custody-grid > *:nth-child(3),
+.all-custody-grid > *:nth-child(3) { animation-delay: 80ms; }
+.locker-grid > *:nth-child(4),  .zone-grid > *:nth-child(4),
+.dept-grid > *:nth-child(4),    .emp-grid > *:nth-child(4),
+.home-stats-grid > *:nth-child(4), .emp-custody-grid > *:nth-child(4),
+.all-custody-grid > *:nth-child(4) { animation-delay: 120ms; }
+.locker-grid > *:nth-child(5),  .zone-grid > *:nth-child(5),
+.dept-grid > *:nth-child(5),    .emp-grid > *:nth-child(5),
+.home-stats-grid > *:nth-child(5), .emp-custody-grid > *:nth-child(5),
+.all-custody-grid > *:nth-child(5) { animation-delay: 160ms; }
+.locker-grid > *:nth-child(6),  .zone-grid > *:nth-child(6),
+.dept-grid > *:nth-child(6),    .emp-grid > *:nth-child(6),
+.home-stats-grid > *:nth-child(6), .emp-custody-grid > *:nth-child(6),
+.all-custody-grid > *:nth-child(6) { animation-delay: 200ms; }
+.locker-grid > *:nth-child(n+7),  .zone-grid > *:nth-child(n+7),
+.dept-grid > *:nth-child(n+7),    .emp-grid > *:nth-child(n+7),
+.home-stats-grid > *:nth-child(n+7), .emp-custody-grid > *:nth-child(n+7),
+.all-custody-grid > *:nth-child(n+7) { animation-delay: 220ms; }
+
+@keyframes cardEnter {
+  0%   { opacity: 0; transform: translateY(12px) scale(0.985); }
+  100% { opacity: 1; transform: translateY(0)    scale(1);     }
+}
+
+/* Row entrance for tables */
+.users-table tbody tr,
+.print-table tbody tr {
+  animation: rowEnter 0.35s ease-out both;
+}
+.users-table tbody tr:nth-child(1), .print-table tbody tr:nth-child(1) { animation-delay: 0ms; }
+.users-table tbody tr:nth-child(2), .print-table tbody tr:nth-child(2) { animation-delay: 30ms; }
+.users-table tbody tr:nth-child(3), .print-table tbody tr:nth-child(3) { animation-delay: 60ms; }
+.users-table tbody tr:nth-child(4), .print-table tbody tr:nth-child(4) { animation-delay: 90ms; }
+.users-table tbody tr:nth-child(5), .print-table tbody tr:nth-child(5) { animation-delay: 120ms; }
+.users-table tbody tr:nth-child(n+6), .print-table tbody tr:nth-child(n+6) { animation-delay: 140ms; }
+@keyframes rowEnter {
+  0%   { opacity: 0; transform: translateX(-6px); }
+  100% { opacity: 1; transform: translateX(0);    }
+}
+[dir="rtl"] .users-table tbody tr,
+[dir="rtl"] .print-table tbody tr { animation-name: rowEnterRtl; }
+@keyframes rowEnterRtl {
+  0%   { opacity: 0; transform: translateX(6px); }
+  100% { opacity: 1; transform: translateX(0);   }
+}
+
+/* Topbar add button — keep the existing style, just add a gentle shimmer on hover */
+.topbar-add-btn {
+  position: relative;
+  overflow: hidden;
+}
+.topbar-add-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.18) 50%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform 0.6s ease;
+  pointer-events: none;
+}
+.topbar-add-btn:hover::after { transform: translateX(120%); }
+
+/* Sidebar link — crisper hover */
+.sidebar-link {
+  transition: background 0.18s ease, color 0.18s ease, transform 0.12s ease;
+}
+.sidebar-link:hover:not(.active) {
+  transform: translateX(2px);
+}
+[dir="rtl"] .sidebar-link:hover:not(.active) {
+  transform: translateX(-2px);
+}
+
+/* Skeleton loader keyframes (ready to use in the app.js render layer later) */
+.skeleton {
+  background: linear-gradient(90deg,
+      var(--bg-input) 0%,
+      rgba(255,255,255,0.08) 50%,
+      var(--bg-input) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s linear infinite;
+  border-radius: var(--radius-sm);
+  color: transparent;
+  user-select: none;
+}
+[data-theme="light"] .skeleton {
+  background: linear-gradient(90deg,
+      rgba(0,0,0,0.04) 0%,
+      rgba(0,0,0,0.08) 50%,
+      rgba(0,0,0,0.04) 100%);
+  background-size: 200% 100%;
+}
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Toast — punch up the entrance */
+.toast {
+  animation: toastIn 0.35s var(--spring);
+}
+@keyframes toastIn {
+  0%   { opacity: 0; transform: translateY(20px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+/* Modal — replace the existing slideUp with something springier; scoped to not clash */
+.modal-overlay.active .modal,
+.modal-overlay.active .modal-content,
+.modal-overlay.open .modal,
+.modal-overlay.open .modal-content {
+  animation: modalIn 0.45s var(--spring);
+}
+@keyframes modalIn {
+  0%   { opacity: 0; transform: translateY(22px) scale(0.96); }
+  60%  { opacity: 1; transform: translateY(0)    scale(1.005); }
+  100% { opacity: 1; transform: translateY(0)    scale(1);     }
+}
+
+/* Subtle gradient "pulse" around primary CTAs when hovered */
+.btn-primary:hover,
+.users-add-btn:hover,
+.topbar-add-btn:hover {
+  box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4), 0 10px 28px -4px rgba(139, 92, 246, 0.35);
+  animation: ctaPulse 1.6s ease-in-out infinite;
+}
+@keyframes ctaPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.35), 0 10px 28px -4px rgba(139, 92, 246, 0.35); }
+  50%      { box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.18), 0 14px 32px -4px rgba(139, 92, 246, 0.45); }
+}
+
+/* Stronger hover lift on cards across the app */
+.locker-card,
+.zone-card,
+.dept-card,
+.emp-card,
+.home-stat-card {
+  transition: transform 0.25s var(--spring), box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.locker-card:hover,
+.zone-card:hover,
+.dept-card:hover,
+.emp-card:hover,
+.home-stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--lift-shadow);
+}
+
+/* Number counter entrance for home stats */
+.home-stat-value,
+.home-stat-count {
+  animation: countUp 0.6s ease-out both;
+}
+@keyframes countUp {
+  0%   { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0);    }
+}
+
+/* Accessibility: respect "reduce motion" at the OS level */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -6,6 +6,7 @@ db/*.db-wal
 local.db
 local.db-shm
 local.db-wal
+db/backup-*.json
 public/uploads/*
 !public/uploads/.gitkeep
 .vercel

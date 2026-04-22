@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
+const compression = require('compression');
 const { client, ensureTables } = require('./db/schema');
 const { requireAuth, htmlAuthGate } = require('./middleware/auth');
 const { managerOnly, readOnlyForNonManager, makeDepartmentsGuard, makeEmployeesGuard } = require('./middleware/permissions');
@@ -8,6 +9,7 @@ const { managerOnly, readOnlyForNonManager, makeDepartmentsGuard, makeEmployeesG
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());

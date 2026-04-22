@@ -45,20 +45,53 @@ module.exports = function (db) {
 
     // Get single employee with items + covenant details
     router.get('/:id', async (req, res) => {
-        const emp = await db.execute({ sql: 'SELECT e.*, d.name AS department_name FROM employees e LEFT JOIN departments d ON d.id = e.department_id WHERE e.id = ?', args: [req.params.id] });
+        const id = req.params.id;
+        const [emp, items, equipment, history, itemHistRaw, eqHistRaw] = await Promise.all([
+            db.execute({ sql: 'SELECT e.*, d.name AS department_name FROM employees e LEFT JOIN departments d ON d.id = e.department_id WHERE e.id = ?', args: [id] }),
+            db.execute({
+                sql: `SELECT di.*, d.name AS department_name, 'item' AS entity_type FROM department_items di
+                      LEFT JOIN departments d ON d.id = di.department_id
+                      WHERE di.employee_id = ? ORDER BY di.created_at`,
+                args: [id]
+            }),
+            db.execute({
+                sql: `SELECT de.*, d.name AS department_name, 'equipment' AS entity_type FROM department_equipment de
+                      LEFT JOIN departments d ON d.id = de.department_id
+                      WHERE de.employee_id = ? ORDER BY de.created_at`,
+                args: [id]
+            }),
+            db.execute({
+                sql: `SELECT rh.*, d.name AS department_name FROM responsibility_history rh
+                      LEFT JOIN departments d ON d.id = rh.department_id
+                      WHERE rh.employee_id = ? ORDER BY rh.start_date DESC`,
+                args: [id]
+            }),
+            db.execute({
+                sql: `SELECT ch.*, di.name AS item_name, di.image AS item_image, di.qty AS item_qty,
+                             di.department_id AS item_department_id, d.name AS item_department_name,
+                             fe.name AS from_employee_name, te.name AS to_employee_name
+                      FROM covenant_history ch
+                      LEFT JOIN department_items di ON di.id = ch.item_id
+                      LEFT JOIN departments d ON d.id = di.department_id
+                      LEFT JOIN employees fe ON fe.id = ch.from_employee_id
+                      LEFT JOIN employees te ON te.id = ch.to_employee_id
+                      WHERE ch.entity_type = 'item' AND ch.to_employee_id = ? AND ch.status <> 'active'`,
+                args: [id]
+            }),
+            db.execute({
+                sql: `SELECT ch.*, de.name AS item_name, de.image AS item_image, de.qty AS item_qty,
+                             de.department_id AS item_department_id, d.name AS item_department_name,
+                             fe.name AS from_employee_name, te.name AS to_employee_name
+                      FROM covenant_history ch
+                      LEFT JOIN department_equipment de ON de.id = ch.item_id
+                      LEFT JOIN departments d ON d.id = de.department_id
+                      LEFT JOIN employees fe ON fe.id = ch.from_employee_id
+                      LEFT JOIN employees te ON te.id = ch.to_employee_id
+                      WHERE ch.entity_type = 'equipment' AND ch.to_employee_id = ? AND ch.status <> 'active'`,
+                args: [id]
+            }),
+        ]);
         if (emp.rows.length === 0) return res.status(404).json({ error: 'Employee not found' });
-        const items = await db.execute({
-            sql: `SELECT di.*, d.name AS department_name, 'item' AS entity_type FROM department_items di
-                  LEFT JOIN departments d ON d.id = di.department_id
-                  WHERE di.employee_id = ? ORDER BY di.created_at`,
-            args: [req.params.id]
-        });
-        const equipment = await db.execute({
-            sql: `SELECT de.*, d.name AS department_name, 'equipment' AS entity_type FROM department_equipment de
-                  LEFT JOIN departments d ON d.id = de.department_id
-                  WHERE de.employee_id = ? ORDER BY de.created_at`,
-            args: [req.params.id]
-        });
         // Single bulk covenant fetch (avoids N+1)
         const itemIds = items.rows.map(r => r.id);
         const eqIds = equipment.rows.map(r => r.id);
@@ -92,43 +125,11 @@ module.exports = function (db) {
             ...items.rows.map(it => ({ ...it, covenant_history: covByKey['item:' + it.id] || [] })),
             ...equipment.rows.map(eq => ({ ...eq, covenant_history: covByKey['equipment:' + eq.id] || [] }))
         ];
-        const history = await db.execute({
-            sql: `SELECT rh.*, d.name AS department_name FROM responsibility_history rh
-                  LEFT JOIN departments d ON d.id = rh.department_id
-                  WHERE rh.employee_id = ? ORDER BY rh.start_date DESC`,
-            args: [req.params.id]
-        });
-        // Custody history: past (non-active) records where this employee was the recipient — items + equipment
-        const itemHist = await db.execute({
-            sql: `SELECT ch.*, di.name AS item_name, di.image AS item_image, di.qty AS item_qty,
-                         di.department_id AS item_department_id, d.name AS item_department_name,
-                         fe.name AS from_employee_name, te.name AS to_employee_name
-                  FROM covenant_history ch
-                  LEFT JOIN department_items di ON di.id = ch.item_id
-                  LEFT JOIN departments d ON d.id = di.department_id
-                  LEFT JOIN employees fe ON fe.id = ch.from_employee_id
-                  LEFT JOIN employees te ON te.id = ch.to_employee_id
-                  WHERE ch.entity_type = 'item' AND ch.to_employee_id = ? AND ch.status <> 'active'`,
-            args: [req.params.id]
-        });
-        const eqHist = await db.execute({
-            sql: `SELECT ch.*, de.name AS item_name, de.image AS item_image, de.qty AS item_qty,
-                         de.department_id AS item_department_id, d.name AS item_department_name,
-                         fe.name AS from_employee_name, te.name AS to_employee_name
-                  FROM covenant_history ch
-                  LEFT JOIN department_equipment de ON de.id = ch.item_id
-                  LEFT JOIN departments d ON d.id = de.department_id
-                  LEFT JOIN employees fe ON fe.id = ch.from_employee_id
-                  LEFT JOIN employees te ON te.id = ch.to_employee_id
-                  WHERE ch.entity_type = 'equipment' AND ch.to_employee_id = ? AND ch.status <> 'active'`,
-            args: [req.params.id]
-        });
-        const allHist = [...itemHist.rows, ...eqHist.rows].sort((a, b) => {
+        const allHist = [...itemHistRaw.rows, ...eqHistRaw.rows].sort((a, b) => {
             const ad = a.end_date || a.transfer_date || ''; const bd = b.end_date || b.transfer_date || '';
             return bd.localeCompare(ad);
         });
-        const custodyHistory = { rows: allHist };
-        res.json({ ...emp.rows[0], items: itemsWithCovenant, history: history.rows, custody_history: custodyHistory.rows });
+        res.json({ ...emp.rows[0], items: itemsWithCovenant, history: history.rows, custody_history: allHist });
     });
 
     // Create employee

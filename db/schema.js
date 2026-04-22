@@ -7,7 +7,7 @@ const client = createClient({
 
 let initialized = false;
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 async function ensureTables() {
     if (initialized) return;
@@ -236,6 +236,29 @@ async function ensureTables() {
         }));
         await client.batch(stmts, 'write');
     }
+
+    // Indexes on hot columns (additive, safe; IF NOT EXISTS is idempotent).
+    await client.batch([
+        `CREATE INDEX IF NOT EXISTS idx_items_locker_id               ON items(locker_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_warehouse_items_zone_id       ON warehouse_items(zone_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_warehouse_items_area_id       ON warehouse_items(area_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_warehouse_areas_zone_id       ON warehouse_areas(zone_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_department_lockers_locker_id  ON department_lockers(locker_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_employees_department_id       ON employees(department_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_department_items_dept         ON department_items(department_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_department_items_employee     ON department_items(employee_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_department_equipment_dept     ON department_equipment(department_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_department_equipment_employee ON department_equipment(employee_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_covenant_item_entity          ON covenant_history(item_id, entity_type)`,
+        `CREATE INDEX IF NOT EXISTS idx_covenant_to_employee          ON covenant_history(to_employee_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_covenant_from_employee        ON covenant_history(from_employee_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_covenant_to_department        ON covenant_history(to_department_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_covenant_status               ON covenant_history(status)`,
+        `CREATE INDEX IF NOT EXISTS idx_resp_hist_dept                ON responsibility_history(department_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_resp_hist_employee            ON responsibility_history(employee_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_users_username                ON users(username)`,
+        `CREATE INDEX IF NOT EXISTS idx_users_employee_id             ON users(employee_id)`,
+    ], 'write');
 
     await client.execute({ sql: `INSERT OR IGNORE INTO schema_version (version) VALUES (?)`, args: [SCHEMA_VERSION] });
     initialized = true;

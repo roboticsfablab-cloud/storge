@@ -44,45 +44,66 @@ module.exports = function (db) {
 
     // Get department detail
     router.get('/:id', async (req, res) => {
-        const dept = await db.execute({ sql: 'SELECT * FROM departments WHERE id = ?', args: [req.params.id] });
+        const id = req.params.id;
+        const [dept, employees, items, equipment, history, allCov, incomingItems, incomingEquipment] = await Promise.all([
+            db.execute({ sql: 'SELECT * FROM departments WHERE id = ?', args: [id] }),
+            db.execute({ sql: 'SELECT * FROM employees WHERE department_id = ? ORDER BY name', args: [id] }),
+            db.execute({
+                sql: `SELECT di.*, e.name AS employee_name FROM department_items di
+                      LEFT JOIN employees e ON e.id = di.employee_id
+                      WHERE di.department_id = ? ORDER BY di.created_at`,
+                args: [id]
+            }),
+            db.execute({
+                sql: `SELECT de.*, e.name AS employee_name FROM department_equipment de
+                      LEFT JOIN employees e ON e.id = de.employee_id
+                      WHERE de.department_id = ? ORDER BY de.created_at`,
+                args: [id]
+            }),
+            db.execute({
+                sql: `SELECT rh.*, e.name AS employee_name, e.job_title, e.photo AS employee_photo
+                      FROM responsibility_history rh
+                      LEFT JOIN employees e ON e.id = rh.employee_id
+                      WHERE rh.department_id = ? ORDER BY rh.start_date DESC`,
+                args: [id]
+            }),
+            db.execute({
+                sql: `SELECT ch.*, fe.name AS from_employee_name, te.name AS to_employee_name,
+                             td.name AS to_department_name, fd.name AS from_department_name
+                      FROM covenant_history ch
+                      LEFT JOIN employees fe ON fe.id = ch.from_employee_id
+                      LEFT JOIN employees te ON te.id = ch.to_employee_id
+                      LEFT JOIN departments td ON td.id = ch.to_department_id
+                      LEFT JOIN departments fd ON fd.id = ch.from_department_id
+                      WHERE ((ch.entity_type = 'item'      AND ch.item_id IN (SELECT id FROM department_items     WHERE department_id = ?))
+                          OR (ch.entity_type = 'equipment' AND ch.item_id IN (SELECT id FROM department_equipment WHERE department_id = ?)))
+                      ORDER BY ch.transfer_date DESC`,
+                args: [id, id]
+            }),
+            db.execute({
+                sql: `SELECT di.*, ch.id AS transfer_id, ch.start_date, ch.end_date, ch.transfer_date,
+                             ch.condition, ch.condition_notes, ch.notes,
+                             fd.id AS source_dept_id, fd.name AS source_dept_name
+                      FROM covenant_history ch
+                      JOIN department_items di ON di.id = ch.item_id
+                      LEFT JOIN departments fd ON fd.id = di.department_id
+                      WHERE ch.entity_type = 'item' AND ch.status = 'active'
+                        AND ch.to_department_id = ? AND di.department_id <> ?`,
+                args: [id, id]
+            }),
+            db.execute({
+                sql: `SELECT de.*, ch.id AS transfer_id, ch.start_date, ch.end_date, ch.transfer_date,
+                             ch.condition, ch.condition_notes, ch.notes,
+                             fd.id AS source_dept_id, fd.name AS source_dept_name
+                      FROM covenant_history ch
+                      JOIN department_equipment de ON de.id = ch.item_id
+                      LEFT JOIN departments fd ON fd.id = de.department_id
+                      WHERE ch.entity_type = 'equipment' AND ch.status = 'active'
+                        AND ch.to_department_id = ? AND de.department_id <> ?`,
+                args: [id, id]
+            }),
+        ]);
         if (dept.rows.length === 0) return res.status(404).json({ error: 'Department not found' });
-        const employees = await db.execute({
-            sql: 'SELECT * FROM employees WHERE department_id = ? ORDER BY name',
-            args: [req.params.id]
-        });
-        const items = await db.execute({
-            sql: `SELECT di.*, e.name AS employee_name FROM department_items di
-                  LEFT JOIN employees e ON e.id = di.employee_id
-                  WHERE di.department_id = ? ORDER BY di.created_at`,
-            args: [req.params.id]
-        });
-        const equipment = await db.execute({
-            sql: `SELECT de.*, e.name AS employee_name FROM department_equipment de
-                  LEFT JOIN employees e ON e.id = de.employee_id
-                  WHERE de.department_id = ? ORDER BY de.created_at`,
-            args: [req.params.id]
-        });
-        const history = await db.execute({
-            sql: `SELECT rh.*, e.name AS employee_name, e.job_title, e.photo AS employee_photo
-                  FROM responsibility_history rh
-                  LEFT JOIN employees e ON e.id = rh.employee_id
-                  WHERE rh.department_id = ? ORDER BY rh.start_date DESC`,
-            args: [req.params.id]
-        });
-        // Single bulk query for covenant history (avoids N+1)
-        const allCov = await db.execute({
-            sql: `SELECT ch.*, fe.name AS from_employee_name, te.name AS to_employee_name,
-                         td.name AS to_department_name, fd.name AS from_department_name
-                  FROM covenant_history ch
-                  LEFT JOIN employees fe ON fe.id = ch.from_employee_id
-                  LEFT JOIN employees te ON te.id = ch.to_employee_id
-                  LEFT JOIN departments td ON td.id = ch.to_department_id
-                  LEFT JOIN departments fd ON fd.id = ch.from_department_id
-                  WHERE ((ch.entity_type = 'item'      AND ch.item_id IN (SELECT id FROM department_items     WHERE department_id = ?))
-                      OR (ch.entity_type = 'equipment' AND ch.item_id IN (SELECT id FROM department_equipment WHERE department_id = ?)))
-                  ORDER BY ch.transfer_date DESC`,
-            args: [req.params.id, req.params.id]
-        });
         const covByKey = {};
         for (const row of allCov.rows) {
             const key = row.entity_type + ':' + row.item_id;
@@ -90,29 +111,6 @@ module.exports = function (db) {
         }
         const itemsWithCovenant = items.rows.map(it => ({ ...it, covenant_history: covByKey['item:' + it.id] || [] }));
         const equipmentWithCovenant = equipment.rows.map(eq => ({ ...eq, covenant_history: covByKey['equipment:' + eq.id] || [] }));
-        // Incoming items (from other departments under this dept's temporary custody)
-        const incomingItems = await db.execute({
-            sql: `SELECT di.*, ch.id AS transfer_id, ch.start_date, ch.end_date, ch.transfer_date,
-                         ch.condition, ch.condition_notes, ch.notes,
-                         fd.id AS source_dept_id, fd.name AS source_dept_name
-                  FROM covenant_history ch
-                  JOIN department_items di ON di.id = ch.item_id
-                  LEFT JOIN departments fd ON fd.id = di.department_id
-                  WHERE ch.entity_type = 'item' AND ch.status = 'active'
-                    AND ch.to_department_id = ? AND di.department_id <> ?`,
-            args: [req.params.id, req.params.id]
-        });
-        const incomingEquipment = await db.execute({
-            sql: `SELECT de.*, ch.id AS transfer_id, ch.start_date, ch.end_date, ch.transfer_date,
-                         ch.condition, ch.condition_notes, ch.notes,
-                         fd.id AS source_dept_id, fd.name AS source_dept_name
-                  FROM covenant_history ch
-                  JOIN department_equipment de ON de.id = ch.item_id
-                  LEFT JOIN departments fd ON fd.id = de.department_id
-                  WHERE ch.entity_type = 'equipment' AND ch.status = 'active'
-                    AND ch.to_department_id = ? AND de.department_id <> ?`,
-            args: [req.params.id, req.params.id]
-        });
         res.json({
             ...dept.rows[0],
             employees: employees.rows,
